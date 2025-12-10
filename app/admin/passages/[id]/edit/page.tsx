@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 
 export default function EditPassage() {
   const { id } = useParams();
-  const [checkpoints, setCheckpoints] = useState([]);
+  const [checkpoints, setCheckpoints] = useState<any[]>([]);
   const [newPoint, setNewPoint] = useState("");
   const [newParagraph, setNewParagraph] = useState(1);
 
