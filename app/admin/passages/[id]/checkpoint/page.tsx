@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 
 export default function StudentCheckpointPage() {
   const { id: passageId } = useParams();
-  const [checkpoints, setCheckpoints] = useState([]);
+  const [checkpoints, setCheckpoints] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, { answer: string; reason: string }>>({});
 
