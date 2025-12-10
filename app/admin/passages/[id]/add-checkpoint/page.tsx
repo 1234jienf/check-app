@@ -114,7 +114,7 @@ function AddCheckpointContent() {
             }}
             className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            {paragraphs.map((_, idx) => (
+            {paragraphs.map((_: string, idx: number) => (
               <option key={idx} value={idx + 1}>
                 {idx + 1}문단
               </option>
@@ -132,7 +132,7 @@ function AddCheckpointContent() {
               onMouseUp={handleTextSelect}
               style={{ userSelect: "text" }}
             >
-              {paragraphs[paragraphNum - 1].split("\n").map((line, idx) => (
+              {paragraphs[paragraphNum - 1].split("\n").map((line: string, idx: number) => (
                 <p key={idx} className="mb-2 text-gray-700">
                   {line}
                 </p>

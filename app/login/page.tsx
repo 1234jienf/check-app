@@ -121,73 +121,10 @@ export default function LoginPage() {
     if (profile.role === "teacher") {
       router.push("/admin");
     } else {
-      router.push("/categories");
+      router.push("/student");
     }
   };
 
-  const handleTestLogin = async (role: "teacher" | "student") => {
-    setLoading(true);
-    setErrorMsg("");
-    
-    // 테스트 계정 정보 (실제 계정이 있어야 함)
-    const testAccounts = {
-      teacher: { email: "teacher@test.com", password: "test1234" },
-      student: { email: "student@test.com", password: "test1234" },
-    };
-
-    const testAccount = testAccounts[role];
-    setEmail(testAccount.email);
-    setPassword(testAccount.password);
-
-    const { data: loginData, error } = await supabase.auth.signInWithPassword({
-      email: testAccount.email,
-      password: testAccount.password,
-    });
-
-    if (error) {
-      setErrorMsg(`테스트 로그인 실패: ${error.message}`);
-      setLoading(false);
-      return;
-    }
-
-    const user = loginData.user;
-    
-    // users 테이블에서 프로필 정보 가져오기 (RLS 정책 문제 대비)
-    let profile: any = null;
-    
-    const { data: profileData, error: profileErr } = await supabase
-      .from("users")
-      .select("role, approved")
-      .eq("id", user.id)
-      .single();
-
-    if (profileErr) {
-      // 406 에러인 경우 대안 방법 시도
-      if (profileErr.code === "PGRST116" || profileErr.message?.includes("406")) {
-        const { data: altProfileData } = await supabase
-          .from("users")
-          .select("role, approved")
-          .in("id", [user.id])
-          .maybeSingle();
-        
-        profile = altProfileData;
-      }
-    } else {
-      profile = profileData;
-    }
-
-    if (profile && profile.approved) {
-      setLoading(false);
-      if (profile.role === "teacher") {
-        router.push("/admin");
-      } else {
-        router.push("/categories");
-      }
-    } else {
-      setErrorMsg(profile ? "테스트 계정이 승인되지 않았습니다." : "사용자 정보를 불러올 수 없습니다.");
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6">
@@ -244,29 +181,6 @@ export default function LoginPage() {
             >
               {loading ? "로그인 중..." : "로그인"}
             </button>
-
-            <div className="flex items-center gap-2 my-4">
-              <div className="flex-1 h-px bg-gray-300"></div>
-              <span className="text-xs text-gray-500">또는</span>
-              <div className="flex-1 h-px bg-gray-300"></div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => handleTestLogin("student")}
-                disabled={loading}
-                className="px-4 py-2 border-2 border-blue-500 text-blue-600 rounded-xl font-medium hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                학생 테스트
-              </button>
-              <button
-                onClick={() => handleTestLogin("teacher")}
-                disabled={loading}
-                className="px-4 py-2 border-2 border-indigo-500 text-indigo-600 rounded-xl font-medium hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                선생 테스트
-              </button>
-            </div>
 
             <button
               onClick={() => router.push("/signup")}
