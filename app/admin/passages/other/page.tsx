@@ -1,0 +1,319 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import Link from "next/link";
+
+export default function OtherPassageList() {
+  const [passages, setPassages] = useState<any[]>([]);
+  const [filteredPassages, setFilteredPassages] = useState<any[]>([]);
+  
+  const [selectedLiteraryType, setSelectedLiteraryType] = useState<string>("all");
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  
+  // 토글 상태
+  const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from("passages")
+        .select("*")
+        .eq("category", "기타")
+        .order("year", { ascending: false })
+        .order("created_at", { ascending: false });
+      setPassages(data || []);
+      
+      if (data && data.length > 0) {
+        const years = Array.from(new Set(data.map((p: any) => p.year).filter(Boolean))) as number[];
+        setExpandedYears(new Set(years));
+      }
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+    let filtered = [...passages];
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter((p) => {
+        const titleMatch = p.title?.toLowerCase().includes(query) || false;
+        const sourceMatch = p.source?.toLowerCase().includes(query) || false;
+        return titleMatch || sourceMatch;
+      });
+    }
+
+    if (selectedLiteraryType !== "all") {
+      filtered = filtered.filter((p) => p.literary_type === selectedLiteraryType);
+    }
+
+    if (selectedSubCategory !== "all") {
+      filtered = filtered.filter((p) => p.sub_category === selectedSubCategory);
+    }
+
+    setFilteredPassages(filtered);
+  }, [passages, selectedLiteraryType, selectedSubCategory, searchQuery]);
+  
+  const groupedPassages = filteredPassages.reduce((acc: any, passage: any) => {
+    const year = passage.year || 0;
+    
+    if (!acc[year]) acc[year] = [];
+    acc[year].push(passage);
+    return acc;
+  }, {});
+  
+  const years = Object.keys(groupedPassages)
+    .map(Number)
+    .sort((a, b) => b - a);
+
+  const toggleYear = (year: number) => {
+    setExpandedYears(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(year)) {
+        newSet.delete(year);
+      } else {
+        newSet.add(year);
+      }
+      return newSet;
+    });
+  };
+
+  const nonLiteraryCategories = ["인문", "사회", "과학", "기술", "예술", "복합", "독서"];
+  const literaryCategories = ["현대시", "고전시가", "현대소설", "고전소설", "고전수필", "수필", "희곡"];
+
+  const getSubCategoryOptions = () => {
+    if (selectedLiteraryType === "비문학") {
+      return nonLiteraryCategories;
+    } else if (selectedLiteraryType === "문학") {
+      return literaryCategories;
+    }
+    return [...nonLiteraryCategories, ...literaryCategories];
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 p-6 md:p-10">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <Link 
+            href="/admin/passages" 
+            className="inline-flex items-center text-gray-600 hover:text-gray-700 mb-4 transition-colors"
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            지문 관리로 돌아가기
+          </Link>
+          <div className="flex items-center justify-between">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-600 to-slate-600 bg-clip-text text-transparent">
+              기타
+            </h1>
+            <Link
+              href="/admin/passages/new/other"
+              className="group relative inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gray-600 to-slate-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 overflow-hidden"
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                <svg 
+                  className="w-5 h-5 drop-shadow-lg" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                새 지문 추가
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-600 to-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+            </Link>
+          </div>
+        </div>
+
+        <div className="mb-6 space-y-4">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-gray-400 to-slate-400 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+            <div className="relative bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 shadow-xl">
+              <div className="flex items-center gap-3">
+                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="제목 또는 출처로 검색"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-lg"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">문학/비문학</label>
+                <select
+                  value={selectedLiteraryType}
+                  onChange={(e) => {
+                    setSelectedLiteraryType(e.target.value);
+                    setSelectedSubCategory("all");
+                  }}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white hover:border-gray-300 focus:border-gray-500 focus:ring-2 focus:ring-gray-200 transition-all shadow-sm"
+                >
+                  <option value="all">전체</option>
+                  <option value="비문학">비문학</option>
+                  <option value="문학">문학</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">세부 카테고리</label>
+                <select
+                  value={selectedSubCategory}
+                  onChange={(e) => setSelectedSubCategory(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white hover:border-orange-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all shadow-sm disabled:bg-gray-50 disabled:text-gray-400"
+                  disabled={selectedLiteraryType === "all"}
+                >
+                  <option value="all">전체</option>
+                  {getSubCategoryOptions().map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div className="text-lg font-semibold text-gray-700">
+              총 <span className="text-gray-600">{filteredPassages.length}</span>개의 지문
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {years.map((year) => {
+            const yearPassages = groupedPassages[year];
+            const isYearExpanded = expandedYears.has(year);
+            
+            return (
+              <div key={year} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl overflow-hidden">
+                <button
+                  onClick={() => toggleYear(year)}
+                  className="w-full px-6 py-4 bg-gradient-to-r from-gray-600 to-slate-600 text-white flex items-center justify-between hover:from-gray-700 hover:to-slate-700 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <svg 
+                      className={`w-5 h-5 transition-transform duration-200 ${isYearExpanded ? 'rotate-90' : ''}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span className="text-xl font-bold">{year}년</span>
+                    <span className="text-sm opacity-90">
+                      ({yearPassages.length}개)
+                    </span>
+                  </div>
+                </button>
+                
+                {isYearExpanded && (
+                  <div className="p-4 bg-white">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {yearPassages.map((p: any) => (
+                        <Link
+                          key={p.id}
+                          href={`/admin/passages/${p.id}`}
+                          className="group relative bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-5 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300 transform hover:-translate-y-1 overflow-hidden"
+                        >
+                                    <div className="absolute inset-0 bg-gradient-to-br from-gray-50/50 to-slate-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          
+                          <div className="relative z-10">
+                            <h2 className="text-lg font-bold mb-3 text-gray-900 group-hover:text-gray-600 transition-colors line-clamp-2">
+                              {p.title || "(제목 없음)"}
+                            </h2>
+                            
+                            <div className="flex flex-wrap items-center gap-2 mb-3">
+                              {p.literary_type && (
+                                <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                                  {p.literary_type}
+                                </span>
+                              )}
+                              {p.sub_category && (
+                                <span className="inline-flex items-center px-2.5 py-1 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-xs font-medium">
+                                  {p.sub_category.split(",").join(", ")}
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-1.5 text-xs text-gray-600">
+                              {p.source && (
+                                <div className="flex items-start gap-2">
+                                  <svg className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  <span className="line-clamp-1">{p.source}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform group-hover:translate-x-1">
+                              <svg 
+                                className="w-4 h-4 text-gray-500 drop-shadow-md"
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {filteredPassages.length === 0 && (
+          <div className="text-center py-20">
+            <div className="inline-block p-8 bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl">
+              <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-lg font-semibold text-gray-700 mb-2">조건에 맞는 지문이 없습니다</p>
+              <p className="text-sm text-gray-500 mb-6">검색어나 필터를 변경해보세요</p>
+              <Link
+                href="/admin/passages/new/other"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gray-600 to-slate-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                새 지문 추가하기
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

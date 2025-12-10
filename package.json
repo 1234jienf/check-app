@@ -6,10 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "install-python-deps": "python3 -m pip install PyMuPDF || python -m pip install PyMuPDF || echo 'Python이 설치되어 있지 않거나 pip를 찾을 수 없습니다. 수동으로 설치해주세요: pip install PyMuPDF'"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.87.0",
     "next": "16.0.8",
+    "pdf-parse": "^2.4.5",
     "react": "19.2.1",
     "react-dom": "19.2.1"
   },
