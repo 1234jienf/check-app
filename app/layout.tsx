@@ -14,13 +14,36 @@ const geistMono = Geist_Mono({
 
 
 export const metadata: Metadata = {
-  title: "CHECK APP",
+  title: "백지훈 수능 - 국어 강의 학습",
+  description: "수능 국어 강의 학습 및 관리 시스템",
+  manifest: "/manifest.json",
+  themeColor: "#2563eb",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "백지훈 수능",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body>
+      <body className={geistSans.variable}>
         {children}
       </body>
     </html>
