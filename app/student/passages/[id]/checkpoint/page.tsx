@@ -329,7 +329,7 @@ export default function StudentCheckpointPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-6 lg:p-10">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <Link
@@ -373,15 +373,15 @@ export default function StudentCheckpointPage() {
               const comments = submission ? teacherComments[submission.id] || [] : [];
 
               return (
-                <div key={index} className="mb-8 bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-xl">
+                <div key={index} className="mb-8 bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 md:p-6 shadow-xl">
                   <h3 className="text-lg font-semibold mb-4 pb-3 border-b-2 border-gray-200 text-gray-900">
                     {paragraphNum}문단
                   </h3>
 
                   {/* 문단 내용 */}
                   <div className="mb-6 p-4 bg-gray-50 rounded-xl border-l-4 border-blue-400 relative">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1">
+                    <div className="flex flex-col md:flex-row items-start gap-3">
+                      <div className="flex-1 w-full">
                         <ParagraphWithHighlights
                           paragraph={paragraph}
                           checkpoints={teacherCheckpoints[paragraphNum] || []}
@@ -390,13 +390,13 @@ export default function StudentCheckpointPage() {
                       </div>
                       {/* 문단 옆 체크포인트 목록 */}
                       {teacherCheckpoints[paragraphNum] && teacherCheckpoints[paragraphNum].length > 0 && (
-                        <div className="flex-shrink-0">
-                          <div className="flex flex-col gap-2">
+                        <div className="flex-shrink-0 w-full md:w-auto">
+                          <div className="flex flex-row md:flex-col gap-2 flex-wrap">
                             {teacherCheckpoints[paragraphNum].map((cp: any, idx: number) => (
                               <button
                                 key={cp.id}
                                 onClick={() => setSelectedCheckpoint(cp)}
-                                className="px-3 py-1.5 bg-yellow-100 border border-yellow-300 rounded-lg text-xs font-medium text-yellow-800 hover:bg-yellow-200 transition-colors cursor-pointer"
+                                className="px-3 py-1.5 bg-yellow-100 border border-yellow-300 rounded-lg text-xs font-medium text-yellow-800 hover:bg-yellow-200 transition-colors cursor-pointer whitespace-nowrap"
                                 title={cp.text}
                               >
                                 체크 {idx + 1}

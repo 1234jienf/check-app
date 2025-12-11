@@ -90,24 +90,24 @@ export default function PassageResults() {
   };
 
   return (
-    <div className="p-10 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-5">학생 제출 현황</h1>
-      {passage && <h2 className="text-lg text-gray-700 mb-6">{passage.title}</h2>}
+    <div className="p-4 md:p-6 lg:p-10 max-w-7xl mx-auto">
+      <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-5">학생 제출 현황</h1>
+      {passage && <h2 className="text-base md:text-lg text-gray-700 mb-4 md:mb-6">{passage.title}</h2>}
 
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
         {/* 왼쪽: 학생 목록 */}
-        <div className="w-80 flex-shrink-0">
+        <div className="w-full lg:w-80 flex-shrink-0">
           {results.length === 0 ? (
             <div className="p-4 bg-yellow-50 rounded text-yellow-700">
               아직 제출한 학생이 없습니다.
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible">
               {Object.values(byStudent).map((s: any) => (
                 <button
                   key={s.student_id}
                   onClick={() => handleStudentClick(s.student_id, s.name)}
-                  className={`border p-4 rounded text-left hover:bg-gray-50 transition-colors ${
+                  className={`border p-3 md:p-4 rounded text-left hover:bg-gray-50 transition-colors whitespace-nowrap lg:whitespace-normal ${
                     selectedStudentId === s.student_id
                       ? "bg-blue-50 border-blue-400 border-2"
                       : ""
@@ -124,10 +124,10 @@ export default function PassageResults() {
         </div>
 
         {/* 오른쪽: 학생별로 답변 보기 */}
-        <div className="flex-1">
+        <div className="flex-1 w-full">
           {paragraphs.length > 0 ? (
-            <div className="space-y-6">
-              <h3 className="text-xl font-semibold mb-4">모든 학생 답변</h3>
+            <div className="space-y-4 md:space-y-6">
+              <h3 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">모든 학생 답변</h3>
 
               {/* 학생별로 카드 형태로 표시 */}
               {Object.values(byStudent).map((student: any) => {
@@ -136,7 +136,7 @@ export default function PassageResults() {
                 );
 
                 return (
-                  <div key={student.student_id} className="border rounded-lg p-6 bg-white shadow-sm">
+                  <div key={student.student_id} className="border rounded-lg p-4 md:p-6 bg-white shadow-sm">
                     <h4 className="text-lg font-bold mb-4 pb-2 border-b-2 border-blue-200">
                       {student.name} 님
                     </h4>

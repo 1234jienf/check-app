@@ -243,27 +243,27 @@ export default function AdminPassageDetail() {
     : [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-6 lg:p-10">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
             {passage.title || "(제목 없음)"}
           </h1>
         </div>
 
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           {/* 왼쪽: 지문 내용 및 체크포인트 관리 */}
-          <div className="flex-1">
-            <div className="flex gap-3 mb-6">
+          <div className="flex-1 w-full">
+            <div className="flex flex-wrap gap-2 md:gap-3 mb-4 md:mb-6">
               <Link
                 href={`/admin/passages/${id}/edit-metadata`}
-                className="px-4 py-2 border-2 border-blue-500 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+                className="px-3 md:px-4 py-2 text-sm md:text-base border-2 border-blue-500 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
               >
                 지문 정보 수정
               </Link>
               <Link
                 href={`/admin/passages/${id}/edit-content`}
-                className="px-4 py-2 border-2 border-gray-400 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                className="px-3 md:px-4 py-2 text-sm md:text-base border-2 border-gray-400 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors"
               >
                 지문 내용 수정
               </Link>
@@ -313,7 +313,7 @@ export default function AdminPassageDetail() {
                   alert("삭제 중 오류가 발생했습니다: " + (error.message || "알 수 없는 오류"));
                 }
               }}
-                className="px-4 py-2 border-2 border-red-500 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors"
+                className="px-3 md:px-4 py-2 text-sm md:text-base border-2 border-red-500 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors"
               >
                 지문 삭제
               </button>
@@ -321,7 +321,7 @@ export default function AdminPassageDetail() {
 
           {/* 지문 내용 미리보기 - 문단별로 표시 */}
           {passage.content && (
-            <div className="mb-6 bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-xl">
+            <div className="mb-4 md:mb-6 bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 md:p-6 shadow-xl">
               <h3 className="font-semibold mb-4 text-lg text-gray-900">지문 내용 (문단별)</h3>
               <div className="space-y-4">
                 {paragraphs.map((paragraph: string, idx: number) => (
@@ -367,14 +367,14 @@ export default function AdminPassageDetail() {
           </div>
 
           {/* 오른쪽: 학생 제출 현황 */}
-          <div className="w-96 flex-shrink-0">
-          <div className="sticky top-4">
-            <h2 className="text-2xl font-bold mb-6 pb-3 border-b-2 border-gray-200">학생 제출 현황</h2>
+          <div className="w-full lg:w-96 flex-shrink-0">
+          <div className="lg:sticky lg:top-4">
+            <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 pb-3 border-b-2 border-gray-200">학생 제출 현황</h2>
 
             {Object.keys(byStudent).length > 0 ? (
-              <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+              <div className="space-y-4 max-h-[600px] lg:max-h-[calc(100vh-200px)] overflow-y-auto">
                 {Object.entries(byStudent).map(([userId, studentData]: [string, any]) => (
-                  <div key={userId} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300">
+                  <div key={userId} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 md:p-5 shadow-xl hover:shadow-2xl transition-all duration-300">
                     <h3 className="text-lg font-bold mb-4 pb-3 border-b-2 border-gray-200 text-gray-900">
                       {studentData.name} 님 ({studentData.submissions.length}개 제출)
                     </h3>

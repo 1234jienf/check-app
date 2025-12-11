@@ -84,11 +84,11 @@ function AddCheckpointContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-6 lg:p-10">
       <div className="max-w-4xl mx-auto">
         <Link
           href={`/admin/passages/${passageId}`}
-          className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 transition-colors"
+          className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4 md:mb-6 transition-colors text-sm md:text-base"
         >
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -96,7 +96,7 @@ function AddCheckpointContent() {
           지문 상세로 돌아가기
         </Link>
 
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4 md:mb-6">
           체크포인트 추가
         </h1>
 

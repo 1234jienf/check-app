@@ -66,13 +66,13 @@ export default function StudentDetail() {
     : [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-6 lg:p-10">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
           학생 답변 상세
         </h1>
         {passage && (
-          <h2 className="text-2xl font-semibold mb-6 text-gray-800">{passage.title}</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6 text-gray-800">{passage.title}</h2>
         )}
 
       {paragraphs.length > 0 ? (
@@ -87,7 +87,7 @@ export default function StudentDetail() {
             );
 
             return (
-              <div key={idx} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-xl mb-6 hover:shadow-2xl transition-all duration-300">
+              <div key={idx} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 md:p-6 shadow-xl mb-4 md:mb-6 hover:shadow-2xl transition-all duration-300">
                 <h3 className="text-lg font-bold mb-4 pb-3 border-b-2 border-gray-200 text-gray-900">
                   {paragraphNum}문단
                 </h3>
