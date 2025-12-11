@@ -125,43 +125,66 @@ export default function NewLEETPage() {
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
 
+  const categoryColor = '#FD8973';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-violet-50 p-6 md:p-10">
+    <div className="min-h-screen p-6 md:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <Link 
             href="/admin/passages" 
-            className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-4 transition-colors"
+            className="inline-flex items-center mb-4 transition-colors"
+            style={{ color: categoryColor }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#13181B'}
+            onMouseLeave={(e) => e.currentTarget.style.color = categoryColor}
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             지문 관리로 돌아가기
           </Link>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">
-            LEET 지문 등록
-          </h1>
-          <p className="text-gray-600 mt-2">LEET 언어이해/추리논증 지문을 등록합니다.</p>
+          <div className="flex items-center gap-3 mb-2">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: categoryColor }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <h1 className="text-4xl font-bold relative inline-block pb-2" style={{ color: categoryColor }}>
+              LEET 지문 등록
+              <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, ' + categoryColor + ' 0%, ' + categoryColor + ' 50%, transparent 100%)', borderRadius: '2px' }}></span>
+            </h1>
+          </div>
+          <p style={{ color: '#13181B', opacity: 0.8 }}>LEET 언어이해/추리논증 지문을 등록합니다.</p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl space-y-6">
+        <div className="border-2 rounded-2xl p-8 space-y-6" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">연도 *</label>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>연도 *</label>
               <input
                 type="number"
                 value={year}
                 onChange={(e) => setYear(parseInt(e.target.value))}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all shadow-sm"
+                className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = categoryColor;
+                  e.currentTarget.style.outline = 'none';
+                }}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">영역 *</label>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>영역 *</label>
               <select
                 value={leetType}
                 onChange={(e) => setLeetType(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all shadow-sm"
+                className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = categoryColor;
+                  e.currentTarget.style.outline = 'none';
+                }}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
               >
                 <option value="">선택하세요</option>
                 <option value="추리논증">추리논증</option>
@@ -170,27 +193,45 @@ export default function NewLEETPage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">출처 *</label>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>출처 *</label>
               <input
                 placeholder="예: 2026학년도 LEET 언어이해"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all shadow-sm"
+                className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = categoryColor;
+                  e.currentTarget.style.outline = 'none';
+                }}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
               />
+              <style jsx>{`
+                input::placeholder {
+                  color: #13181B;
+                  opacity: 0.7;
+                }
+              `}</style>
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">지문 제목</label>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>지문 제목</label>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all shadow-sm"
+                className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = categoryColor;
+                  e.currentTarget.style.outline = 'none';
+                }}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">지문 내용 *</label>
+            <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>지문 내용 *</label>
             
             <div className="mb-3 flex items-center gap-3 flex-wrap">
               <input
@@ -214,17 +255,32 @@ export default function NewLEETPage() {
               />
               <label
                 htmlFor="txtFile"
-                className="inline-block px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg cursor-pointer text-sm transition-colors"
+                className="inline-block px-4 py-2 border-2 rounded-lg cursor-pointer text-sm transition-all"
+                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = categoryColor;
+                  e.currentTarget.style.backgroundColor = '#CCD5DA';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#CCD5DA';
+                  e.currentTarget.style.backgroundColor = '#F0EEEB';
+                }}
               >
                 📄 TXT 파일 업로드
               </label>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
                 HWP는 한글에서 텍스트 복사 후 붙여넣기
               </span>
             </div>
 
             <textarea
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 h-64 text-sm bg-white hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all shadow-sm resize-none"
+              className="w-full border-2 rounded-xl px-4 py-3 h-64 text-sm transition-all resize-none"
+              style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = categoryColor;
+                e.currentTarget.style.outline = 'none';
+              }}
+              onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
               placeholder="지문을 붙여넣으세요. 문장 끝 + 줄바꿈 + 들여쓰기 패턴이 자동으로 문단 구분으로 인식됩니다."
               value={content}
               onChange={(e) => {
@@ -236,50 +292,85 @@ export default function NewLEETPage() {
                 }
               }}
             />
-            <p className="text-xs text-gray-500 mt-2">
+            <style jsx>{`
+              textarea::placeholder {
+                color: #13181B;
+                opacity: 0.7;
+              }
+            `}</style>
+            <p className="text-xs mt-2" style={{ color: '#13181B', opacity: 0.7 }}>
               문단 자동 인식: 문장 끝(마침표 등) + 줄바꿈 + 들여쓰기가 있으면 자동으로 문단이 구분됩니다.
             </p>
           </div>
 
           {showPreview && content && (
-            <div data-preview className="border-2 border-purple-500 rounded-xl p-6 bg-purple-50 shadow-lg">
+            <div data-preview className="border-2 rounded-xl p-6" style={{ backgroundColor: '#CCD5DA', borderColor: categoryColor }}>
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h3 className="text-xl font-bold text-purple-700">✅ 파싱 결과 미리보기</h3>
-                  <p className="text-sm text-gray-600 mt-1">파싱이 완료되었습니다.</p>
+                  <h3 className="text-xl font-bold mb-1" style={{ color: '#13181B' }}>✅ 파싱 결과 미리보기</h3>
+                  <p className="text-sm mt-1" style={{ color: '#13181B', opacity: 0.8 }}>파싱이 완료되었습니다. 아래 내용을 확인하세요.</p>
                 </div>
                 <button
                   onClick={() => setShowPreview(false)}
-                  className="text-gray-500 hover:text-gray-700 text-xl"
+                  className="text-xl transition-colors"
+                  style={{ color: '#13181B', opacity: 0.7 }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
                 >
                   ✕
                 </button>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">제목:</label>
-                  <p className="mt-1">{title || "(자동 추출 실패)"}</p>
+                  <label className="text-sm font-medium" style={{ color: '#13181B' }}>제목:</label>
+                  <p className="mt-1" style={{ color: '#13181B', opacity: 0.8 }}>{title || "(자동 추출 실패)"}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">출처:</label>
-                  <p className="mt-1">{source || "(자동 추출 실패)"}</p>
+                  <label className="text-sm font-medium" style={{ color: '#13181B' }}>출처:</label>
+                  <p className="mt-1" style={{ color: '#13181B', opacity: 0.8 }}>{source || "(자동 추출 실패)"}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    문단 개수: <span className="font-bold text-purple-600">{paragraphs.length}개</span>
+                  <label className="text-sm font-medium" style={{ color: '#13181B' }}>
+                    문단 개수: <span className="font-bold" style={{ color: categoryColor }}>{paragraphs.length}개</span>
                   </label>
+                  <div className="mt-2 max-h-96 overflow-y-auto border-2 rounded-xl p-4" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+                    {paragraphs.length > 0 ? (
+                      <div className="space-y-4">
+                        {paragraphs.map((para, idx) => (
+                          <div key={idx} className="p-3 border-l-4 rounded-lg" style={{ backgroundColor: '#F0EEEB', borderLeftColor: categoryColor }}>
+                            <div className="text-xs font-semibold mb-2" style={{ color: categoryColor }}>{idx + 1}문단</div>
+                            <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: '#13181B' }}>{para}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm" style={{ color: '#13181B', opacity: 0.7 }}>문단이 자동으로 구분되지 않았습니다.</p>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => setShowPreview(false)}
-                  className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg text-sm transition-colors"
+                  className="px-4 py-2 border-2 rounded-lg text-sm transition-all"
+                  style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#CCD5DA';
+                    e.currentTarget.style.borderColor = '#13181B';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#F0EEEB';
+                    e.currentTarget.style.borderColor = '#CCD5DA';
+                  }}
                 >
                   수정하기
                 </button>
                 <button
                   onClick={createPassage}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transition-all"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                  style={{ backgroundColor: categoryColor, color: '#13181B' }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                 >
                   이대로 저장하기
                 </button>
@@ -290,7 +381,14 @@ export default function NewLEETPage() {
           {!showPreview && (
             <button
               onClick={createPassage}
-              className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+              className="w-full px-6 py-3 rounded-xl font-semibold shadow-lg transform hover:scale-[1.02] transition-all duration-200"
+              style={{ backgroundColor: categoryColor, color: '#13181B' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 10px 30px rgba(253, 137, 115, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(253, 137, 115, 0.2)';
+              }}
             >
               지문 등록하기
             </button>

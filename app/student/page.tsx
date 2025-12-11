@@ -4,58 +4,138 @@ import Link from "next/link";
 
 export default function StudentPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-10">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-            자료 선택
-          </h1>
-          <p className="text-gray-600">학습할 지문 카테고리를 선택하세요</p>
+    <div className="min-h-screen p-6 md:p-10" style={{ backgroundColor: '#F0EEEB' }}>
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <img src="/pawn_black.svg" alt="Pawn" className="w-10 h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
+            <h1 className="text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
+              자료 선택
+              <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+            </h1>
+          </div>
+          <p style={{ color: '#13181B', opacity: 0.8 }}>학습할 지문 카테고리를 선택하세요</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Link
-            href="/student/passages/gichul"
-            className="group bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 text-center"
+            href="/student/passages/ebs"
+            className="group relative border-2 p-6 transition-all duration-200"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#003A6C';
+              e.currentTarget.style.backgroundColor = '#CCD5DA';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#13181B';
+              e.currentTarget.style.backgroundColor = '#F0EEEB';
+            }}
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-shadow">
-              <span className="text-3xl">📚</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8" style={{ filter: 'brightness(0) saturate(100%) invert(15%) sepia(95%) saturate(2000%) hue-rotate(195deg) brightness(0.3) contrast(1.2)' }} />
+                <div>
+                  <h2 className="text-2xl font-bold mb-1 relative inline-block pb-1" style={{ color: '#003A6C' }}>
+                    EBS
+                    <span className="absolute bottom-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(to right, #003A6C 0%, #003A6C 50%, transparent 100%)', borderRadius: '2px' }}></span>
+                  </h2>
+                  <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>수능특강/수능완성 지문</p>
+                </div>
+              </div>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#003A6C' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">평가원 기출</h2>
-            <p className="text-sm text-gray-600">수능 기출 문제 지문</p>
           </Link>
 
           <Link
-            href="/student/passages/ebs"
-            className="group bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 text-center"
+            href="/student/passages/gichul"
+            className="group relative border-2 p-6 transition-all duration-200"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#FFBF65';
+              e.currentTarget.style.backgroundColor = '#CCD5DA';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#13181B';
+              e.currentTarget.style.backgroundColor = '#F0EEEB';
+            }}
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-shadow">
-              <span className="text-3xl">📖</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8" style={{ filter: 'brightness(0) saturate(100%) invert(76%) sepia(95%) saturate(2000%) hue-rotate(340deg) brightness(1.1) contrast(1.1)' }} />
+                <div>
+                  <h2 className="text-2xl font-bold mb-1 relative inline-block pb-1" style={{ color: '#FFBF65' }}>
+                    평가원 기출
+                    <span className="absolute bottom-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(to right, #FFBF65 0%, #FFBF65 50%, transparent 100%)', borderRadius: '2px' }}></span>
+                  </h2>
+                  <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>수능 기출 지문</p>
+                </div>
+              </div>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#FFBF65' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">EBS</h2>
-            <p className="text-sm text-gray-600">EBS 수능특강 및 수능완성</p>
           </Link>
 
           <Link
             href="/student/passages/leet"
-            className="group bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 text-center"
+            className="group relative border-2 p-6 transition-all duration-200"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#FD8973';
+              e.currentTarget.style.backgroundColor = '#CCD5DA';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#13181B';
+              e.currentTarget.style.backgroundColor = '#F0EEEB';
+            }}
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-shadow">
-              <span className="text-3xl">⚖️</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8" style={{ filter: 'brightness(0) saturate(100%) invert(60%) sepia(95%) saturate(2000%) hue-rotate(330deg) brightness(1.05) contrast(1.1)' }} />
+                <div>
+                  <h2 className="text-2xl font-bold mb-1 relative inline-block pb-1" style={{ color: '#FD8973' }}>
+                    LEET
+                    <span className="absolute bottom-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(to right, #FD8973 0%, #FD8973 50%, transparent 100%)', borderRadius: '2px' }}></span>
+                  </h2>
+                  <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>LEET 언어이해/추리논증 지문</p>
+                </div>
+              </div>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#FD8973' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">LEET</h2>
-            <p className="text-sm text-gray-600">법학전문대학원 입학시험</p>
           </Link>
 
           <Link
             href="/student/passages/other"
-            className="group bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 text-center"
+            className="group relative border-2 p-6 transition-all duration-200"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#13181B';
+              e.currentTarget.style.backgroundColor = '#CCD5DA';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#13181B';
+              e.currentTarget.style.backgroundColor = '#F0EEEB';
+            }}
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-shadow">
-              <span className="text-3xl">📄</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8" style={{ filter: 'brightness(0) saturate(100%)' }} />
+                <div>
+                  <h2 className="text-2xl font-bold mb-1 relative inline-block pb-1" style={{ color: '#13181B' }}>
+                    기타
+                    <span className="absolute bottom-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+                  </h2>
+                  <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>기타 지문</p>
+                </div>
+              </div>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">기타</h2>
-            <p className="text-sm text-gray-600">기타 지문</p>
           </Link>
         </div>
       </div>

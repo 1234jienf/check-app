@@ -6,16 +6,20 @@ import TeacherCalendar from "@/components/TeacherCalendar";
 
 export default function SchedulePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-10">
+    <div className="min-h-screen p-6 md:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-            스케줄 관리
-          </h1>
-          <p className="text-gray-600">일정을 추가하고 관리하세요.</p>
+          <div className="flex items-center gap-3 mb-2">
+            <img src="/pawn_black.svg" alt="Pawn" className="w-10 h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
+            <h1 className="text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
+              스케줄 관리
+              <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+            </h1>
+          </div>
+          <p style={{ color: '#13181B', opacity: 0.8 }}>일정을 추가하고 관리하세요.</p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-6 md:p-8 shadow-xl">
+        <div className="border-2 p-6 md:p-8" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
           <TeacherCalendar />
         </div>
       </div>

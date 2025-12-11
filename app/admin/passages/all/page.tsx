@@ -73,13 +73,13 @@ export default function AllPassagesPage() {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "EBS":
-        return "from-blue-600 to-indigo-600";
+        return '#003A6C';
       case "기출":
-        return "from-green-600 to-emerald-600";
+        return '#FFBF65';
       case "LEET":
-        return "from-purple-600 to-violet-600";
+        return '#FD8973';
       default:
-        return "from-gray-600 to-slate-600";
+        return '#13181B';
     }
   };
 
@@ -97,59 +97,79 @@ export default function AllPassagesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-10">
+    <div className="min-h-screen p-6 md:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <Link 
             href="/admin/passages" 
-            className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4 transition-colors"
+            className="inline-flex items-center mb-4 transition-colors"
+            style={{ color: '#13181B' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#003A6C'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#13181B'}
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             지문 관리로 돌아가기
           </Link>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            전체 지문 보기
-          </h1>
-          <p className="text-gray-600 mt-2">모든 카테고리의 지문을 한 번에 확인합니다.</p>
+          <div className="flex items-center gap-3 mb-2">
+            <img src="/pawn_black.svg" alt="Pawn" className="w-10 h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
+            <h1 className="text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
+              전체 지문 보기
+              <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+            </h1>
+          </div>
+          <p style={{ color: '#13181B', opacity: 0.8 }}>모든 카테고리의 지문을 한 번에 확인합니다.</p>
         </div>
 
         <div className="mb-6 space-y-4">
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
-            <div className="relative bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 shadow-xl">
-              <div className="flex items-center gap-3">
-                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="제목, 출처, 내용으로 검색"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 text-lg"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
+          <div className="border-2 rounded-xl p-4" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.7 }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="제목, 출처, 내용으로 검색"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent border-none outline-none text-lg"
+                style={{ color: '#13181B' }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="p-1 rounded-full transition-colors"
+                  style={{ color: '#13181B', opacity: 0.7 }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
+            <style jsx>{`
+              input::placeholder {
+                color: #13181B;
+                opacity: 0.5;
+              }
+            `}</style>
           </div>
 
-          <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-xl">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">카테고리 필터</label>
+          <div className="border-2 rounded-xl p-6" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+            <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>카테고리 필터</label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all shadow-sm"
+              className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+              style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = '#13181B';
+                e.currentTarget.style.outline = 'none';
+              }}
+              onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
             >
               <option value="all">전체</option>
               <option value="EBS">EBS</option>
@@ -161,8 +181,8 @@ export default function AllPassagesPage() {
         </div>
 
         <div className="mb-6">
-          <div className="text-lg font-semibold text-gray-700">
-            총 <span className="text-blue-600">{filteredPassages.length}</span>개의 지문
+          <div className="text-lg font-semibold" style={{ color: '#13181B' }}>
+            총 <span style={{ color: '#13181B' }}>{filteredPassages.length}</span>개의 지문
           </div>
         </div>
 
@@ -170,13 +190,16 @@ export default function AllPassagesPage() {
           {categories.map((category) => {
             const categoryPassages = groupedPassages[category];
             const isExpanded = expandedCategories.has(category);
-            const colorClass = getCategoryColor(category);
+            const categoryColor = getCategoryColor(category);
             
             return (
-              <div key={category} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl overflow-hidden">
+              <div key={category} className="border-2 rounded-2xl overflow-hidden" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
                 <button
                   onClick={() => toggleCategory(category)}
-                  className={`w-full px-6 py-4 bg-gradient-to-r ${colorClass} text-white flex items-center justify-between hover:opacity-90 transition-all`}
+                  className="w-full px-6 py-4 flex items-center justify-between transition-all"
+                  style={{ backgroundColor: categoryColor, color: '#F0EEEB' }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                 >
                   <div className="flex items-center gap-3">
                     <svg 
@@ -195,55 +218,63 @@ export default function AllPassagesPage() {
                 </button>
                 
                 {isExpanded && (
-                  <div className="p-4 bg-white">
+                  <div className="p-4" style={{ backgroundColor: '#F0EEEB' }}>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {categoryPassages.map((p: any) => (
                         <Link
                           key={p.id}
                           href={`/admin/passages/${p.id}`}
-                          className="group relative bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-5 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden"
+                          className="group relative border-2 rounded-xl p-5 transition-all duration-300"
+                          style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = categoryColor;
+                            e.currentTarget.style.backgroundColor = '#CCD5DA';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = '#CCD5DA';
+                            e.currentTarget.style.backgroundColor = '#F0EEEB';
+                          }}
                         >
-                          <div className="absolute inset-0 bg-gradient-to-br from-gray-50/50 to-slate-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          
                           <div className="relative z-10">
-                            <h2 className="text-lg font-bold mb-3 text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                            <h2 className="text-lg font-bold mb-3 line-clamp-2 transition-colors" style={{ color: '#13181B' }}>
                               {p.title || "(제목 없음)"}
                             </h2>
                             
                             <div className="flex flex-wrap items-center gap-2 mb-3">
                               {p.literary_type && (
-                                <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
                                   {p.literary_type}
                                 </span>
                               )}
                               {p.sub_category && (
-                                <span className="inline-flex items-center px-2.5 py-1 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-xs font-medium">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: categoryColor, color: '#F0EEEB' }}>
                                   {p.sub_category.split(",").join(", ")}
                                 </span>
                               )}
                             </div>
                             
-                            <div className="space-y-1.5 text-xs text-gray-600">
+                            <div className="space-y-1.5 text-xs" style={{ color: '#13181B', opacity: 0.8 }}>
                               {p.source && (
                                 <div className="flex items-start gap-2">
-                                  <svg className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ opacity: 0.7 }}>
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                   </svg>
                                   <span className="line-clamp-1">{p.source}</span>
                                 </div>
                               )}
                               {p.year && (
-                                <div className="text-gray-500">연도: {p.year}년</div>
+                                <div>연도: {p.year}년</div>
                               )}
                             </div>
                           </div>
                           
                           <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform group-hover:translate-x-1">
                             <svg 
-                              className="w-4 h-4 text-blue-500 drop-shadow-md" 
+                              className="w-4 h-4 drop-shadow-md" 
                               fill="none" 
                               stroke="currentColor" 
                               viewBox="0 0 24 24"
+                              style={{ color: categoryColor }}
                             >
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                             </svg>
@@ -260,12 +291,12 @@ export default function AllPassagesPage() {
 
         {filteredPassages.length === 0 && (
           <div className="text-center py-20">
-            <div className="inline-block p-8 bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl shadow-xl">
-              <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="inline-block p-8 border-2 rounded-2xl" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+              <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.5 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-lg font-semibold text-gray-700 mb-2">조건에 맞는 지문이 없습니다</p>
-              <p className="text-sm text-gray-500">검색어나 필터를 변경해보세요</p>
+              <p className="text-lg font-semibold mb-2" style={{ color: '#13181B' }}>조건에 맞는 지문이 없습니다</p>
+              <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>검색어나 필터를 변경해보세요</p>
             </div>
           </div>
         )}

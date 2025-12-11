@@ -189,10 +189,31 @@ function AddCheckpointContent() {
 export default function AddCheckpointPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 md:p-10 flex items-center justify-center">
+      <div className="min-h-screen p-6 md:p-10 flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">로딩 중...</p>
+          <div className="mx-auto mb-4" style={{ 
+            animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
+            width: '80px',
+            height: '80px'
+          }}>
+            <img 
+              src="/bishop-logo.png" 
+              alt="Loading" 
+              className="w-full h-full"
+              style={{ filter: 'grayscale(100%) brightness(0.8)' }}
+            />
+          </div>
+          <p className="text-[#13181B]">로딩 중...</p>
+          <style jsx>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+            @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.6; }
+            }
+          `}</style>
         </div>
       </div>
     }>

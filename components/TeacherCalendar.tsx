@@ -275,22 +275,40 @@ export default function TeacherCalendar() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* 왼쪽: 달력 */}
       <div className="lg:col-span-1">
-        <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100">
+        <div className="rounded-2xl p-5 shadow-lg border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={prevMonth}
-              className="text-gray-400 hover:text-gray-700 transition-colors p-2 hover:bg-gray-50 rounded-lg"
+              className="transition-colors p-2 rounded-lg"
+              style={{ color: '#13181B', opacity: 0.7 }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.backgroundColor = '#CCD5DA';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '0.7';
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h3 className="text-lg font-semibold text-gray-800">
+            <h3 className="text-lg font-semibold" style={{ color: '#13181B' }}>
               {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
             </h3>
             <button
               onClick={nextMonth}
-              className="text-gray-400 hover:text-gray-700 transition-colors p-2 hover:bg-gray-50 rounded-lg"
+              className="transition-colors p-2 rounded-lg"
+              style={{ color: '#13181B', opacity: 0.7 }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.backgroundColor = '#CCD5DA';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '0.7';
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -301,7 +319,7 @@ export default function TeacherCalendar() {
           {/* 요일 헤더 */}
           <div className="grid grid-cols-7 gap-0.5 mb-2">
             {weekDays.map((day) => (
-              <div key={day} className="text-center text-xs text-gray-500 font-medium py-2">
+              <div key={day} className="text-center text-xs font-medium py-2" style={{ color: '#13181B', opacity: 0.8 }}>
                 {day}
               </div>
             ))}
@@ -319,21 +337,46 @@ export default function TeacherCalendar() {
                 <button
                   key={idx}
                   onClick={() => handleDateClick(date)}
-                  className={`relative aspect-square flex items-center justify-center text-sm rounded-lg transition-all ${
-                    !isCurrentMonth(date)
-                      ? "text-gray-200"
-                      : isToday(date)
-                      ? "bg-blue-600 text-white font-semibold shadow-sm"
-                      : isSelected
-                      ? "bg-blue-50 text-blue-700 font-semibold ring-2 ring-blue-500"
-                      : hasSchedule
-                      ? "text-gray-700 hover:bg-blue-50"
-                      : "text-gray-700 hover:bg-gray-50"
-                  }`}
+                  className="relative aspect-square flex items-center justify-center text-sm rounded-lg transition-all border-2"
+                  style={!isCurrentMonth(date) ? {
+                    color: '#CCD5DA',
+                    borderColor: 'transparent',
+                    backgroundColor: '#F0EEEB'
+                  } : isToday(date) ? {
+                    backgroundColor: '#13181B',
+                    color: '#F0EEEB',
+                    borderColor: '#13181B'
+                  } : isSelected ? {
+                    backgroundColor: '#CCD5DA',
+                    color: '#13181B',
+                    borderColor: '#13181B'
+                  } : hasSchedule ? {
+                    color: '#13181B',
+                    borderColor: '#CCD5DA',
+                    backgroundColor: '#F0EEEB'
+                  } : {
+                    color: '#13181B',
+                    borderColor: 'transparent',
+                    backgroundColor: '#F0EEEB'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isCurrentMonth(date)) return;
+                    if (!isToday(date) && !isSelected) {
+                      e.currentTarget.style.backgroundColor = '#CCD5DA';
+                      e.currentTarget.style.borderColor = '#13181B';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isCurrentMonth(date)) return;
+                    if (!isToday(date) && !isSelected) {
+                      e.currentTarget.style.backgroundColor = hasSchedule ? '#F0EEEB' : '#F0EEEB';
+                      e.currentTarget.style.borderColor = hasSchedule ? '#CCD5DA' : 'transparent';
+                    }
+                  }}
                 >
                   <span>{date.getDate()}</span>
                   {hasSchedule && !isSelected && (
-                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full"></div>
+                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#FFBF65' }}></div>
                   )}
                 </button>
               );
@@ -345,39 +388,51 @@ export default function TeacherCalendar() {
       {/* 오른쪽: 스케줄 입력 및 목록 */}
       <div className="lg:col-span-2">
         {selectedDate ? (
-          <div className="bg-white rounded-xl p-6 shadow-lg">
+          <div className="rounded-xl p-6 shadow-lg border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
             <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-1">
+              <h3 className="text-xl font-bold mb-1" style={{ color: '#13181B' }}>
                 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일
               </h3>
-              <p className="text-sm text-gray-600">스케줄을 추가하거나 수정하세요.</p>
+              <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>스케줄을 추가하거나 수정하세요.</p>
             </div>
 
             {/* 스케줄 입력 폼 */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <h4 className="text-sm font-semibold text-gray-700 mb-4">
+            <div className="mb-6 p-4 rounded-lg border-2" style={{ backgroundColor: '#CCD5DA', borderColor: '#13181B' }}>
+              <h4 className="text-sm font-semibold mb-4" style={{ color: '#13181B' }}>
                 {editingSchedule ? "스케줄 수정" : "새 스케줄 추가"}
               </h4>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    제목 <span className="text-red-500">*</span>
+                  <label className="block text-xs font-medium mb-1" style={{ color: '#13181B' }}>
+                    제목 <span style={{ color: '#FD8973' }}>*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border-2 rounded-lg transition-all"
+                    style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#13181B';
+                      e.currentTarget.style.outline = 'none';
+                    }}
+                    onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
                     placeholder="스케줄 제목"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">설명</label>
+                  <label className="block text-xs font-medium mb-1" style={{ color: '#13181B' }}>설명</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border-2 rounded-lg transition-all"
+                    style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#13181B';
+                      e.currentTarget.style.outline = 'none';
+                    }}
+                    onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
                     rows={2}
                     placeholder="스케줄 설명 (선택사항)"
                   />
@@ -385,7 +440,7 @@ export default function TeacherCalendar() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">시작 시간</label>
+                    <label className="block text-xs font-medium mb-1" style={{ color: '#13181B' }}>시작 시간</label>
                     <div className="flex gap-1 items-center">
                       <input
                         type="number"
@@ -398,9 +453,15 @@ export default function TeacherCalendar() {
                           setFormData({ ...formData, start_time: `${hour}:${minute}` });
                         }}
                         placeholder="시"
-                        className="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                        className="w-full px-2 py-2 text-sm border-2 rounded-lg transition-all text-center"
+                        style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = '#13181B';
+                          e.currentTarget.style.outline = 'none';
+                        }}
+                        onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
                       />
-                      <span className="text-gray-500">:</span>
+                      <span style={{ color: '#13181B', opacity: 0.7 }}>:</span>
                       <input
                         type="number"
                         min="0"
@@ -412,12 +473,18 @@ export default function TeacherCalendar() {
                           setFormData({ ...formData, start_time: `${hour}:${minute}` });
                         }}
                         placeholder="분"
-                        className="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                        className="w-full px-2 py-2 text-sm border-2 rounded-lg transition-all text-center"
+                        style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = '#13181B';
+                          e.currentTarget.style.outline = 'none';
+                        }}
+                        onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">종료 시간</label>
+                    <label className="block text-xs font-medium mb-1" style={{ color: '#13181B' }}>종료 시간</label>
                     <div className="flex gap-1 items-center">
                       <input
                         type="number"
@@ -430,9 +497,15 @@ export default function TeacherCalendar() {
                           setFormData({ ...formData, end_time: `${hour}:${minute}` });
                         }}
                         placeholder="시"
-                        className="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                        className="w-full px-2 py-2 text-sm border-2 rounded-lg transition-all text-center"
+                        style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = '#13181B';
+                          e.currentTarget.style.outline = 'none';
+                        }}
+                        onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
                       />
-                      <span className="text-gray-500">:</span>
+                      <span style={{ color: '#13181B', opacity: 0.7 }}>:</span>
                       <input
                         type="number"
                         min="0"
@@ -444,7 +517,13 @@ export default function TeacherCalendar() {
                           setFormData({ ...formData, end_time: `${hour}:${minute}` });
                         }}
                         placeholder="분"
-                        className="w-full px-2 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                        className="w-full px-2 py-2 text-sm border-2 rounded-lg transition-all text-center"
+                        style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = '#13181B';
+                          e.currentTarget.style.outline = 'none';
+                        }}
+                        onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
                       />
                     </div>
                   </div>
@@ -453,7 +532,10 @@ export default function TeacherCalendar() {
                 <div className="flex gap-2 pt-2">
                   <button
                     onClick={handleSaveSchedule}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-4 py-2 text-white text-sm rounded-lg font-semibold transition-colors"
+                    style={{ backgroundColor: '#13181B' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#003A6C'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
                   >
                     {editingSchedule ? "수정" : "추가"}
                   </button>
@@ -461,13 +543,19 @@ export default function TeacherCalendar() {
                     <>
                       <button
                         onClick={() => handleDeleteSchedule(editingSchedule.id)}
-                        className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                        className="px-4 py-2 text-white text-sm rounded-lg font-semibold transition-colors"
+                        style={{ backgroundColor: '#FD8973' }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                       >
                         삭제
                       </button>
                       <button
                         onClick={handleCancelEdit}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                        className="px-4 py-2 text-sm rounded-lg font-semibold transition-colors"
+                        style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
                       >
                         취소
                       </button>
@@ -480,33 +568,48 @@ export default function TeacherCalendar() {
             {/* 스케줄 목록 */}
             {selectedDateSchedules.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">등록된 스케줄</h4>
+                <h4 className="text-sm font-semibold mb-3" style={{ color: '#13181B' }}>등록된 스케줄</h4>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {selectedDateSchedules.map((schedule) => (
                     <div
                       key={schedule.id}
-                      className={`relative p-4 rounded-lg border-2 transition-all ${
-                        editingSchedule?.id === schedule.id
-                          ? "bg-blue-50 border-blue-500 shadow-md"
-                          : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm cursor-pointer"
-                      }`}
+                      className="relative p-4 rounded-lg border-2 transition-all cursor-pointer"
+                      style={editingSchedule?.id === schedule.id ? {
+                        backgroundColor: '#CCD5DA',
+                        borderColor: '#13181B'
+                      } : {
+                        backgroundColor: '#F0EEEB',
+                        borderColor: '#CCD5DA'
+                      }}
                       onClick={() => handleEditSchedule(schedule)}
+                      onMouseEnter={(e) => {
+                        if (editingSchedule?.id !== schedule.id) {
+                          e.currentTarget.style.borderColor = '#13181B';
+                          e.currentTarget.style.backgroundColor = '#CCD5DA';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (editingSchedule?.id !== schedule.id) {
+                          e.currentTarget.style.borderColor = '#CCD5DA';
+                          e.currentTarget.style.backgroundColor = '#F0EEEB';
+                        }
+                      }}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="font-semibold text-gray-900 mb-1">{schedule.title}</div>
+                          <div className="font-semibold mb-1" style={{ color: '#13181B' }}>{schedule.title}</div>
                           {schedule.description && (
-                            <div className="text-xs text-gray-600 mb-2">{schedule.description}</div>
+                            <div className="text-xs mb-2" style={{ color: '#13181B', opacity: 0.8 }}>{schedule.description}</div>
                           )}
                           {schedule.start_time && (
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
                               {schedule.start_time}
                               {schedule.end_time && ` - ${schedule.end_time}`}
                             </div>
                           )}
                         </div>
                         {editingSchedule?.id === schedule.id && (
-                          <div className="ml-2 px-2 py-1 bg-blue-500 text-white text-xs rounded font-semibold">
+                          <div className="ml-2 px-3 py-1.5 text-white text-xs rounded font-semibold" style={{ backgroundColor: '#13181B' }}>
                             수정 중
                           </div>
                         )}

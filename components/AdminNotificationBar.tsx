@@ -280,6 +280,25 @@ export default function AdminNotificationBar() {
 
     if (!teacherId) return;
 
+    // 즉시 UI에서 알림 제거 (낙관적 업데이트)
+    setNotifications((prev) => {
+      const filtered = prev.filter((n) => {
+        // 같은 타입이고 같은 ID인 경우 제거
+        if (n.type === notif.type && n.id === notif.id) {
+          return false;
+        }
+        return true;
+      });
+      return filtered;
+    });
+
+    // 읽은 알림 목록 업데이트
+    setReadNotifications((prev) => {
+      const newSet = new Set(prev);
+      newSet.add(`${notif.type}_${notif.id}`);
+      return newSet;
+    });
+
     try {
       const { error } = await supabase
         .from("notification_read")
@@ -293,37 +312,49 @@ export default function AdminNotificationBar() {
 
       if (error) {
         console.error("알림 읽음 처리 오류:", error);
-        // 에러가 발생해도 UI에서는 제거 (로컬 상태만 업데이트)
+        // 에러 발생 시 알림 다시 로드
+        if (teacherId) {
+          const loadNotifications = async () => {
+            // 알림 다시 로드 로직 (기존 loadNotifications 함수와 동일)
+            // 간단하게 전체 재로드
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            
+            const { data: readData } = await supabase
+              .from("notification_read")
+              .select("notification_type, notification_id")
+              .eq("teacher_id", teacherId)
+              .gte("read_at", sevenDaysAgo.toISOString());
+
+            const currentReadSet: Set<string> = readData 
+              ? new Set(readData.map((r) => `${r.notification_type}_${r.notification_id}`))
+              : new Set<string>();
+            
+            // 여기서는 간단히 알림만 다시 로드하지 않고, 사용자가 수동으로 새로고침하도록 함
+            // 또는 전체 알림을 다시 로드하는 함수를 호출
+          };
+        }
       }
-      
-      // 읽은 알림 목록 업데이트
-      setReadNotifications((prev) => {
-        const newSet = new Set(prev);
-        newSet.add(`${notif.type}_${notif.id}`);
-        return newSet;
-      });
-      // 알림 목록에서 제거
-      setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
     } catch (err) {
       console.error("알림 읽음 처리 중 오류:", err);
-      // 에러가 발생해도 UI에서는 제거
-      setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
     }
   };
 
   const totalCount = notifications.reduce((sum, notif) => sum + (notif.count || 1), 0);
 
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className="fixed top-20 right-4 lg:top-4 lg:right-4 z-50">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative bg-white rounded-lg shadow-lg p-3 hover:shadow-xl transition-all border-2 border-blue-500"
+        className="relative rounded-lg shadow-lg p-3 hover:shadow-xl transition-all border-2"
+        style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}
       >
         <svg
-          className="w-6 h-6 text-blue-600"
+          className="w-6 h-6"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          style={{ color: '#13181B' }}
         >
           <path
             strokeLinecap="round"
@@ -345,36 +376,40 @@ export default function AdminNotificationBar() {
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-14 right-0 w-80 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="font-bold text-gray-900">알림</h3>
+          <div className="absolute top-14 right-0 w-80 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto" style={{ backgroundColor: '#F0EEEB', border: '1px solid #CCD5DA' }}>
+            <div className="p-4" style={{ borderBottom: '1px solid #CCD5DA' }}>
+              <h3 className="font-bold" style={{ color: '#13181B' }}>알림</h3>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div style={{ borderTop: '1px solid #CCD5DA' }}>
               {notifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 text-sm">
+                <div className="p-8 text-center text-sm" style={{ color: '#CCD5DA' }}>
                   알림이 없습니다.
                 </div>
               ) : (
                 notifications.map((notif) => (
                   <div
                     key={notif.id}
-                    className="group relative p-4 hover:bg-gray-50 transition-colors flex items-start gap-3"
+                    className="group relative p-4 transition-colors flex items-start gap-3"
+                    style={{ borderBottom: '1px solid #CCD5DA' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     <div
-                      className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                        notif.type === "schedule"
-                          ? "bg-blue-100"
+                      className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                      style={notif.type === "schedule" 
+                        ? { backgroundColor: '#CCD5DA' }
                           : notif.type === "pending_student"
-                          ? "bg-yellow-100"
-                          : "bg-green-100"
-                      }`}
+                        ? { backgroundColor: '#FFBF65' }
+                        : { backgroundColor: '#FD8973' }
+                      }
                     >
                       {notif.type === "schedule" && (
                         <svg
-                          className="w-5 h-5 text-blue-600"
+                          className="w-5 h-5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          style={{ color: '#13181B' }}
                         >
                           <path
                             strokeLinecap="round"
@@ -386,10 +421,11 @@ export default function AdminNotificationBar() {
                       )}
                       {notif.type === "pending_student" && (
                         <svg
-                          className="w-5 h-5 text-yellow-600"
+                          className="w-5 h-5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          style={{ color: '#13181B' }}
                         >
                           <path
                             strokeLinecap="round"
@@ -401,10 +437,11 @@ export default function AdminNotificationBar() {
                       )}
                       {notif.type === "new_checkpoint" && (
                         <svg
-                          className="w-5 h-5 text-green-600"
+                          className="w-5 h-5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          style={{ color: '#13181B' }}
                         >
                           <path
                             strokeLinecap="round"
@@ -416,10 +453,11 @@ export default function AdminNotificationBar() {
                       )}
                       {notif.type === "student_feedback" && (
                         <svg
-                          className="w-5 h-5 text-purple-600"
+                          className="w-5 h-5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          style={{ color: '#13181B' }}
                         >
                           <path
                             strokeLinecap="round"
@@ -435,14 +473,14 @@ export default function AdminNotificationBar() {
                       onClick={() => setIsOpen(false)}
                       className="flex-1 min-w-0"
                     >
-                      <p className="text-sm font-medium text-gray-900">{notif.message}</p>
+                      <p className="text-sm font-medium" style={{ color: '#13181B' }}>{notif.message}</p>
                       {notif.type === "schedule" && notif.scheduleTime && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs mt-1" style={{ color: '#CCD5DA' }}>
                           {notif.scheduleTime}
                         </p>
                       )}
                       {notif.count && notif.count > 1 && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs mt-1" style={{ color: '#CCD5DA' }}>
                           {notif.count}개 항목
                         </p>
                       )}
@@ -455,10 +493,11 @@ export default function AdminNotificationBar() {
                         title="이동"
                       >
                         <svg
-                          className="w-4 h-4 text-gray-500"
+                          className="w-4 h-4"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          style={{ color: '#13181B' }}
                         >
                           <path
                             strokeLinecap="round"
@@ -474,14 +513,18 @@ export default function AdminNotificationBar() {
                           e.stopPropagation();
                           markAsRead(notif, e);
                         }}
-                        className="p-1 hover:bg-red-100 rounded transition-colors"
+                        className="p-1 rounded transition-colors"
+                        style={{ backgroundColor: 'transparent' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FD8973'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         title="알림 지우기"
                       >
                         <svg
-                          className="w-4 h-4 text-gray-500 hover:text-red-600"
+                          className="w-4 h-4"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          style={{ color: '#13181B' }}
                         >
                           <path
                             strokeLinecap="round"

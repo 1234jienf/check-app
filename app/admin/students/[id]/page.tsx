@@ -65,14 +65,27 @@ export default function StudentDetail() {
     ? passage.content.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0)
     : [];
 
+  const getCategoryColor = (category: string) => {
+    if (category === "EBS") return '#003A6C';
+    if (category === "기출" || category === "평가원") return '#FFBF65';
+    if (category === "LEET") return '#FD8973';
+    return '#13181B';
+  };
+
+  const categoryColor = passage ? getCategoryColor(passage.category) : '#13181B';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-6 lg:p-10">
+    <div className="min-h-screen p-4 md:p-6 lg:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-          학생 답변 상세
-        </h1>
+        <div className="flex items-center gap-3 mb-4">
+          <img src="/pawn_black.svg" alt="Pawn" className="w-10 h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
+            학생 답변 상세
+            <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+          </h1>
+        </div>
         {passage && (
-          <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6 text-gray-800">{passage.title}</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6" style={{ color: '#13181B' }}>{passage.title}</h2>
         )}
 
       {paragraphs.length > 0 ? (
@@ -87,14 +100,22 @@ export default function StudentDetail() {
             );
 
             return (
-              <div key={idx} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 md:p-6 shadow-xl mb-4 md:mb-6 hover:shadow-2xl transition-all duration-300">
-                <h3 className="text-lg font-bold mb-4 pb-3 border-b-2 border-gray-200 text-gray-900">
+              <div key={idx} className="border-2 rounded-2xl p-4 md:p-6 shadow-xl mb-4 md:mb-6 transition-all duration-300" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}
+                   onMouseEnter={(e) => {
+                     e.currentTarget.style.borderColor = categoryColor;
+                     e.currentTarget.style.boxShadow = `0 20px 25px rgba(0, 0, 0, 0.1)`;
+                   }}
+                   onMouseLeave={(e) => {
+                     e.currentTarget.style.borderColor = '#13181B';
+                     e.currentTarget.style.boxShadow = 'none';
+                   }}>
+                <h3 className="text-lg font-bold mb-4 pb-3 border-b-2" style={{ color: '#13181B', borderBottomColor: '#CCD5DA' }}>
                   {paragraphNum}문단
                 </h3>
 
                 {/* 문단 내용 */}
-                <div className="mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <div className="whitespace-pre-wrap text-gray-700 text-sm">
+                <div className="mb-4 p-4 rounded-xl border-2" style={{ backgroundColor: '#CCD5DA', borderColor: '#13181B' }}>
+                  <div className="whitespace-pre-wrap text-sm" style={{ color: '#13181B' }}>
                     {paragraph.trim()}
                   </div>
                 </div>
@@ -102,17 +123,17 @@ export default function StudentDetail() {
                 {/* 학생 체크포인트 */}
                 {checkpoint ? (
                   <div className="space-y-3 mt-4">
-                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                      <div className="text-sm font-semibold text-blue-700 mb-2">학생이 작성한 체크포인트:</div>
-                      <div className="text-gray-800 whitespace-pre-wrap">{checkpoint.checkpoint_text || "(작성하지 않음)"}</div>
+                    <div className="p-4 rounded-xl border-2" style={{ backgroundColor: '#CCD5DA', borderColor: categoryColor }}>
+                      <div className="text-sm font-semibold mb-2" style={{ color: categoryColor }}>학생이 작성한 체크포인트:</div>
+                      <div className="whitespace-pre-wrap" style={{ color: '#13181B' }}>{checkpoint.checkpoint_text || "(작성하지 않음)"}</div>
                     </div>
                     {/* reason이 있으면 모름으로 선택한 것 */}
                     {checkpoint.reason && (
-                      <div className="p-4 bg-yellow-50 rounded-xl border-l-4 border-yellow-400">
-                        <div className="text-sm font-semibold text-yellow-700 mb-2">
+                      <div className="p-4 rounded-xl border-l-4" style={{ backgroundColor: '#FFBF65', borderLeftColor: '#FD8973' }}>
+                        <div className="text-sm font-semibold mb-2" style={{ color: '#13181B' }}>
                           ⚠️ 모름 - 사유:
                         </div>
-                        <div className="text-gray-800 whitespace-pre-wrap">
+                        <div className="whitespace-pre-wrap" style={{ color: '#13181B' }}>
                           {checkpoint.reason}
                         </div>
                       </div>
@@ -120,15 +141,15 @@ export default function StudentDetail() {
 
                     {/* 선생님 댓글 */}
                     {comments[checkpoint.id] && comments[checkpoint.id].length > 0 && (
-                      <div className="mt-4 p-4 bg-green-50 rounded-xl border border-green-200">
-                        <div className="text-sm font-semibold text-green-700 mb-3">💬 선생님 댓글 ({comments[checkpoint.id].length}개)</div>
+                      <div className="mt-4 p-4 rounded-xl border-2" style={{ backgroundColor: '#CCD5DA', borderColor: '#13181B' }}>
+                        <div className="text-sm font-semibold mb-3" style={{ color: '#13181B' }}>💬 선생님 댓글 ({comments[checkpoint.id].length}개)</div>
                         <div className="space-y-3">
                           {comments[checkpoint.id].map((comment: any) => (
-                            <div key={comment.id} className="p-3 bg-white rounded-lg border border-green-200">
-                              <div className="text-xs text-gray-500 mb-1">
+                            <div key={comment.id} className="p-3 rounded-lg border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+                              <div className="text-xs mb-1" style={{ color: '#13181B', opacity: 0.7 }}>
                                 {new Date(comment.created_at).toLocaleString('ko-KR')}
                               </div>
-                              <div className="text-sm text-gray-800 whitespace-pre-wrap">
+                              <div className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>
                                 {comment.comment_text}
                               </div>
                             </div>
@@ -138,7 +159,7 @@ export default function StudentDetail() {
                     )}
                   </div>
                 ) : (
-                  <div className="mt-4 p-4 bg-gray-100 rounded-xl text-gray-500 text-sm">
+                  <div className="mt-4 p-4 rounded-xl text-sm" style={{ backgroundColor: '#CCD5DA', color: '#13181B', opacity: 0.8 }}>
                     아직 제출하지 않았습니다.
                   </div>
                 )}

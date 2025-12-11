@@ -98,31 +98,85 @@ export default function EditPassageMetadata() {
   };
 
   if (loading) {
-    return <div className="p-10">로딩 중...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F0EEEB' }}>
+        <div className="text-center">
+          <div className="mx-auto mb-4" style={{ 
+            animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
+            width: '80px',
+            height: '80px'
+          }}>
+            <img 
+              src="/bishop-logo.png" 
+              alt="Loading" 
+              className="w-full h-full"
+              style={{ filter: 'grayscale(100%) brightness(0.8)' }}
+            />
+          </div>
+          <p style={{ color: '#13181B' }}>로딩 중...</p>
+          <style jsx>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+            @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.6; }
+            }
+          `}</style>
+        </div>
+      </div>
+    );
   }
 
   if (!passage) {
     return <div className="p-10">지문을 찾을 수 없습니다.</div>;
   }
 
+  const getCategoryColor = (cat: string) => {
+    if (cat === "EBS") return '#003A6C';
+    if (cat === "기출" || cat === "평가원") return '#FFBF65';
+    if (cat === "LEET") return '#FD8973';
+    return '#13181B';
+  };
+
+  const categoryColor = getCategoryColor(category);
+
   return (
-    <div className="p-10 max-w-2xl mx-auto">
+    <div className="p-10 max-w-2xl mx-auto" style={{ backgroundColor: '#F0EEEB', minHeight: '100vh' }}>
       <div className="mb-6">
         <Link
           href={`/admin/passages/${id}`}
-          className="text-blue-600 underline mb-4 inline-block"
+          className="mb-4 inline-block transition-colors"
+          style={{ color: categoryColor }}
+          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
         >
           ← 지문 상세로 돌아가기
         </Link>
-        <h1 className="text-2xl font-bold mb-2">지문 정보 수정</h1>
-        <p className="text-gray-600">지문의 메타데이터를 수정할 수 있습니다.</p>
+        <div className="flex items-center gap-3 mb-2">
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: categoryColor }}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          <h1 className="text-2xl font-bold relative inline-block pb-2" style={{ color: categoryColor }}>
+            지문 정보 수정
+            <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: `linear-gradient(to right, ${categoryColor} 0%, ${categoryColor} 50%, transparent 100%)`, borderRadius: '2px' }}></span>
+          </h1>
+        </div>
+        <p style={{ color: '#13181B', opacity: 0.8 }}>지문의 메타데이터를 수정할 수 있습니다.</p>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="border-2 rounded-2xl p-6 space-y-4" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
         <div className="flex flex-col gap-2">
-          <label>카테고리 *</label>
+          <label className="text-sm font-semibold" style={{ color: '#13181B' }}>카테고리 *</label>
           <select
-            className="border p-2"
+            className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = categoryColor;
+              e.currentTarget.style.outline = 'none';
+            }}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
             value={category}
             onChange={(e) => {
               setCategory(e.target.value);
@@ -142,9 +196,15 @@ export default function EditPassageMetadata() {
         {/* EBS 전용 필드 */}
         {category === "EBS" && (
           <div className="flex flex-col gap-2">
-            <label>EBS 유형 *</label>
+            <label className="text-sm font-semibold" style={{ color: '#13181B' }}>EBS 유형 *</label>
             <select
-              className="border p-2"
+              className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+              style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = categoryColor;
+                e.currentTarget.style.outline = 'none';
+              }}
+              onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
               value={ebsType}
               onChange={(e) => setEbsType(e.target.value)}
             >
@@ -157,9 +217,15 @@ export default function EditPassageMetadata() {
         {/* LEET 전용 필드 */}
         {category === "LEET" && (
           <div className="flex flex-col gap-2">
-            <label>LEET 영역 *</label>
+            <label className="text-sm font-semibold" style={{ color: '#13181B' }}>LEET 영역 *</label>
             <select
-              className="border p-2"
+              className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+              style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = categoryColor;
+                e.currentTarget.style.outline = 'none';
+              }}
+              onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
               value={leetType}
               onChange={(e) => setLeetType(e.target.value)}
             >
@@ -172,9 +238,15 @@ export default function EditPassageMetadata() {
         {/* 평가원 기출 전용 필드 */}
         {category === "기출" && (
           <div className="flex flex-col gap-2">
-            <label>시험 유형 *</label>
+            <label className="text-sm font-semibold" style={{ color: '#13181B' }}>시험 유형 *</label>
             <select
-              className="border p-2"
+              className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+              style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = categoryColor;
+                e.currentTarget.style.outline = 'none';
+              }}
+              onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
               value={examType}
               onChange={(e) => setExamType(e.target.value)}
             >
@@ -187,9 +259,15 @@ export default function EditPassageMetadata() {
         )}
 
         <div className="flex flex-col gap-2">
-          <label>연도 *</label>
+          <label className="text-sm font-semibold" style={{ color: '#13181B' }}>연도 *</label>
           <input
-            className="border p-2"
+            className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = categoryColor;
+              e.currentTarget.style.outline = 'none';
+            }}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
             type="number"
             value={year}
             onChange={(e) => setYear(parseInt(e.target.value))}
@@ -197,9 +275,15 @@ export default function EditPassageMetadata() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label>문학/비문학 *</label>
+          <label className="text-sm font-semibold" style={{ color: '#13181B' }}>문학/비문학 *</label>
           <select
-            className="border p-2"
+            className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = categoryColor;
+              e.currentTarget.style.outline = 'none';
+            }}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
             value={literaryType}
             onChange={(e) => {
               setLiteraryType(e.target.value);
@@ -212,9 +296,15 @@ export default function EditPassageMetadata() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label>세부 카테고리 *</label>
+          <label className="text-sm font-semibold" style={{ color: '#13181B' }}>세부 카테고리 *</label>
           <select
-            className="border p-2"
+            className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = categoryColor;
+              e.currentTarget.style.outline = 'none';
+            }}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
             value={subCategory}
             onChange={(e) => setSubCategory(e.target.value)}
           >
@@ -234,19 +324,37 @@ export default function EditPassageMetadata() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label>출처</label>
+          <label className="text-sm font-semibold" style={{ color: '#13181B' }}>출처</label>
           <input
-            className="border p-2"
+            className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = categoryColor;
+              e.currentTarget.style.outline = 'none';
+            }}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
             placeholder="예: 수능완성 실전모의고사 1회 [1-3]"
             value={source}
             onChange={(e) => setSource(e.target.value)}
           />
+          <style jsx>{`
+            input::placeholder {
+              color: #13181B;
+              opacity: 0.7;
+            }
+          `}</style>
         </div>
 
         <div className="flex flex-col gap-2">
-          <label>지문 제목</label>
+          <label className="text-sm font-semibold" style={{ color: '#13181B' }}>지문 제목</label>
           <input
-            className="border p-2"
+            className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = categoryColor;
+              e.currentTarget.style.outline = 'none';
+            }}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
@@ -255,13 +363,25 @@ export default function EditPassageMetadata() {
         <div className="flex gap-3 mt-4">
           <button
             onClick={saveMetadata}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded"
+            className="px-6 py-2 rounded-xl font-semibold transition-all"
+            style={{ backgroundColor: categoryColor, color: '#F0EEEB' }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >
             저장하기
           </button>
           <Link
             href={`/admin/passages/${id}`}
-            className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded text-center"
+            className="px-6 py-2 rounded-xl text-center transition-all border-2"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#CCD5DA';
+              e.currentTarget.style.borderColor = '#13181B';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#F0EEEB';
+              e.currentTarget.style.borderColor = '#CCD5DA';
+            }}
           >
             취소
           </Link>

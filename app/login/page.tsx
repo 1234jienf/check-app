@@ -127,23 +127,89 @@ export default function LoginPage() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl">
+    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden" style={{ backgroundColor: '#000000' }}>
+      {/* 배경에 큰 비숍 */}
+      <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 0.3 }}>
+        <img 
+          src="/bishop-logo.png" 
+          alt="Bishop Background" 
+          className="w-[900px] h-auto"
+          style={{ 
+            filter: 'grayscale(100%) brightness(0.8)',
+            transform: 'scale(1.3)',
+            pointerEvents: 'none'
+          }}
+        />
+      </div>
+
+      {/* 사선으로 배치된 CHECK MATE 텍스트 (카드 뒤) - 높이 차이 적용 */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
+        <div className="relative" style={{ transform: 'rotate(-15deg)', transformOrigin: 'center' }}>
+          <span
+            style={{
+              opacity: 0.2,
+              fontSize: 'clamp(80px, 15vw, 200px)',
+              fontWeight: 900,
+              letterSpacing: '0.1em',
+              color: '#FFFFFF',
+              textShadow: '0 0 40px rgba(255, 255, 255, 0.3)',
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              display: 'inline-block',
+              transform: 'translateY(-20px)'
+            }}
+          >
+            CHECK
+          </span>
+          <span
+            style={{
+              opacity: 0.2,
+              fontSize: 'clamp(80px, 15vw, 200px)',
+              fontWeight: 900,
+              letterSpacing: '0.1em',
+              color: '#FFFFFF',
+              textShadow: '0 0 40px rgba(255, 255, 255, 0.3)',
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              display: 'inline-block',
+              marginLeft: '0.3em',
+              transform: 'translateY(20px)'
+            }}
+          >
+            MATE
+          </span>
+        </div>
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="border-2 rounded-2xl p-8 shadow-2xl relative" style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)', borderColor: '#FFFFFF', backdropFilter: 'blur(20px)' }}>
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-              백지훈 수능
-            </h1>
-            <p className="text-gray-600 text-sm">국어 강의 관리 시스템</p>
+            <p className="text-sm font-medium" style={{ color: '#FFFFFF', opacity: 0.95 }}>백지훈 강의 관리페이지</p>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#FFFFFF' }}>
                 이메일
               </label>
               <input
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border-2 rounded-xl transition-all"
+                style={{ 
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+                  borderColor: '#FFFFFF', 
+                  color: '#FFFFFF',
+                  outline: 'none'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = '#FFFFFF';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = '#FFFFFF';
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                }}
                 placeholder="이메일을 입력하세요"
                 type="email"
                 value={email}
@@ -151,15 +217,37 @@ export default function LoginPage() {
                 onKeyPress={(e) => e.key === "Enter" && handleLogin()}
                 disabled={loading}
               />
+              <style jsx>{`
+                input::placeholder {
+                  color: #FFFFFF;
+                  opacity: 0.5;
+                }
+              `}</style>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#FFFFFF' }}>
                 비밀번호
               </label>
               <input
                 type="password"
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border-2 rounded-xl transition-all"
+                style={{ 
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+                  borderColor: '#FFFFFF', 
+                  color: '#FFFFFF',
+                  outline: 'none'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = '#FFFFFF';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = '#FFFFFF';
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                }}
                 placeholder="비밀번호를 입력하세요"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -169,22 +257,51 @@ export default function LoginPage() {
             </div>
 
             {errorMsg && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-red-600 text-sm">{errorMsg}</p>
+              <div className="p-3 rounded-xl border-2" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: '#FFFFFF' }}>
+                <p className="text-sm" style={{ color: '#FFFFFF' }}>{errorMsg}</p>
               </div>
             )}
 
             <button
               onClick={handleLogin}
               disabled={loading}
-              className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-3 rounded-xl font-semibold shadow-lg transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ 
+                backgroundColor: '#FFFFFF',
+                color: '#000000'
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.boxShadow = '0 10px 30px rgba(255, 255, 255, 0.3)';
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.backgroundColor = '#FFFFFF';
+              }}
             >
               {loading ? "로그인 중..." : "로그인"}
             </button>
 
             <button
               onClick={() => router.push("/signup")}
-              className="w-full px-4 py-2 border-2 border-gray-400 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              className="w-full px-4 py-2 border-2 rounded-xl font-medium transition-all"
+              style={{ 
+                backgroundColor: 'transparent',
+                borderColor: '#FFFFFF',
+                color: '#FFFFFF'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.borderColor = '#FFFFFF';
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = '#FFFFFF';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             >
               회원가입
             </button>

@@ -65,15 +65,39 @@ export default function StudentLayout({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div>로딩 중...</div>
+      <div className="flex items-center justify-center h-screen" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
+        <div className="text-center">
+          <div className="mx-auto mb-4" style={{ 
+            animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
+            width: '80px',
+            height: '80px'
+          }}>
+            <img 
+              src="/bishop-logo.png" 
+              alt="Loading" 
+              className="w-full h-full"
+              style={{ filter: 'grayscale(100%) brightness(0.8)' }}
+            />
+          </div>
+          <p style={{ color: '#13181B' }}>로딩 중...</p>
+          <style jsx>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+            @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.6; }
+            }
+          `}</style>
+        </div>
       </div>
     );
   }
 
   const menuItems = [
-    { href: "/student", label: "자료 선택", icon: "📁", description: "지문 카테고리 선택" },
-    { href: "/student/my-checkpoints", label: "내 체크포인트", icon: "📝", description: "작성한 체크포인트 확인" },
+    { href: "/student", label: "자료 선택", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "지문 카테고리 선택" },
+    { href: "/student/my-checkpoints", label: "내 체크포인트", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "작성한 체크포인트 확인" },
   ];
 
   const isActive = (href: string) => {
@@ -103,23 +127,35 @@ export default function StudentLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen" style={{ backgroundColor: '#F0EEEB' }}>
       {/* 모바일 헤더 */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white shadow-lg">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 shadow-lg" style={{ backgroundColor: '#F0EEEB', borderBottom: '2px solid #13181B', color: '#13181B' }}>
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-xl font-bold">백</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                백지훈 수능
-              </h1>
+            <img 
+              src="/checkmate-white.png" 
+              alt="CHECK MATE" 
+              className="h-10 w-auto"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const parent = target.parentElement;
+                if (parent) {
+                  parent.innerHTML = '<div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg"><span class="text-xl font-bold">백</span></div>';
+                }
+              }}
+            />
+            <div className="flex flex-col items-center gap-1">
+              <div className="text-xs font-bold" style={{ color: '#13181B' }}>CHECK</div>
+              <div className="text-xs font-bold" style={{ color: '#13181B' }}>MATE</div>
             </div>
           </div>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
+            className="p-2 border-2 transition-colors"
+            style={{ borderColor: '#13181B' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             aria-label="메뉴 열기"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,26 +172,28 @@ export default function StudentLayout({
       {/* 모바일 메뉴 오버레이 */}
       {mobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed inset-0 z-[55]"
+          style={{ backgroundColor: 'rgba(19, 24, 27, 0.5)' }}
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       {/* 사이드바 */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-72 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
+      <aside className={`fixed inset-y-0 left-0 z-[60] w-72 flex flex-col transform transition-transform duration-300 ease-in-out ${
         mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      }`}>
-        <div className="p-6 border-b border-slate-700">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-xl font-bold">백</span>
+      }`} style={{ backgroundColor: '#F0EEEB', borderRight: '2px solid #13181B' }}>
+        <div style={{ backgroundColor: '#13181B', borderBottom: '2px solid #13181B' }}>
+          <div className="flex flex-col items-center gap-2 p-6">
+            <div className="flex items-center justify-center gap-3 w-full">
+              <div className="text-sm font-bold" style={{ color: '#F0EEEB' }}>CHECK</div>
+              <img 
+                src="/bishop-logo.png" 
+                alt="Bishop" 
+                className="h-20 w-auto"
+              />
+              <div className="text-sm font-bold" style={{ color: '#F0EEEB' }}>MATE</div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                백지훈 수능
-              </h1>
-              <p className="text-xs text-slate-400">국어 강의 학습</p>
-            </div>
+            <p className="text-xs text-center" style={{ color: '#CCD5DA' }}>국어 강의 학습</p>
           </div>
         </div>
 
@@ -167,29 +205,49 @@ export default function StudentLayout({
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                className={`group relative flex items-center gap-3 px-4 py-3 border-2 transition-all duration-200 min-h-[72px] ${
                   active
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/50"
-                    : "text-slate-300 hover:bg-slate-700/50 hover:text-white"
+                    ? ""
+                    : "hover:opacity-90"
                 }`}
+                style={active ? {
+                  backgroundColor: '#13181B',
+                  color: '#F0EEEB',
+                  borderColor: '#13181B'
+                } : {
+                  backgroundColor: '#F0EEEB',
+                  color: '#13181B',
+                  borderColor: '#13181B'
+                }}
               >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                  active
-                    ? "bg-white/20"
-                    : "bg-slate-700/50 group-hover:bg-slate-600/50"
-                }`}>
-                  <span className="text-xl">{item.icon}</span>
+                <div className="w-10 h-10 border-2 flex items-center justify-center transition-all"
+                     style={active ? {
+                       backgroundColor: '#F0EEEB',
+                       borderColor: '#F0EEEB'
+                     } : {
+                       backgroundColor: '#F0EEEB',
+                       borderColor: '#13181B'
+                     }}>
+                  {'black' in item.icon && 'white' in item.icon ? (
+                    <img 
+                      src={active ? (item.icon as { black: string; white: string }).white : (item.icon as { black: string; white: string }).black} 
+                      alt={item.label}
+                      className="w-6 h-6"
+                    />
+                  ) : (
+                    <span className="text-xl">{String(item.icon)}</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className={`font-semibold text-sm ${active ? "text-white" : "text-slate-200"}`}>
+                  <div className="font-semibold text-sm" style={{ color: active ? '#F0EEEB' : '#13181B' }}>
                     {item.label}
                   </div>
-                  <div className={`text-xs mt-0.5 ${active ? "text-blue-100" : "text-slate-400"}`}>
+                  <div className="text-xs mt-0.5" style={{ color: active ? '#F0EEEB' : '#CCD5DA' }}>
                     {item.description}
                   </div>
                 </div>
                 {active && (
-                  <div className="absolute right-2 w-1.5 h-1.5 bg-white rounded-full"></div>
+                  <div className="absolute right-2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#FFBF65' }}></div>
                 )}
               </Link>
             );
@@ -197,24 +255,27 @@ export default function StudentLayout({
 
         </nav>
 
-        <div className="p-6 border-t border-slate-700 space-y-4">
-          <div className="flex items-center gap-2 text-slate-400 text-xs">
-            <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center">
-              <span className="text-sm font-bold">
+        <div className="p-6 space-y-4" style={{ borderTop: '2px solid #13181B' }}>
+          <div className="flex items-center gap-2 text-xs" style={{ color: '#CCD5DA' }}>
+            <div className="w-8 h-8 border-2 flex items-center justify-center" style={{ borderColor: '#13181B', backgroundColor: '#F0EEEB' }}>
+              <span className="text-sm font-bold" style={{ color: '#13181B' }}>
                 {userName ? userName.charAt(0) : "학"}
               </span>
             </div>
             <div>
-              <div className="font-medium text-slate-300">
+              <div className="font-medium" style={{ color: '#13181B' }}>
                 {userName || "학생 모드"}
               </div>
-              <div className="text-slate-500">수능 국어 학습</div>
+              <div style={{ color: '#CCD5DA' }}>수능 국어 학습</div>
             </div>
           </div>
           
           <button
             onClick={handleLogout}
-            className="w-full px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2"
+            className="w-full px-4 py-3 border-2 font-semibold transition-all duration-200 flex items-center justify-center gap-2"
+            style={{ backgroundColor: '#13181B', color: '#F0EEEB', borderColor: '#13181B' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#003A6C'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -225,7 +286,7 @@ export default function StudentLayout({
       </aside>
 
       {/* 메인 컨텐츠 */}
-      <main className="flex-1 pt-16 lg:pt-0">{children}</main>
+      <main className="flex-1 pt-16 lg:pt-0 lg:ml-72" style={{ backgroundColor: '#F0EEEB' }}>{children}</main>
     </div>
   );
 }
