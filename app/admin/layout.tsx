@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import AdminNotificationBar from "@/components/AdminNotificationBar";
 
 export default function AdminLayout({
   children,
@@ -55,7 +56,9 @@ export default function AdminLayout({
   const menuItems = [
     { href: "/admin", label: "학생 관리", icon: "👥", description: "학생 승인 및 관리" },
     { href: "/admin/passages", label: "국어 지문", icon: "📚", description: "수능 국어 지문 관리" },
+    { href: "/admin/my-checkpoints", label: "내 체크포인트", icon: "✓", description: "내가 작성한 체크포인트" },
     { href: "/admin/passages/parse-pdf", label: "PDF 파싱", icon: "📄", description: "PDF에서 지문 추출" },
+    { href: "/admin/schedule", label: "스케줄 관리", icon: "📅", description: "일정 관리 및 스케줄" },
     { href: "/admin/settings", label: "설정", icon: "⚙️", description: "시스템 설정" },
   ];
 
@@ -76,6 +79,11 @@ export default function AdminLayout({
               !pathname.startsWith("/admin/passages/gichul") &&
               !pathname.startsWith("/admin/passages/leet") &&
               !pathname.startsWith("/admin/passages/other"));
+    }
+    
+    // /admin/my-checkpoints는 정확히 일치할 때만
+    if (href === "/admin/my-checkpoints") {
+      return pathname === "/admin/my-checkpoints";
     }
     
     // parse-pdf는 정확히 일치할 때만
@@ -241,7 +249,10 @@ export default function AdminLayout({
       </aside>
 
       {/* 메인 컨텐츠 */}
-      <main className="flex-1 pt-16 lg:pt-0">{children}</main>
+      <main className="flex-1 pt-16 lg:pt-0 relative">
+        <AdminNotificationBar />
+        {children}
+      </main>
     </div>
   );
 }

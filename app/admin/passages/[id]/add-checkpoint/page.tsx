@@ -55,6 +55,13 @@ function AddCheckpointContent() {
       return;
     }
 
+    // 현재 로그인한 사용자 정보 가져오기
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
     // 기존 체크포인트 개수 확인
     const { data: existing } = await supabase
       .from("checkpoints")
@@ -73,6 +80,7 @@ function AddCheckpointContent() {
       highlighted_text: selectedText || null,
       highlight_start: highlightStart,
       highlight_end: highlightEnd,
+      teacher_id: user.id,
     });
 
     if (error) {

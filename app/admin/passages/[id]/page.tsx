@@ -2,18 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import React from "react";
 
 export default function AdminPassageDetail() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedStudentId = searchParams?.get("student");
   const [passage, setPassage] = useState<any>(null);
   const [checkpoints, setCheckpoints] = useState<any[]>([]);
   const [studentSubmissions, setStudentSubmissions] = useState<any[]>([]);
   const [comments, setComments] = useState<Record<string, any[]>>({});
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [showCommentInput, setShowCommentInput] = useState<Record<string, boolean>>({});
+  const [studentFeedbacks, setStudentFeedbacks] = useState<Record<string, any>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [editingCheckpointId, setEditingCheckpointId] = useState<string | null>(null);
+  const [editCheckpointText, setEditCheckpointText] = useState<string>("");
 
   // 카테고리 키워드 체크 (영어로 변경)
   const isCategoryKeyword = (str: string) => {
@@ -52,6 +59,12 @@ export default function AdminPassageDetail() {
         return;
       }
 
+      // 현재 로그인한 사용자 정보 가져오기
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+
       const { data: cp } = await supabase
         .from("checkpoints")
         .select("*")
@@ -59,21 +72,6 @@ export default function AdminPassageDetail() {
         .order("order_num");
 
       // 학생 제출 데이터 가져오기 - 먼저 모든 데이터를 가져온 후 users 조인
-      console.log("지문 ID:", id);
-      
-      // 현재 사용자 정보 확인
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log("현재 로그인한 사용자:", user?.id);
-      
-      if (user) {
-        const { data: currentUser } = await supabase
-          .from("users")
-          .select("id, role, name")
-          .eq("id", user.id)
-          .single();
-        console.log("현재 사용자 역할:", currentUser?.role);
-      }
-      
       // 1단계: 현재 지문에 대한 모든 제출 데이터 가져오기
       // RLS 정책을 우회하기 위해 service_role 키를 사용할 수 없으므로,
       // 정책이 제대로 작동하는지 확인
@@ -82,36 +80,12 @@ export default function AdminPassageDetail() {
         .select("*")
         .eq("passage_id", id);
       
-      // 에러가 있으면 상세 정보 출력
-      if (checkpointsError) {
-        console.error("RLS 정책 오류 상세:", checkpointsError);
-      }
-      
-      console.log("1단계 - 제출 데이터 조회 결과:", {
-        count: checkpointsData?.length || 0,
-        error: checkpointsError,
-        data: checkpointsData
-      });
-      
-      // 각 레코드의 상세 정보 출력
-      if (checkpointsData) {
-        console.log("1단계 상세 - 각 레코드의 user_id와 passage_id:", 
-          checkpointsData.map((c: any) => ({
-            id: c.id,
-            user_id: c.user_id,
-            passage_id: c.passage_id,
-            paragraph: c.paragraph || c.paragraph_index
-          }))
-        );
-      }
-      
       if (checkpointsError) {
         console.error("학생 제출 조회 오류:", checkpointsError);
         setStudentSubmissions([]);
       } else if (checkpointsData && checkpointsData.length > 0) {
         // 2단계: 고유한 user_id 추출
         const userIds = [...new Set(checkpointsData.map((c: any) => c.user_id).filter(Boolean))];
-        console.log("2단계 - 고유한 학생 ID:", userIds.length, userIds);
         
         // 3단계: users 정보 가져오기
         let usersMap = new Map();
@@ -120,12 +94,6 @@ export default function AdminPassageDetail() {
             .from("users")
             .select("id, name, email")
             .in("id", userIds);
-          
-          console.log("3단계 - 사용자 정보 조회 결과:", {
-            count: usersData?.length || 0,
-            error: usersError,
-            data: usersData
-          });
           
           if (usersError) {
             console.error("사용자 정보 조회 오류:", usersError);
@@ -139,12 +107,6 @@ export default function AdminPassageDetail() {
           ...c,
           users: usersMap.get(c.user_id) || { name: "이름 미등록", email: "" },
         }));
-        
-        console.log("4단계 - 결합된 데이터:", {
-          total: allSubmissions.length,
-          uniqueUsers: new Set(allSubmissions.map((s: any) => s.user_id)).size,
-          userIds: [...new Set(allSubmissions.map((s: any) => s.user_id))]
-        });
         
         // paragraph로 정렬
         allSubmissions.sort((a: any, b: any) => {
@@ -174,9 +136,23 @@ export default function AdminPassageDetail() {
             });
             setComments(commentsMap);
           }
+
+          // 학생 피드백 로드
+          const { data: feedbackData } = await supabase
+            .from("student_feedback")
+            .select("*")
+            .in("student_submission_id", submissionIds)
+            .order("created_at", { ascending: false });
+
+          if (feedbackData) {
+            const feedbackMap: Record<string, any> = {};
+            feedbackData.forEach((feedback: any) => {
+              feedbackMap[feedback.student_submission_id] = feedback;
+            });
+            setStudentFeedbacks(feedbackMap);
+          }
         }
       } else {
-        console.log("제출 데이터가 없습니다.");
         setStudentSubmissions([]);
       }
 
@@ -188,11 +164,18 @@ export default function AdminPassageDetail() {
 
   // 학생별로 그룹화
   const byStudent: Record<string, any> = {};
+  const studentNames: string[] = [];
+  const uniqueStudentIds = new Set<string>();
+  
   studentSubmissions.forEach((sub: any) => {
     const userId = sub.user_id;
     if (!userId) {
-      console.warn("user_id가 없는 제출 데이터:", sub);
       return;
+    }
+    if (!uniqueStudentIds.has(userId)) {
+      uniqueStudentIds.add(userId);
+      const studentName = sub.users?.name || sub.users?.email || "이름 미등록";
+      studentNames.push(studentName);
     }
     if (!byStudent[userId]) {
       byStudent[userId] = {
@@ -204,12 +187,10 @@ export default function AdminPassageDetail() {
     byStudent[userId].submissions.push(sub);
   });
   
-  console.log("그룹화된 학생 수:", Object.keys(byStudent).length);
-  console.log("학생별 제출 개수:", Object.entries(byStudent).map(([id, data]: [string, any]) => ({
-    id,
-    name: data.name,
-    count: data.submissions.length
-  })));
+  // 선택된 학생이 있으면 해당 학생만 필터링
+  const filteredByStudent = selectedStudentId && byStudent[selectedStudentId]
+    ? { [selectedStudentId]: byStudent[selectedStudentId] }
+    : byStudent;
 
   // UUID가 아니면 에러 표시
   if (!isValidUUID(id as string)) {
@@ -249,6 +230,34 @@ export default function AdminPassageDetail() {
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
             {passage.title || "(제목 없음)"}
           </h1>
+          {studentNames.length > 0 && (
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-gray-700">작성한 학생:</span>
+              <div className="flex flex-wrap gap-2">
+                {studentNames.map((name, idx) => {
+                  const studentId = Object.keys(byStudent).find(
+                    (id) => byStudent[id].name === name
+                  );
+                  return (
+                    <Link
+                      key={idx}
+                      href={selectedStudentId === studentId 
+                        ? `/admin/passages/${id}` 
+                        : `/admin/passages/${id}?student=${studentId}`
+                      }
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                        selectedStudentId === studentId
+                          ? "bg-blue-600 text-white"
+                          : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      }`}
+                    >
+                      {name}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
@@ -324,22 +333,33 @@ export default function AdminPassageDetail() {
             <div className="mb-4 md:mb-6 bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 md:p-6 shadow-xl">
               <h3 className="font-semibold mb-4 text-lg text-gray-900">지문 내용 (문단별)</h3>
               <div className="space-y-4">
-                {paragraphs.map((paragraph: string, idx: number) => (
-                  <div key={idx} className="p-4 bg-gray-50 rounded-xl border-l-4 border-blue-400">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-xs font-semibold text-blue-600">{idx + 1}문단</div>
-                      <Link
-                        href={`/admin/passages/${id}/add-checkpoint?paragraph=${idx + 1}`}
-                        className="text-xs border border-blue-400 text-blue-600 px-2 py-1 rounded hover:bg-blue-50 transition-colors"
-                      >
-                        + 체크포인트 추가
-                      </Link>
+                {paragraphs.map((paragraph: string, idx: number) => {
+                  const paragraphNum = idx + 1;
+                  const paragraphCheckpoints = checkpoints.filter((cp: any) => (cp.paragraph || 1) === paragraphNum);
+                  // 하이라이트를 위해 원본 paragraph 사용 (줄바꿈을 공백으로 변환)
+                  const normalizedParagraph = paragraph.trim().replace(/\n/g, " ");
+                  
+                  return (
+                    <div key={idx} className="p-4 bg-gray-50 rounded-xl border-l-4 border-blue-400">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-semibold text-blue-600">{paragraphNum}문단</div>
+                        <Link
+                          href={`/admin/passages/${id}/add-checkpoint?paragraph=${paragraphNum}`}
+                          className="text-xs border border-blue-400 text-blue-600 px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                        >
+                          + 체크포인트 추가
+                        </Link>
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        <ParagraphWithHighlights
+                          paragraph={normalizedParagraph}
+                          checkpoints={paragraphCheckpoints}
+                          currentUserId={currentUserId}
+                        />
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-700">
-                      {paragraph.trim().replace(/\n/g, " ")}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -356,12 +376,117 @@ export default function AdminPassageDetail() {
             </div>
 
             <div className="flex flex-col gap-3">
-              {checkpoints.map((cp: any) => (
-                <div className="border border-gray-200 p-4 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow" key={cp.id}>
-                  <b className="text-blue-600">{cp.order_num}. </b> 
-                  <span className="text-gray-800">{cp.text}</span>
-                </div>
-              ))}
+              {checkpoints.map((cp: any) => {
+                const isMyCheckpoint = currentUserId && cp.teacher_id === currentUserId;
+                const isEditing = editingCheckpointId === cp.id;
+                
+                return (
+                  <div 
+                    className={`border p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow ${
+                      isMyCheckpoint 
+                        ? "border-blue-400 bg-blue-50" 
+                        : "border-gray-200 bg-white"
+                    }`} 
+                    key={cp.id}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editCheckpointText}
+                              onChange={(e) => setEditCheckpointText(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                              rows={3}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={async () => {
+                                  const { error } = await supabase
+                                    .from("checkpoints")
+                                    .update({ text: editCheckpointText })
+                                    .eq("id", cp.id);
+                                  
+                                  if (error) {
+                                    alert("수정 실패: " + error.message);
+                                  } else {
+                                    alert("수정되었습니다.");
+                                    setEditingCheckpointId(null);
+                                    setEditCheckpointText("");
+                                    // 페이지 새로고침 또는 상태 업데이트
+                                    window.location.reload();
+                                  }
+                                }}
+                                className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                              >
+                                저장
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingCheckpointId(null);
+                                  setEditCheckpointText("");
+                                }}
+                                className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                              >
+                                취소
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <b className="text-blue-600">{cp.order_num}. </b> 
+                            <span className="text-gray-800">{cp.text}</span>
+                          </>
+                        )}
+                      </div>
+                      {isMyCheckpoint && !isEditing && (
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="px-2 py-1 text-xs bg-blue-600 text-white rounded font-semibold">
+                            내가 작성
+                          </span>
+                          <button
+                            onClick={() => {
+                              setEditingCheckpointId(cp.id);
+                              setEditCheckpointText(cp.text);
+                            }}
+                            className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                            title="수정"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (!confirm("정말 삭제하시겠습니까?")) return;
+                              
+                              const { error } = await supabase
+                                .from("checkpoints")
+                                .delete()
+                                .eq("id", cp.id);
+                              
+                              if (error) {
+                                alert("삭제 실패: " + error.message);
+                              } else {
+                                alert("삭제되었습니다.");
+                                window.location.reload();
+                              }
+                            }}
+                            className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                            title="삭제"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {cp.highlighted_text && (
+                      <div className="mt-2 p-2 bg-yellow-50 rounded text-xs text-gray-600 border border-yellow-200">
+                        <span className="font-semibold">하이라이트: </span>
+                        {cp.highlighted_text}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
           </div>
@@ -371,9 +496,9 @@ export default function AdminPassageDetail() {
           <div className="lg:sticky lg:top-4">
             <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 pb-3 border-b-2 border-gray-200">학생 제출 현황</h2>
 
-            {Object.keys(byStudent).length > 0 ? (
+            {Object.keys(filteredByStudent).length > 0 ? (
               <div className="space-y-4 max-h-[600px] lg:max-h-[calc(100vh-200px)] overflow-y-auto">
-                {Object.entries(byStudent).map(([userId, studentData]: [string, any]) => (
+                {Object.entries(filteredByStudent).map(([userId, studentData]: [string, any]) => (
                   <div key={userId} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 md:p-5 shadow-xl hover:shadow-2xl transition-all duration-300">
                     <h3 className="text-lg font-bold mb-4 pb-3 border-b-2 border-gray-200 text-gray-900">
                       {studentData.name} 님 ({studentData.submissions.length}개 제출)
@@ -382,129 +507,202 @@ export default function AdminPassageDetail() {
                     <div className="space-y-3">
                       {paragraphs.map((paragraph: string, idx: number) => {
                         const paragraphNum = idx + 1;
-                        const submission = studentData.submissions.find(
+                        // 해당 문단의 모든 attempt_number 제출 찾기
+                        const submissions = studentData.submissions.filter(
                           (s: any) => {
                             const paraNum = s.paragraph || s.paragraph_index;
                             return paraNum === paragraphNum;
                           }
-                        );
+                        ).sort((a: any, b: any) => (a.attempt_number || 1) - (b.attempt_number || 1));
 
                         return (
                           <div key={idx} className="border-l-2 border-blue-300 pl-3 py-2">
-                            <div className="text-xs font-semibold text-blue-600 mb-1">
-                              {paragraphNum}문단
-                            </div>
-
-                            {/* 체크포인트 */}
-                            <div className="mb-1">
-                              {submission?.checkpoint_text && submission.checkpoint_text.trim() ? (
-                                <div className="text-xs text-gray-800 p-2 bg-blue-50 rounded">
-                                  {submission.checkpoint_text}
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="text-xs font-semibold text-blue-600">
+                                {paragraphNum}문단
+                              </div>
+                              {submissions.length > 0 && (
+                                <div className="flex gap-1">
+                                  {submissions.map((sub: any) => (
+                                    <span
+                                      key={sub.id}
+                                      className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded"
+                                    >
+                                      {sub.attempt_number || 1}차
+                                    </span>
+                                  ))}
                                 </div>
-                              ) : (
-                                <span className="text-xs text-gray-400 italic">체크포인트 없음</span>
                               )}
                             </div>
 
-                            {/* 모름 사유 */}
-                            {submission?.reason && (
-                              <div className="mt-1 p-1.5 bg-yellow-50 rounded border-l-2 border-yellow-400">
-                                <span className="text-xs font-semibold text-yellow-700">⚠️ 모름: </span>
-                                <span className="text-xs text-gray-800 whitespace-pre-wrap">
-                                  {submission.reason}
-                                </span>
-                              </div>
-                            )}
+                            {/* attempt_number별로 체크포인트 표시 */}
+                            {submissions.length > 0 ? (
+                              <div className="space-y-2">
+                                {submissions.map((submission: any) => (
+                                  <div key={submission.id} className="border border-gray-200 rounded p-2 bg-gray-50">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-xs font-bold text-green-600">
+                                        {submission.attempt_number || 1}차
+                                      </span>
+                                      <span className="text-xs text-gray-500">
+                                        {submission.created_at ? new Date(submission.created_at).toLocaleDateString('ko-KR') : ''}
+                                      </span>
+                                    </div>
 
-                            {/* 댓글 섹션 */}
-                            {submission && (
-                              <div className="mt-3">
-                                <button
-                                  onClick={() => {
-                                    setShowCommentInput((prev) => ({
-                                      ...prev,
-                                      [submission.id]: !prev[submission.id],
-                                    }));
-                                  }}
-                                  className="text-xs text-blue-600 hover:text-blue-700 mb-2"
-                                >
-                                  💬 댓글 {comments[submission.id]?.length || 0}개
-                                </button>
-
-                                {/* 기존 댓글 */}
-                                {comments[submission.id] && comments[submission.id].length > 0 && (
-                                  <div className="space-y-2 mb-2">
-                                    {comments[submission.id].map((comment: any) => (
-                                      <div key={comment.id} className="p-2 bg-gray-50 rounded text-xs">
-                                        <div className="font-semibold text-gray-700 mb-1">선생님</div>
-                                        <div className="text-gray-800 whitespace-pre-wrap">
-                                          {comment.comment_text}
+                                    {/* 체크포인트 */}
+                                    <div className="mb-1">
+                                      {submission?.checkpoint_text && submission.checkpoint_text.trim() ? (
+                                        <div className="text-xs text-gray-800 p-2 bg-blue-50 rounded">
+                                          {submission.checkpoint_text}
                                         </div>
+                                      ) : (
+                                        <span className="text-xs text-gray-400 italic">체크포인트 없음</span>
+                                      )}
+                                    </div>
+
+                                    {/* 모름 사유 */}
+                                    {submission?.reason && (
+                                      <div className="mt-1 p-1.5 bg-yellow-50 rounded border-l-2 border-yellow-400">
+                                        <span className="text-xs font-semibold text-yellow-700">⚠️ 모름: </span>
+                                        <span className="text-xs text-gray-800 whitespace-pre-wrap">
+                                          {submission.reason}
+                                        </span>
                                       </div>
-                                    ))}
-                                  </div>
-                                )}
+                                    )}
 
-                                {/* 댓글 입력 */}
-                                {showCommentInput[submission.id] && (
-                                  <div className="mt-2">
-                                    <textarea
-                                      value={commentTexts[submission.id] || ""}
-                                      onChange={(e) => {
-                                        setCommentTexts((prev) => ({
-                                          ...prev,
-                                          [submission.id]: e.target.value,
-                                        }));
-                                      }}
-                                      placeholder="댓글을 입력하세요..."
-                                      className="w-full text-xs p-2 border border-gray-300 rounded mb-2"
-                                      rows={3}
-                                    />
-                                    <button
-                                      onClick={async () => {
-                                        const { data: { user } } = await supabase.auth.getUser();
-                                        if (!user) return;
+                                    {/* 학생 자기 피드백 */}
+                                    {studentFeedbacks[submission.id] && (
+                                      <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-xs font-semibold text-purple-700">
+                                            ✍️ 학생 자기 피드백
+                                          </span>
+                                          {!studentFeedbacks[submission.id].teacher_viewed && (
+                                            <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded">
+                                              NEW
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="text-xs text-gray-800 whitespace-pre-wrap mt-1">
+                                          {studentFeedbacks[submission.id].feedback_text}
+                                        </div>
+                                        <button
+                                          onClick={async () => {
+                                            const { error } = await supabase
+                                              .from("student_feedback")
+                                              .update({ teacher_viewed: true })
+                                              .eq("id", studentFeedbacks[submission.id].id);
 
-                                        const { error } = await supabase
-                                          .from("teacher_comments")
-                                          .insert({
-                                            student_submission_id: submission.id,
-                                            teacher_id: user.id,
-                                            comment_text: commentTexts[submission.id] || "",
-                                          });
+                                            if (!error) {
+                                              setStudentFeedbacks((prev) => ({
+                                                ...prev,
+                                                [submission.id]: {
+                                                  ...prev[submission.id],
+                                                  teacher_viewed: true,
+                                                },
+                                              }));
+                                            }
+                                          }}
+                                          className="mt-2 text-xs text-purple-600 hover:text-purple-700"
+                                        >
+                                          확인 완료
+                                        </button>
+                                      </div>
+                                    )}
 
-                                        if (error) {
-                                          alert("댓글 작성 실패: " + error.message);
-                                        } else {
-                                          setCommentTexts((prev) => ({
-                                            ...prev,
-                                            [submission.id]: "",
-                                          }));
+                                    {/* 댓글 섹션 */}
+                                    <div className="mt-2">
+                                      <button
+                                        onClick={() => {
                                           setShowCommentInput((prev) => ({
                                             ...prev,
-                                            [submission.id]: false,
+                                            [submission.id]: !prev[submission.id],
                                           }));
-                                          // 댓글 다시 로드
-                                          const { data: commentsData } = await supabase
-                                            .from("teacher_comments")
-                                            .select("*")
-                                            .eq("student_submission_id", submission.id)
-                                            .order("created_at", { ascending: false });
-                                          if (commentsData) {
-                                            setComments((prev) => ({
-                                              ...prev,
-                                              [submission.id]: commentsData,
-                                            }));
-                                          }
-                                        }
-                                      }}
-                                      className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                                    >
-                                      댓글 작성
-                                    </button>
+                                        }}
+                                        className="text-xs text-blue-600 hover:text-blue-700 mb-2"
+                                      >
+                                        💬 댓글 {comments[submission.id]?.length || 0}개
+                                      </button>
+
+                                      {/* 기존 댓글 */}
+                                      {comments[submission.id] && comments[submission.id].length > 0 && (
+                                        <div className="space-y-2 mb-2">
+                                          {comments[submission.id].map((comment: any) => (
+                                            <div key={comment.id} className="p-2 bg-gray-50 rounded text-xs">
+                                              <div className="font-semibold text-gray-700 mb-1">선생님</div>
+                                              <div className="text-gray-800 whitespace-pre-wrap">
+                                                {comment.comment_text}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {/* 댓글 입력 */}
+                                      {showCommentInput[submission.id] && (
+                                        <div className="mt-2">
+                                          <textarea
+                                            value={commentTexts[submission.id] || ""}
+                                            onChange={(e) => {
+                                              setCommentTexts((prev) => ({
+                                                ...prev,
+                                                [submission.id]: e.target.value,
+                                              }));
+                                            }}
+                                            placeholder="댓글을 입력하세요..."
+                                            className="w-full text-xs p-2 border border-gray-300 rounded mb-2"
+                                            rows={3}
+                                          />
+                                          <button
+                                            onClick={async () => {
+                                              const { data: { user } } = await supabase.auth.getUser();
+                                              if (!user) return;
+
+                                              const { error } = await supabase
+                                                .from("teacher_comments")
+                                                .insert({
+                                                  student_submission_id: submission.id,
+                                                  teacher_id: user.id,
+                                                  comment_text: commentTexts[submission.id] || "",
+                                                });
+
+                                              if (error) {
+                                                alert("댓글 작성 실패: " + error.message);
+                                              } else {
+                                                setCommentTexts((prev) => ({
+                                                  ...prev,
+                                                  [submission.id]: "",
+                                                }));
+                                                setShowCommentInput((prev) => ({
+                                                  ...prev,
+                                                  [submission.id]: false,
+                                                }));
+                                                // 댓글 다시 로드
+                                                const { data: commentsData } = await supabase
+                                                  .from("teacher_comments")
+                                                  .select("*")
+                                                  .eq("student_submission_id", submission.id)
+                                                  .order("created_at", { ascending: false });
+                                                if (commentsData) {
+                                                  setComments((prev) => ({
+                                                    ...prev,
+                                                    [submission.id]: commentsData,
+                                                  }));
+                                                }
+                                              }
+                                            }}
+                                            className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                                          >
+                                            댓글 작성
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                )}
+                                ))}
                               </div>
+                            ) : (
+                              <div className="text-xs text-gray-400 italic">아직 제출하지 않음</div>
                             )}
                           </div>
                         );
@@ -533,4 +731,75 @@ export default function AdminPassageDetail() {
       </div>
     </div>
   );
+}
+
+// 문단에 하이라이트를 적용하는 컴포넌트
+function ParagraphWithHighlights({
+  paragraph,
+  checkpoints,
+  currentUserId,
+}: {
+  paragraph: string;
+  checkpoints: any[];
+  currentUserId: string | null;
+}) {
+  // 본인이 작성한 체크포인트만 필터링
+  const myCheckpoints = checkpoints.filter((cp: any) => 
+    currentUserId && cp.teacher_id === currentUserId
+  );
+
+  if (myCheckpoints.length === 0) {
+    return <div className="text-sm text-gray-700">{paragraph}</div>;
+  }
+
+  // 하이라이트 정보를 정렬 (start 위치 기준)
+  const sortedCheckpoints = [...myCheckpoints].sort((a, b) => {
+    const aStart = a.highlight_start ?? 0;
+    const bStart = b.highlight_start ?? 0;
+    return aStart - bStart;
+  });
+
+  // 텍스트를 하이라이트와 함께 렌더링
+  let lastIndex = 0;
+  const elements: React.ReactElement[] = [];
+
+  sortedCheckpoints.forEach((cp, idx) => {
+    const start = cp.highlight_start ?? 0;
+    const end = cp.highlight_end ?? start + (cp.highlighted_text?.length || 0);
+
+    // 하이라이트 전 텍스트
+    if (start > lastIndex) {
+      elements.push(
+        <span key={`text-${idx}-before`} className="text-sm text-gray-700">
+          {paragraph.substring(lastIndex, start)}
+        </span>
+      );
+    }
+
+    // 하이라이트된 텍스트
+    const highlightedText = paragraph.substring(start, end);
+    if (highlightedText) {
+      elements.push(
+        <span
+          key={`highlight-${idx}`}
+          className="bg-yellow-300 text-gray-900 px-0.5 rounded text-sm font-medium"
+        >
+          {highlightedText}
+        </span>
+      );
+    }
+
+    lastIndex = Math.max(lastIndex, end);
+  });
+
+  // 마지막 하이라이트 이후 텍스트
+  if (lastIndex < paragraph.length) {
+    elements.push(
+      <span key="text-after" className="text-sm text-gray-700">
+        {paragraph.substring(lastIndex)}
+      </span>
+    );
+  }
+
+  return <div className="text-sm text-gray-700">{elements}</div>;
 }

@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function AdminPassageList() {
   const [parsedPassage, setParsedPassage] = useState<any>(null);
+  const [myCheckpoints, setMyCheckpoints] = useState<any[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     // sessionStorage에서 파싱된 지문 확인
@@ -17,6 +20,66 @@ export default function AdminPassageList() {
         console.error('Failed to parse stored passage:', e);
       }
     }
+
+    // 현재 사용자 정보 및 본인이 작성한 체크포인트 로드
+    const loadMyCheckpoints = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        setCurrentUserId(user.id);
+
+        // 본인이 작성한 체크포인트가 있는 지문들 가져오기
+        // teacher_id 컬럼이 없거나 NULL인 경우도 포함 (기존 체크포인트는 모두 표시)
+        const { data: checkpoints, error } = await supabase
+          .from("checkpoints")
+          .select(`
+            id,
+            passage_id,
+            paragraph,
+            text,
+            order_num,
+            teacher_id,
+            passages(id, title, category, year, source)
+          `)
+          .or(`teacher_id.eq.${user.id},teacher_id.is.null`);
+
+        if (error) {
+          console.error("체크포인트 로드 오류:", error);
+          // 컬럼이 없으면 빈 배열로 설정
+          if (error.code === "42703") {
+            setMyCheckpoints([]);
+            return;
+          }
+          return;
+        }
+
+        if (checkpoints && checkpoints.length > 0) {
+          // 지문별로 그룹화 (중복 제거)
+          const passageMap = new Map();
+          checkpoints.forEach((cp: any) => {
+            if (cp.passages && !passageMap.has(cp.passage_id)) {
+              passageMap.set(cp.passage_id, {
+                ...cp.passages,
+                checkpointCount: 0,
+                latestCheckpoint: cp,
+              });
+            }
+            if (passageMap.has(cp.passage_id)) {
+              passageMap.get(cp.passage_id).checkpointCount++;
+            }
+          });
+          setMyCheckpoints(Array.from(passageMap.values()));
+        } else {
+          setMyCheckpoints([]);
+        }
+      } catch (err) {
+        console.error("체크포인트 로드 중 오류:", err);
+        setMyCheckpoints([]);
+      }
+    };
+
+    loadMyCheckpoints();
   }, []);
 
   const getCategoryUrl = (category: string) => {
@@ -40,6 +103,58 @@ export default function AdminPassageList() {
           </h1>
           <p className="text-gray-600">수능 지문을 카테고리별로 관리합니다.</p>
         </div>
+
+        {/* 내가 작성한 체크포인트 섹션 */}
+        {myCheckpoints.length > 0 && (
+          <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-6 md:p-8 shadow-xl mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                내가 작성한 체크포인트
+              </h2>
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                {myCheckpoints.length}개 지문
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">본인이 작성한 체크포인트가 있는 지문을 바로 확인할 수 있습니다.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+              {myCheckpoints.map((passage: any) => (
+                <Link
+                  key={passage.id}
+                  href={`/admin/passages/${passage.id}`}
+                  className="group p-4 border-2 border-blue-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 line-clamp-2 flex-1">
+                      {passage.title || "(제목 없음)"}
+                    </h3>
+                    <svg className="w-5 h-5 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                    <span className="px-2 py-0.5 bg-gray-100 rounded">
+                      {passage.category || "기타"}
+                    </span>
+                    {passage.year && (
+                      <span className="px-2 py-0.5 bg-gray-100 rounded">
+                        {passage.year}년
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-blue-600 font-medium">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    체크포인트 {passage.checkpointCount}개
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {parsedPassage && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
