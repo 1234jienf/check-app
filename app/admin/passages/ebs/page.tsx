@@ -180,8 +180,8 @@ export default function EBSPassageList() {
           </Link>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/bishop_black.svg" alt="Bishop" className="w-10 h-10" style={{ filter: 'brightness(0) saturate(100%) invert(15%) sepia(95%) saturate(2000%) hue-rotate(195deg) brightness(0.3) contrast(1.2)' }} />
-              <h1 className="text-4xl font-bold relative inline-block pb-2" style={{ color: '#003A6C' }}>
+              <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%) invert(15%) sepia(95%) saturate(2000%) hue-rotate(195deg) brightness(0.3) contrast(1.2)' }} />
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#003A6C' }}>
                 EBS 지문 관리
                 <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #003A6C 0%, #003A6C 50%, transparent 100%)', borderRadius: '2px' }}></span>
               </h1>

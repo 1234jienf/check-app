@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
@@ -15,7 +15,7 @@ interface Notification {
   scheduleTime?: string; // 스케줄 시간
 }
 
-export default function AdminNotificationBar() {
+export default function AdminNotificationBar({ isMobile = false }: { isMobile?: boolean }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -56,229 +56,277 @@ export default function AdminNotificationBar() {
     loadReadNotifications();
   }, [teacherId]);
 
-  useEffect(() => {
+  // 알림 로드 함수 (재사용 가능하도록 분리)
+  const loadNotifications = useCallback(async () => {
     if (!teacherId) return;
 
-    const loadNotifications = async () => {
-      // 읽은 알림을 먼저 로드 (이미 로드되어 있지만 확실하게)
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
-      const { data: readData } = await supabase
-        .from("notification_read")
-        .select("notification_type, notification_id")
-        .eq("teacher_id", teacherId)
-        .gte("read_at", sevenDaysAgo.toISOString());
+    // 읽은 알림을 먼저 로드 (모든 읽은 알림 가져오기 - 7일 제한 제거)
+    const { data: readData, error: readError } = await supabase
+      .from("notification_read")
+      .select("notification_type, notification_id")
+      .eq("teacher_id", teacherId);
 
-      const currentReadSet: Set<string> = readData 
-        ? new Set(readData.map((r) => `${r.notification_type}_${r.notification_id}`))
-        : new Set<string>();
-      const notifs: Notification[] = [];
+    if (readError) {
+      console.error("읽은 알림 로드 오류:", readError);
+    }
 
-      // 1. 오늘 스케줄 확인
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      
-      const { data: todaySchedules, error: scheduleError } = await supabase
-        .from("teacher_schedule")
-        .select("*")
-        .eq("teacher_id", teacherId)
-        .eq("schedule_date", todayStr)
-        .order("start_time", { ascending: true });
+    // 데이터베이스에서 읽은 알림만 사용 (항상 최신 상태)
+    // readKey 생성 로직은 markAsRead와 동일해야 함
+    const currentReadSet = new Set<string>();
+    if (readData) {
+      readData.forEach((r) => {
+        let readKey: string;
+        if (r.notification_type === "new_checkpoint" || r.notification_type === "student_feedback") {
+          // notification_id가 이미 올바른 형식 (예: "new_checkpoint_${studentId}")
+          readKey = r.notification_id;
+        } else if (r.notification_type === "schedule") {
+          // "schedule_${schedule.id}" 형식
+          readKey = `schedule_${r.notification_id}`;
+        } else if (r.notification_type === "pending_student") {
+          // 고정 키
+          readKey = "pending_student_pending_students";
+        } else {
+          // 기본값: type_id 형식
+          readKey = `${r.notification_type}_${r.notification_id}`;
+        }
+        currentReadSet.add(readKey);
+      });
+    }
+    
+    console.log("읽은 알림 로드:", { 
+      dbCount: readData?.length || 0, 
+      readKeys: Array.from(currentReadSet) 
+    });
+    
+    // 상태 업데이트 (데이터베이스와 동기화)
+    setReadNotifications(currentReadSet);
+    
+    const notifs: Notification[] = [];
 
-      if (scheduleError) {
-        console.error("스케줄 조회 오류:", scheduleError);
-      }
+    // 1. 오늘 스케줄 확인
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    const { data: todaySchedules, error: scheduleError } = await supabase
+      .from("teacher_schedule")
+      .select("*")
+      .eq("teacher_id", teacherId)
+      .eq("schedule_date", todayStr)
+      .order("start_time", { ascending: true });
 
-      if (todaySchedules && todaySchedules.length > 0) {
-        // 각 스케줄마다 개별 알림 생성
-        todaySchedules.forEach((schedule: any) => {
-          const readKey = `schedule_${schedule.id}`;
-          if (!currentReadSet.has(readKey)) {
-            const timeStr = schedule.start_time 
-              ? `${schedule.start_time}${schedule.end_time ? ` - ${schedule.end_time}` : ''}`
-              : '';
-            notifs.push({
-              id: schedule.id,
-              type: "schedule",
-              message: timeStr 
-                ? `${schedule.title} (${timeStr})`
-                : schedule.title,
-              link: "/admin/schedule",
-              scheduleId: schedule.id,
-              scheduleTitle: schedule.title,
-              scheduleTime: timeStr,
-            });
-          }
-        });
-      }
+    if (scheduleError) {
+      console.error("스케줄 조회 오류:", scheduleError);
+    }
 
-      // 2. 승인 대기 학생 확인
-      const { data: pendingStudents } = await supabase
-        .from("users")
-        .select("id, name")
-        .eq("role", "student")
-        .eq("approved", false);
-
-      if (pendingStudents && pendingStudents.length > 0) {
-        const readKey = `pending_student_pending_students`;
+    if (todaySchedules && todaySchedules.length > 0) {
+      // 각 스케줄마다 개별 알림 생성
+      todaySchedules.forEach((schedule: any) => {
+        const readKey = `schedule_${schedule.id}`;
         if (!currentReadSet.has(readKey)) {
+          const timeStr = schedule.start_time 
+            ? `${schedule.start_time}${schedule.end_time ? ` - ${schedule.end_time}` : ''}`
+            : '';
           notifs.push({
-            id: "pending_students",
-            type: "pending_student",
-            message: `승인 대기 학생 ${pendingStudents.length}명`,
-            link: "/admin",
-            count: pendingStudents.length,
+            id: schedule.id,
+            type: "schedule",
+            message: timeStr 
+              ? `${schedule.title} (${timeStr})`
+              : schedule.title,
+            link: "/admin/schedule",
+            scheduleId: schedule.id,
+            scheduleTitle: schedule.title,
+            scheduleTime: timeStr,
           });
         }
+      });
+    }
+
+    // 2. 승인 대기 학생 확인
+    const { data: pendingStudents } = await supabase
+      .from("users")
+      .select("id, name")
+      .eq("role", "student")
+      .eq("approved", false);
+
+    if (pendingStudents && pendingStudents.length > 0) {
+      const readKey = `pending_student_pending_students`;
+      if (!currentReadSet.has(readKey)) {
+        notifs.push({
+          id: "pending_students",
+          type: "pending_student",
+          message: `승인 대기 학생 ${pendingStudents.length}명`,
+          link: "/admin",
+          count: pendingStudents.length,
+        });
       }
+    }
 
-      // 3. 최근 24시간 내 새 체크포인트 확인 (1차, 2차, 3차 모두 포함)
-      const yesterday = new Date();
-      yesterday.setHours(yesterday.getHours() - 24);
-      const yesterdayStr = yesterday.toISOString();
+    // 3. 최근 24시간 내 새 체크포인트 확인 (1차, 2차, 3차 모두 포함)
+    const yesterday = new Date();
+    yesterday.setHours(yesterday.getHours() - 24);
+    const yesterdayStr = yesterday.toISOString();
 
-      const { data: newCheckpoints } = await supabase
-        .from("student_checkpoint_record")
-        .select(`
+    const { data: newCheckpoints } = await supabase
+      .from("student_checkpoint_record")
+      .select(`
+        id,
+        created_at,
+        attempt_number,
+        paragraph,
+        passages!inner(id, title),
+        users!student_checkpoint_record_user_id_fkey(id, name)
+      `)
+      .gte("created_at", yesterdayStr)
+      .order("created_at", { ascending: false });
+
+    if (newCheckpoints && newCheckpoints.length > 0) {
+      // 학생별, 지문별로 그룹화하여 더 상세한 알림 제공
+      const byStudent: Record<string, { name: string; passages: Record<string, { title: string; attempts: number[] }> }> = {};
+      
+      newCheckpoints.forEach((cp: any) => {
+        const studentId = cp.users?.id;
+        const studentName = cp.users?.name || "학생";
+        const passageId = cp.passages?.id;
+        const passageTitle = cp.passages?.title || "지문";
+        const attemptNum = cp.attempt_number || 1;
+        
+        if (!byStudent[studentId]) {
+          byStudent[studentId] = {
+            name: studentName,
+            passages: {},
+          };
+        }
+        
+        if (!byStudent[studentId].passages[passageId]) {
+          byStudent[studentId].passages[passageId] = {
+            title: passageTitle,
+            attempts: [],
+          };
+        }
+        
+        if (!byStudent[studentId].passages[passageId].attempts.includes(attemptNum)) {
+          byStudent[studentId].passages[passageId].attempts.push(attemptNum);
+        }
+      });
+
+      // 각 학생별로 개별 알림 생성
+      Object.entries(byStudent).forEach(([studentId, studentData]) => {
+        const totalAttempts = Object.values(studentData.passages).reduce((sum, p) => sum + p.attempts.length, 0);
+        const readKey = `new_checkpoint_${studentId}`;
+        
+        if (!currentReadSet.has(readKey)) {
+          const attemptSummary = Object.values(studentData.passages)
+            .map(p => {
+              const attempts = p.attempts.sort((a, b) => a - b).join(', ');
+              return `${p.title}(${attempts}차)`;
+            })
+            .join(', ');
+          
+          notifs.push({
+            id: `new_checkpoint_${studentId}`,
+            type: "new_checkpoint",
+            message: `${studentData.name}님이 ${totalAttempts}개의 새 체크포인트를 작성했습니다`,
+            link: "/admin",
+            count: totalAttempts,
+          });
+        }
+      });
+    }
+
+    // 4. 최근 24시간 내 새 학생 피드백 확인
+    const { data: newFeedbacks } = await supabase
+      .from("student_feedback")
+      .select(`
+        id,
+        created_at,
+        teacher_viewed,
+        student_submission_id,
+        student_checkpoint_record!inner(
           id,
-          created_at,
-          attempt_number,
+          passage_id,
           paragraph,
+          attempt_number,
           passages!inner(id, title),
           users!student_checkpoint_record_user_id_fkey(id, name)
-        `)
-        .gte("created_at", yesterdayStr)
-        .order("created_at", { ascending: false });
+        )
+      `)
+      .eq("teacher_viewed", false)
+      .gte("created_at", yesterdayStr)
+      .order("created_at", { ascending: false });
 
-      if (newCheckpoints && newCheckpoints.length > 0) {
-        // 학생별, 지문별로 그룹화하여 더 상세한 알림 제공
-        const byStudent: Record<string, { name: string; passages: Record<string, { title: string; attempts: number[] }> }> = {};
-        
-        newCheckpoints.forEach((cp: any) => {
-          const studentId = cp.users?.id;
-          const studentName = cp.users?.name || "학생";
-          const passageId = cp.passages?.id;
-          const passageTitle = cp.passages?.title || "지문";
-          const attemptNum = cp.attempt_number || 1;
-          
-          if (!byStudent[studentId]) {
-            byStudent[studentId] = {
-              name: studentName,
-              passages: {},
-            };
-          }
-          
-          if (!byStudent[studentId].passages[passageId]) {
-            byStudent[studentId].passages[passageId] = {
-              title: passageTitle,
-              attempts: [],
-            };
-          }
-          
-          if (!byStudent[studentId].passages[passageId].attempts.includes(attemptNum)) {
-            byStudent[studentId].passages[passageId].attempts.push(attemptNum);
-          }
-        });
-
-        // 각 학생별로 개별 알림 생성
-        Object.entries(byStudent).forEach(([studentId, studentData]) => {
-          const totalAttempts = Object.values(studentData.passages).reduce((sum, p) => sum + p.attempts.length, 0);
-          const readKey = `new_checkpoint_${studentId}`;
-          
-          if (!currentReadSet.has(readKey)) {
-            const attemptSummary = Object.values(studentData.passages)
-              .map(p => {
-                const attempts = p.attempts.sort((a, b) => a - b).join(', ');
-                return `${p.title}(${attempts}차)`;
-              })
-              .join(', ');
-            
-            notifs.push({
-              id: `new_checkpoint_${studentId}`,
-              type: "new_checkpoint",
-              message: `${studentData.name}님이 ${totalAttempts}개의 새 체크포인트를 작성했습니다`,
-              link: "/admin",
-              count: totalAttempts,
+    if (newFeedbacks && newFeedbacks.length > 0) {
+      // 각 학생별로 그룹화
+      const feedbacksByStudent = new Map();
+      newFeedbacks.forEach((feedback: any) => {
+        const studentId = feedback.student_checkpoint_record?.users?.id;
+        const studentName = feedback.student_checkpoint_record?.users?.name || "학생";
+        if (studentId) {
+          if (!feedbacksByStudent.has(studentId)) {
+            feedbacksByStudent.set(studentId, {
+              studentId,
+              studentName,
+              count: 0,
+              feedbacks: [],
             });
           }
-        });
-      }
+          const studentData = feedbacksByStudent.get(studentId);
+          studentData.count++;
+          studentData.feedbacks.push(feedback);
+        }
+      });
 
-      // 4. 최근 24시간 내 새 학생 피드백 확인
-      const { data: newFeedbacks } = await supabase
-        .from("student_feedback")
-        .select(`
-          id,
-          created_at,
-          teacher_viewed,
-          student_submission_id,
-          student_checkpoint_record!inner(
-            id,
-            passage_id,
-            paragraph,
-            attempt_number,
-            passages!inner(id, title),
-            users!student_checkpoint_record_user_id_fkey(id, name)
-          )
-        `)
-        .eq("teacher_viewed", false)
-        .gte("created_at", yesterdayStr)
-        .order("created_at", { ascending: false });
+      // 각 학생별로 개별 알림 생성
+      feedbacksByStudent.forEach((studentData, studentId) => {
+        const readKey = `student_feedback_${studentId}`;
+        if (!currentReadSet.has(readKey)) {
+          notifs.push({
+            id: `student_feedback_${studentId}`,
+            type: "student_feedback",
+            message: `${studentData.studentName}님이 ${studentData.count}개의 피드백을 작성했습니다`,
+            link: "/admin",
+            count: studentData.count,
+          });
+        }
+      });
+    }
 
-      if (newFeedbacks && newFeedbacks.length > 0) {
-        // 각 학생별로 그룹화
-        const feedbacksByStudent = new Map();
-        newFeedbacks.forEach((feedback: any) => {
-          const studentId = feedback.student_checkpoint_record?.users?.id;
-          const studentName = feedback.student_checkpoint_record?.users?.name || "학생";
-          if (studentId) {
-            if (!feedbacksByStudent.has(studentId)) {
-              feedbacksByStudent.set(studentId, {
-                studentId,
-                studentName,
-                count: 0,
-                feedbacks: [],
-              });
-            }
-            const studentData = feedbacksByStudent.get(studentId);
-            studentData.count++;
-            studentData.feedbacks.push(feedback);
-          }
-        });
+    console.log("알림 목록 생성:", { 
+      total: notifs.length, 
+      notifications: notifs.map(n => ({ type: n.type, id: n.id }))
+    });
+    
+    setNotifications(notifs);
+  }, [teacherId]);
 
-        // 각 학생별로 개별 알림 생성
-        feedbacksByStudent.forEach((studentData, studentId) => {
-          const readKey = `student_feedback_${studentId}`;
-          if (!currentReadSet.has(readKey)) {
-            notifs.push({
-              id: `student_feedback_${studentId}`,
-              type: "student_feedback",
-              message: `${studentData.studentName}님이 ${studentData.count}개의 피드백을 작성했습니다`,
-              link: "/admin",
-              count: studentData.count,
-            });
-          }
-        });
-      }
-
-      setNotifications(notifs);
-      setReadNotifications(currentReadSet);
-    };
+  // 초기 로드 및 주기적 업데이트
+  useEffect(() => {
+    if (!teacherId) return;
 
     loadNotifications();
 
     // 30초마다 업데이트
     const interval = setInterval(loadNotifications, 30000);
     return () => clearInterval(interval);
-  }, [teacherId]);
+  }, [teacherId, loadNotifications]);
+
+  // 알림 창을 열 때마다 알림 다시 로드
+  useEffect(() => {
+    if (isOpen && teacherId) {
+      loadNotifications();
+    }
+  }, [isOpen, teacherId, loadNotifications]);
 
   // 알림 읽음 처리
   const markAsRead = async (notif: Notification, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!teacherId) return;
+    if (!teacherId) {
+      console.error("teacherId가 없습니다.");
+      return;
+    }
+
+    console.log("알림 삭제 시도:", { type: notif.type, id: notif.id, teacherId });
 
     // 즉시 UI에서 알림 제거 (낙관적 업데이트)
     setNotifications((prev) => {
@@ -289,18 +337,45 @@ export default function AdminNotificationBar() {
         }
         return true;
       });
+      console.log("UI 업데이트:", { before: prev.length, after: filtered.length });
       return filtered;
     });
 
-    // 읽은 알림 목록 업데이트
+    // 읽은 알림 목록에 추가
+    // readKey는 loadNotifications에서 사용하는 형식과 정확히 동일해야 함
+    let readKey: string;
+    if (notif.type === "new_checkpoint") {
+      // loadNotifications에서는 "new_checkpoint_${studentId}" 형식 사용
+      // notif.id가 이미 "new_checkpoint_${studentId}" 형식이므로 그대로 사용
+      readKey = notif.id;
+    } else if (notif.type === "student_feedback") {
+      // loadNotifications에서는 "student_feedback_${studentId}" 형식 사용
+      // notif.id가 이미 "student_feedback_${studentId}" 형식이므로 그대로 사용
+      readKey = notif.id;
+    } else if (notif.type === "schedule") {
+      // loadNotifications에서는 "schedule_${schedule.id}" 형식 사용
+      readKey = `schedule_${notif.id}`;
+    } else if (notif.type === "pending_student") {
+      // loadNotifications에서는 "pending_student_pending_students" 고정 키 사용
+      readKey = "pending_student_pending_students";
+    } else {
+      // 기본값: type_id 형식
+      readKey = `${notif.type}_${notif.id}`;
+    }
+    
+    console.log("readKey 생성:", { type: notif.type, id: notif.id, readKey });
+    
     setReadNotifications((prev) => {
       const newSet = new Set(prev);
-      newSet.add(`${notif.type}_${notif.id}`);
+      newSet.add(readKey);
+      console.log("읽은 알림 추가:", readKey, Array.from(newSet));
       return newSet;
     });
 
     try {
-      const { error } = await supabase
+      // 데이터베이스에 저장할 때는 notification_id에 notif.id를 그대로 저장
+      // readKey는 로컬 상태 관리용이고, DB에는 type과 id를 분리해서 저장
+      const { data, error } = await supabase
         .from("notification_read")
         .upsert({
           teacher_id: teacherId,
@@ -309,48 +384,46 @@ export default function AdminNotificationBar() {
         }, {
           onConflict: "teacher_id,notification_type,notification_id"
         });
+      
+      console.log("DB 저장 시도:", { 
+        teacher_id: teacherId, 
+        notification_type: notif.type, 
+        notification_id: notif.id,
+        readKey: readKey 
+      });
 
       if (error) {
         console.error("알림 읽음 처리 오류:", error);
-        // 에러 발생 시 알림 다시 로드
-        if (teacherId) {
-          const loadNotifications = async () => {
-            // 알림 다시 로드 로직 (기존 loadNotifications 함수와 동일)
-            // 간단하게 전체 재로드
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            
-            const { data: readData } = await supabase
-              .from("notification_read")
-              .select("notification_type, notification_id")
-              .eq("teacher_id", teacherId)
-              .gte("read_at", sevenDaysAgo.toISOString());
-
-            const currentReadSet: Set<string> = readData 
-              ? new Set(readData.map((r) => `${r.notification_type}_${r.notification_id}`))
-              : new Set<string>();
-            
-            // 여기서는 간단히 알림만 다시 로드하지 않고, 사용자가 수동으로 새로고침하도록 함
-            // 또는 전체 알림을 다시 로드하는 함수를 호출
-          };
-        }
+        // 에러 발생 시 다시 로드하여 상태 복구
+        loadNotifications();
+        alert("알림 삭제에 실패했습니다: " + error.message);
+        return;
       }
+
+      console.log("데이터베이스 저장 성공:", data);
+      
+      // 성공적으로 저장되었으므로 낙관적 업데이트 유지
+      // loadNotifications를 호출하지 않음 (낙관적 업데이트로 이미 UI가 업데이트됨)
+      // 주기적 업데이트(30초)나 알림 창을 다시 열 때 자동으로 동기화됨
     } catch (err) {
       console.error("알림 읽음 처리 중 오류:", err);
+      // 에러 발생 시 다시 로드하여 상태 복구
+      loadNotifications();
+      alert("알림 삭제 중 오류가 발생했습니다.");
     }
   };
 
   const totalCount = notifications.reduce((sum, notif) => sum + (notif.count || 1), 0);
 
   return (
-    <div className="fixed top-20 right-4 lg:top-4 lg:right-4 z-50">
+    <div className={isMobile ? "relative" : "fixed top-4 right-4 z-50"}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative rounded-lg shadow-lg p-3 hover:shadow-xl transition-all border-2"
+        className={`relative rounded-lg shadow-lg p-3 hover:shadow-xl transition-all border-2 ${isMobile ? 'p-2' : ''}`}
         style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}
       >
         <svg
-          className="w-6 h-6"
+          className={isMobile ? "w-5 h-5" : "w-6 h-6"}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -376,7 +449,7 @@ export default function AdminNotificationBar() {
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-14 right-0 w-80 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto" style={{ backgroundColor: '#F0EEEB', border: '1px solid #CCD5DA' }}>
+          <div className={`absolute ${isMobile ? 'top-12 right-0' : 'top-14 right-0'} w-80 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto`} style={{ backgroundColor: '#F0EEEB', border: '1px solid #CCD5DA' }}>
             <div className="p-4" style={{ borderBottom: '1px solid #CCD5DA' }}>
               <h3 className="font-bold" style={{ color: '#13181B' }}>알림</h3>
             </div>
@@ -472,6 +545,7 @@ export default function AdminNotificationBar() {
                       href={notif.link}
                       onClick={() => setIsOpen(false)}
                       className="flex-1 min-w-0"
+                      style={{ pointerEvents: 'auto' }}
                     >
                       <p className="text-sm font-medium" style={{ color: '#13181B' }}>{notif.message}</p>
                       {notif.type === "schedule" && notif.scheduleTime && (
@@ -485,12 +559,13 @@ export default function AdminNotificationBar() {
                         </p>
                       )}
                     </Link>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-shrink-0" style={{ zIndex: 10, position: 'relative' }}>
                       <Link
                         href={notif.link}
                         onClick={() => setIsOpen(false)}
                         className="p-1 hover:bg-gray-200 rounded transition-colors"
                         title="이동"
+                        style={{ pointerEvents: 'auto' }}
                       >
                         <svg
                           className="w-4 h-4"
@@ -514,7 +589,13 @@ export default function AdminNotificationBar() {
                           markAsRead(notif, e);
                         }}
                         className="p-1 rounded transition-colors"
-                        style={{ backgroundColor: 'transparent' }}
+                        style={{ 
+                          backgroundColor: 'transparent',
+                          zIndex: 20,
+                          position: 'relative',
+                          pointerEvents: 'auto',
+                          cursor: 'pointer'
+                        }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FD8973'}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         title="알림 지우기"
@@ -524,7 +605,7 @@ export default function AdminNotificationBar() {
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
-                          style={{ color: '#13181B' }}
+                          style={{ color: '#13181B', pointerEvents: 'none' }}
                         >
                           <path
                             strokeLinecap="round"

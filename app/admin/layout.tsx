@@ -82,6 +82,7 @@ export default function AdminLayout({
     { href: "/admin/passages", label: "국어 지문", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "수능 국어 지문 관리" },
     { href: "/admin/my-checkpoints", label: "내 체크포인트", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "내가 작성한 체크포인트" },
     { href: "/admin/schedule", label: "스케줄 관리", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "일정 관리 및 스케줄" },
+    { href: "/admin/announcements", label: "공지사항", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "공지사항 작성 및 관리" },
   ];
 
   const isActive = (href: string) => {
@@ -117,7 +118,7 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen" style={{ backgroundColor: '#F0EEEB' }}>
       {/* 모바일 헤더 */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 shadow-lg" style={{ backgroundColor: '#F0EEEB', borderBottom: '2px solid #13181B', color: '#13181B' }}>
         <div className="flex items-center justify-between p-4">
@@ -140,22 +141,25 @@ export default function AdminLayout({
               <div className="text-xs font-bold" style={{ color: '#13181B' }}>MATE</div>
             </div>
           </div>
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 border-2 transition-colors"
-            style={{ borderColor: '#13181B' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            aria-label="메뉴 열기"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {mobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <AdminNotificationBar isMobile={true} />
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 border-2 transition-colors"
+              style={{ borderColor: '#13181B' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              aria-label="메뉴 열기"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -307,7 +311,9 @@ export default function AdminLayout({
 
       {/* 메인 컨텐츠 */}
       <main className="flex-1 pt-16 lg:pt-0 lg:ml-72 relative" style={{ backgroundColor: '#F0EEEB' }}>
-        <AdminNotificationBar />
+        <div className="hidden lg:block">
+          <AdminNotificationBar isMobile={false} />
+        </div>
         {children}
       </main>
     </div>

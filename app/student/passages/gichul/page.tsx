@@ -181,8 +181,8 @@ export default function StudentGichulPassageList() {
             자료 선택으로 돌아가기
           </Link>
           <div className="flex items-center gap-3">
-            <img src="/bishop_black.svg" alt="Bishop" className="w-10 h-10" style={{ filter: 'brightness(0) saturate(100%) invert(76%) sepia(95%) saturate(2000%) hue-rotate(340deg) brightness(1.1) contrast(1.1)' }} />
-            <h1 className="text-4xl font-bold relative inline-block pb-2" style={{ color: '#FFBF65' }}>
+            <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%) invert(76%) sepia(95%) saturate(2000%) hue-rotate(340deg) brightness(1.1) contrast(1.1)' }} />
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#FFBF65' }}>
               평가원 기출
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #FFBF65 0%, #FFBF65 50%, transparent 100%)', borderRadius: '2px' }}></span>
             </h1>

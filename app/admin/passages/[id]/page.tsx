@@ -241,7 +241,7 @@ export default function AdminPassageDetail() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <img src="/bishop_black.svg" alt="Bishop" className="w-10 h-10" style={{ filter: categoryColor === '#003A6C' ? 'brightness(0) saturate(100%) invert(15%) sepia(95%) saturate(2000%) hue-rotate(195deg) brightness(0.3) contrast(1.2)' :
+            <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: categoryColor === '#003A6C' ? 'brightness(0) saturate(100%) invert(15%) sepia(95%) saturate(2000%) hue-rotate(195deg) brightness(0.3) contrast(1.2)' :
                                                                               categoryColor === '#FFBF65' ? 'brightness(0) saturate(100%) invert(76%) sepia(95%) saturate(2000%) hue-rotate(340deg) brightness(1.1) contrast(1.1)' :
                                                                               categoryColor === '#FD8973' ? 'brightness(0) saturate(100%) invert(60%) sepia(95%) saturate(2000%) hue-rotate(330deg) brightness(1.05) contrast(1.1)' :
                                                                               'brightness(0) saturate(100%)' }} />

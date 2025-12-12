@@ -272,10 +272,10 @@ export default function TeacherCalendar() {
   const selectedDateSchedules = selectedDateStr ? schedules[selectedDateStr] || [] : [];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
       {/* 왼쪽: 달력 */}
       <div className="lg:col-span-1">
-        <div className="rounded-2xl p-5 shadow-lg border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+        <div className="rounded-xl md:rounded-2xl p-3 md:p-5 shadow-lg border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={prevMonth}
@@ -294,7 +294,7 @@ export default function TeacherCalendar() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h3 className="text-lg font-semibold" style={{ color: '#13181B' }}>
+            <h3 className="text-base md:text-lg font-semibold" style={{ color: '#13181B' }}>
               {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
             </h3>
             <button
@@ -319,7 +319,7 @@ export default function TeacherCalendar() {
           {/* 요일 헤더 */}
           <div className="grid grid-cols-7 gap-0.5 mb-2">
             {weekDays.map((day) => (
-              <div key={day} className="text-center text-xs font-medium py-2" style={{ color: '#13181B', opacity: 0.8 }}>
+              <div key={day} className="text-center text-[10px] md:text-xs font-medium py-1 md:py-2" style={{ color: '#13181B', opacity: 0.8 }}>
                 {day}
               </div>
             ))}
@@ -337,7 +337,7 @@ export default function TeacherCalendar() {
                 <button
                   key={idx}
                   onClick={() => handleDateClick(date)}
-                  className="relative aspect-square flex items-center justify-center text-sm rounded-lg transition-all border-2"
+                  className="relative aspect-square flex items-center justify-center text-xs md:text-sm rounded-lg transition-all border-2"
                   style={!isCurrentMonth(date) ? {
                     color: '#CCD5DA',
                     borderColor: 'transparent',
@@ -388,12 +388,12 @@ export default function TeacherCalendar() {
       {/* 오른쪽: 스케줄 입력 및 목록 */}
       <div className="lg:col-span-2">
         {selectedDate ? (
-          <div className="rounded-xl p-6 shadow-lg border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-1" style={{ color: '#13181B' }}>
+          <div className="rounded-xl p-4 md:p-6 shadow-lg border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+            <div className="mb-4 md:mb-6">
+              <h3 className="text-lg md:text-xl font-bold mb-1" style={{ color: '#13181B' }}>
                 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일
               </h3>
-              <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>스케줄을 추가하거나 수정하세요.</p>
+              <p className="text-xs md:text-sm" style={{ color: '#13181B', opacity: 0.8 }}>스케줄을 추가하거나 수정하세요.</p>
             </div>
 
             {/* 스케줄 입력 폼 */}

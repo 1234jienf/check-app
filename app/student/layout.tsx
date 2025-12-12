@@ -98,13 +98,31 @@ export default function StudentLayout({
   const menuItems = [
     { href: "/student", label: "자료 선택", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "지문 카테고리 선택" },
     { href: "/student/my-checkpoints", label: "내 체크포인트", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "작성한 체크포인트 확인" },
+    { href: "/student/announcements", label: "공지사항", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "공지사항 확인" },
   ];
 
   const isActive = (href: string) => {
     if (!pathname) return false;
+    
+    // 정확히 일치하는 경우
     if (pathname === href) return true;
-    if (href === "/student" && pathname.startsWith("/student/passages")) return false;
-    if (href === "/student" && pathname.startsWith("/student/my-checkpoints")) return false;
+    
+    // /student는 정확히 일치하거나 /student/passages 하위 경로일 때만 활성화
+    if (href === "/student") {
+      return pathname === "/student" || pathname.startsWith("/student/passages");
+    }
+    
+    // /student/my-checkpoints는 정확히 일치할 때만
+    if (href === "/student/my-checkpoints") {
+      return pathname === "/student/my-checkpoints";
+    }
+    
+    // /student/announcements는 정확히 일치하거나 하위 경로일 때만
+    if (href === "/student/announcements") {
+      return pathname.startsWith("/student/announcements");
+    }
+    
+    // 나머지는 startsWith로 체크
     return pathname.startsWith(href);
   };
 
