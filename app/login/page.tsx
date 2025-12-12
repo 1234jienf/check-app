@@ -142,43 +142,44 @@ export default function LoginPage() {
         />
       </div>
 
-      {/* 사선으로 배치된 CHECK MATE 텍스트 (카드 뒤) - 높이 차이 적용 */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
-        <div className="relative" style={{ transform: 'rotate(-15deg)', transformOrigin: 'center' }}>
-          <span
-            style={{
-              opacity: 0.2,
-              fontSize: 'clamp(80px, 15vw, 200px)',
-              fontWeight: 900,
-              letterSpacing: '0.1em',
-              color: '#FFFFFF',
-              textShadow: '0 0 40px rgba(255, 255, 255, 0.3)',
-              whiteSpace: 'nowrap',
-              userSelect: 'none',
-              display: 'inline-block',
-              transform: 'translateY(-20px)'
-            }}
-          >
-            CHECK
-          </span>
-          <span
-            style={{
-              opacity: 0.2,
-              fontSize: 'clamp(80px, 15vw, 200px)',
-              fontWeight: 900,
-              letterSpacing: '0.1em',
-              color: '#FFFFFF',
-              textShadow: '0 0 40px rgba(255, 255, 255, 0.3)',
-              whiteSpace: 'nowrap',
-              userSelect: 'none',
-              display: 'inline-block',
-              marginLeft: '0.3em',
-              transform: 'translateY(20px)'
-            }}
-          >
-            MATE
-          </span>
-        </div>
+      {/* CHECK MATE 텍스트 (카드 바깥) - 세로 배치, 위아래로 분리 */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
+        {/* CHECK - 카드 위쪽 */}
+        <span
+          className="absolute"
+          style={{
+            opacity: 0.25,
+            fontSize: 'clamp(60px, 15vw, 200px)',
+            fontWeight: 900,
+            letterSpacing: '0.1em',
+            color: '#FFFFFF',
+            textShadow: '0 0 40px rgba(255, 255, 255, 0.3)',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            top: '15%',
+            transform: 'translateY(-50%)'
+          }}
+        >
+          CHECK
+        </span>
+        {/* MATE - 카드 아래쪽 */}
+        <span
+          className="absolute"
+          style={{
+            opacity: 0.25,
+            fontSize: 'clamp(60px, 15vw, 200px)',
+            fontWeight: 900,
+            letterSpacing: '0.1em',
+            color: '#FFFFFF',
+            textShadow: '0 0 40px rgba(255, 255, 255, 0.3)',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            bottom: '15%',
+            transform: 'translateY(50%)'
+          }}
+        >
+          MATE
+        </span>
       </div>
 
       <div className="w-full max-w-md relative z-10">
