@@ -163,9 +163,9 @@ export default function NewGichulPage() {
           <Link 
             href="/admin/passages" 
             className="inline-flex items-center mb-4 transition-colors"
-            style={{ color: categoryColor }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#13181B'}
-            onMouseLeave={(e) => e.currentTarget.style.color = categoryColor}
+            style={{ color: '#13181B' }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -173,18 +173,15 @@ export default function NewGichulPage() {
             지문 관리로 돌아가기
           </Link>
           <div className="flex items-center gap-3 mb-2">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: categoryColor }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <h1 className="text-4xl font-bold relative inline-block pb-2" style={{ color: categoryColor }}>
-              평가원 기출 지문 등록
-              <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, ' + categoryColor + ' 0%, ' + categoryColor + ' 50%, transparent 100%)', borderRadius: '2px' }}></span>
-            </h1>
+            <h1 className="text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
+            평가원 기출 지문 등록
+              <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+          </h1>
           </div>
           <p style={{ color: '#13181B', opacity: 0.8 }}>수능 기출 문제의 지문을 등록합니다.</p>
         </div>
 
-        <div className="border-2 rounded-2xl p-8 space-y-6" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+        <div className="rounded-xl p-8 space-y-6 shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>연도 *</label>
@@ -464,13 +461,15 @@ export default function NewGichulPage() {
           {!showPreview && (
             <button
               onClick={createPassage}
-              className="w-full px-6 py-3 rounded-xl font-semibold shadow-lg transform hover:scale-[1.02] transition-all duration-200"
-              style={{ backgroundColor: categoryColor, color: '#13181B' }}
+              className="w-full px-6 py-3 rounded-xl font-semibold transition-all"
+              style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 10px 30px rgba(255, 191, 101, 0.3)';
+                e.currentTarget.style.opacity = '0.9';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.2)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 191, 101, 0.2)';
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               지문 등록하기

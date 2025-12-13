@@ -411,7 +411,7 @@ export default function StudentCheckpointPage() {
 
   if (!passage) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F0EEEB' }}>
         <div className="text-center">
           <div className="mx-auto mb-4" style={{ 
             animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
@@ -451,9 +451,6 @@ export default function StudentCheckpointPage() {
   };
 
   const getCategoryColor = (category: string) => {
-    if (category === "EBS") return '#003A6C';
-    if (category === "기출" || category === "평가원") return '#FFBF65';
-    if (category === "LEET") return '#FD8973';
     return '#13181B';
   };
 
@@ -466,9 +463,9 @@ export default function StudentCheckpointPage() {
           <Link
             href={getCategoryPath(passage.category)}
             className="inline-flex items-center mb-4 transition-colors"
-            style={{ color: categoryColor }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#13181B'}
-            onMouseLeave={(e) => e.currentTarget.style.color = categoryColor}
+            style={{ color: '#13181B' }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -477,10 +474,10 @@ export default function StudentCheckpointPage() {
           </Link>
               <div className="flex items-center gap-3 mb-2">
                 <img src="/pawn_black.svg" alt="Pawn" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: categoryColor }}>
-                  {passage.title}
-                  <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: `linear-gradient(to right, ${categoryColor} 0%, ${categoryColor} 50%, transparent 100%)`, borderRadius: '2px' }}></span>
-                </h1>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
+            {passage.title}
+                  <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+          </h1>
               </div>
         </div>
 
@@ -529,7 +526,7 @@ export default function StudentCheckpointPage() {
                     }}
                     className="px-4 py-2 rounded-lg font-medium transition-all"
                     style={isSelected ? {
-                      backgroundColor: categoryColor,
+                      backgroundColor: '#13181B',
                       color: '#F0EEEB'
                     } : isCompleted ? {
                       backgroundColor: '#CCD5DA',
@@ -601,7 +598,7 @@ export default function StudentCheckpointPage() {
                             key={attempt}
                             className="px-2 py-1 text-xs rounded font-semibold"
                             style={attempt === selectedAttempt ? {
-                              backgroundColor: categoryColor,
+                              backgroundColor: '#13181B',
                               color: '#F0EEEB'
                             } : {
                               backgroundColor: '#CCD5DA',
@@ -616,7 +613,7 @@ export default function StudentCheckpointPage() {
                   </div>
 
                   {/* 문단 내용 */}
-                  <div className="mb-6 p-4 rounded-xl border-l-4 relative" style={{ backgroundColor: '#CCD5DA', borderLeftColor: categoryColor }}>
+                  <div className="mb-6 p-4 rounded-xl border-l-4 relative" style={{ backgroundColor: '#CCD5DA', borderLeftColor: '#CCD5DA' }}>
                     <div className="flex-1 w-full">
                       <ParagraphWithHighlights
                         paragraph={paragraph}
@@ -628,7 +625,7 @@ export default function StudentCheckpointPage() {
 
                   {/* 선생 체크포인트 표시 (제출 후에만) */}
                   {hasSubmitted && teacherCheckpoints[paragraphNum] && teacherCheckpoints[paragraphNum].length > 0 && (
-                    <div className="mb-6 border-2 rounded-xl p-4" style={{ backgroundColor: '#CCD5DA', borderColor: '#FFBF65' }}>
+                    <div className="mb-6 border-2 rounded-xl p-4" style={{ backgroundColor: '#CCD5DA', borderColor: '#CCD5DA' }}>
                       <button
                         onClick={() => setExpandedTeacherCheckpoints(prev => ({
                           ...prev,
@@ -654,7 +651,7 @@ export default function StudentCheckpointPage() {
                           {teacherCheckpoints[paragraphNum].map((cp: any, idx: number) => (
                             <div key={cp.id} className="p-3 border-2 rounded-lg" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
                               {cp.highlighted_text && (
-                                <div className="mb-2 p-2 rounded text-xs" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
+                                <div className="mb-2 p-2 rounded text-xs" style={{ backgroundColor: '#F0EEEB', color: '#13181B' }}>
                                   <span className="font-semibold">하이라이트:</span> {cp.highlighted_text}
                                 </div>
                               )}
@@ -670,7 +667,7 @@ export default function StudentCheckpointPage() {
 
                   {/* 선생 댓글 표시 */}
                   {comments.length > 0 && (
-                    <div className="mb-6 border-2 rounded-xl p-4" style={{ backgroundColor: '#CCD5DA', borderColor: categoryColor }}>
+                    <div className="mb-6 border-2 rounded-xl p-4" style={{ backgroundColor: '#CCD5DA', borderColor: '#CCD5DA' }}>
                       <div className="text-sm font-semibold mb-2" style={{ color: '#13181B' }}>선생님 댓글 ({comments.length}개)</div>
                       <div className="space-y-3">
                         {comments.map((comment: any) => {
@@ -687,7 +684,7 @@ export default function StudentCheckpointPage() {
                                     [comment.id]: !prev[comment.id]
                                   }))}
                                   className="text-xs transition-colors"
-                                  style={{ color: categoryColor }}
+                                  style={{ color: '#13181B' }}
                                   onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
                                   onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                                 >
@@ -711,7 +708,7 @@ export default function StudentCheckpointPage() {
                                     className="w-full text-sm p-2 border-2 rounded mb-2 transition-all"
                                     style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
                                     onFocus={(e) => {
-                                      e.currentTarget.style.borderColor = categoryColor;
+                                      e.currentTarget.style.borderColor = '#13181B';
                                       e.currentTarget.style.outline = 'none';
                                     }}
                                     onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
@@ -771,7 +768,7 @@ export default function StudentCheckpointPage() {
                                       }
                                     }}
                                     className="px-3 py-1.5 text-sm rounded transition-all"
-                                    style={{ backgroundColor: categoryColor, color: '#F0EEEB' }}
+                                    style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
                                     onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
                                     onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                                   >
@@ -784,7 +781,7 @@ export default function StudentCheckpointPage() {
                               {replies.length > 0 && (
                                 <div className="mt-3 pt-3 border-t-2 space-y-2" style={{ borderTopColor: '#CCD5DA' }}>
                                   {replies.map((reply: any) => (
-                                    <div key={reply.id} className="pl-3 border-l-4 rounded p-2" style={{ borderLeftColor: categoryColor, backgroundColor: '#CCD5DA' }}>
+                                    <div key={reply.id} className="pl-3 border-l-4 rounded p-2" style={{ borderLeftColor: '#CCD5DA', backgroundColor: '#CCD5DA' }}>
                                       <div className="text-xs mb-1" style={{ color: '#13181B', opacity: 0.7 }}>
                                         학생 · {new Date(reply.created_at).toLocaleDateString("ko-KR")}
                                       </div>
@@ -813,7 +810,7 @@ export default function StudentCheckpointPage() {
                             updateField(paragraphNum, "hasCheckpoint", !e.target.checked)
                           }
                           className="w-4 h-4"
-                          style={{ accentColor: categoryColor }}
+                          style={{ accentColor: '#13181B' }}
                         />
                         <label htmlFor={`no-checkpoint-${paragraphNum}`} className="text-sm" style={{ color: '#13181B' }}>
                           체크포인트 없음
@@ -858,7 +855,7 @@ export default function StudentCheckpointPage() {
                                 updateField(paragraphNum, "dontKnow", e.target.checked)
                               }
                               className="w-4 h-4"
-                              style={{ accentColor: categoryColor }}
+                              style={{ accentColor: '#13181B' }}
                             />
                             <label htmlFor={`dont-know-${paragraphNum}`} className="text-sm font-medium" style={{ color: '#13181B' }}>
                               모름
@@ -869,7 +866,7 @@ export default function StudentCheckpointPage() {
                           {checkpointData.dontKnow && (
                             <div>
                               <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>
-                                이유 * <span style={{ color: '#FD8973' }}>(필수)</span>
+                                이유 * <span style={{ color: '#13181B' }}>(필수)</span>
                               </label>
                               <textarea
                                 className="w-full px-4 py-3 border-2 rounded-xl transition-all min-h-[100px]"
@@ -908,7 +905,7 @@ export default function StudentCheckpointPage() {
 
                   {/* 학생 자기 피드백 (제출 후 + 선생님이 체크포인트를 남긴 경우에만 표시) */}
                   {hasSubmitted && teacherCheckpoints[paragraphNum] && teacherCheckpoints[paragraphNum].length > 0 && (
-                    <div className="mt-6 border-2 rounded-xl p-4" style={{ backgroundColor: '#CCD5DA', borderColor: categoryColor }}>
+                    <div className="mt-6 border-2 rounded-xl p-4" style={{ backgroundColor: '#CCD5DA', borderColor: '#CCD5DA' }}>
                       <h4 className="text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
                         선생님 체크포인트를 보고 본인 답에 대한 피드백 작성
                       </h4>
@@ -987,7 +984,7 @@ export default function StudentCheckpointPage() {
                                 }
                               }}
                               className="mt-3 px-4 py-2 text-sm rounded transition-all"
-                              style={{ backgroundColor: categoryColor, color: '#F0EEEB' }}
+                              style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
                               onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
                               onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                             >
@@ -1020,7 +1017,7 @@ export default function StudentCheckpointPage() {
               const isDisabled = allParagraphsSubmitted || !hasSubmittableParagraphs;
               
               return (
-                <button
+            <button
                   className="w-full px-6 py-3 rounded-xl font-semibold shadow-lg transform transition-all duration-200 mt-4"
                   style={isDisabled ? {
                     backgroundColor: '#CCD5DA',
@@ -1028,24 +1025,26 @@ export default function StudentCheckpointPage() {
                     opacity: 0.5,
                     cursor: 'not-allowed'
                   } : {
-                    backgroundColor: categoryColor,
+                    backgroundColor: '#13181B',
                     color: '#F0EEEB'
                   }}
                   onClick={isDisabled ? undefined : submitAll}
                   disabled={isDisabled}
                   onMouseEnter={(e) => {
                     if (!isDisabled) {
-                      e.currentTarget.style.boxShadow = `0 10px 30px ${categoryColor}40`;
+                      e.currentTarget.style.opacity = '0.9';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.2)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isDisabled) {
-                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.2)';
+                      e.currentTarget.style.opacity = '1';
+                      e.currentTarget.style.boxShadow = 'none';
                     }
                   }}
                 >
                   {allParagraphsSubmitted ? `${selectedAttempt}차 이미 제출 완료` : '제출하기'}
-                </button>
+            </button>
               );
             })()}
           </>
@@ -1070,7 +1069,7 @@ function ParagraphWithHighlights({
   // 선생님 페이지처럼 줄바꿈을 공백으로 바꿔서 한 줄로 표시
   const normalizedParagraph = paragraph.trim().replace(/\n/g, " ");
 
-    if (checkpoints.length === 0) {
+  if (checkpoints.length === 0) {
     return <div className="text-sm" style={{ color: '#13181B' }}>{normalizedParagraph}</div>;
   }
 
@@ -1105,9 +1104,15 @@ function ParagraphWithHighlights({
         <span
           key={`highlight-${idx}`}
           className="cursor-pointer transition-colors px-0.5 rounded text-sm"
-          style={{ backgroundColor: '#FFBF65', color: '#13181B' }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FD8973'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFBF65'}
+          style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '0.9';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.2)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = '1';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
           onClick={() => onCheckpointClick(cp)}
           title="클릭하여 체크포인트 보기"
         >

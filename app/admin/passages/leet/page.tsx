@@ -117,15 +117,15 @@ export default function LEETPassageList() {
   };
 
   return (
-    <div className="min-h-screen p-6 md:p-10" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
+    <div className="min-h-screen p-6 md:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <Link 
             href="/admin/passages" 
             className="inline-flex items-center mb-4 transition-colors"
-            style={{ color: '#003A6C' }}
+            style={{ color: '#13181B' }}
             onMouseEnter={(e) => e.currentTarget.style.color = '#13181B'}
-            onMouseLeave={(e) => e.currentTarget.style.color = '#003A6C'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#13181B'}
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -134,42 +134,32 @@ export default function LEETPassageList() {
           </Link>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%) invert(60%) sepia(95%) saturate(2000%) hue-rotate(330deg) brightness(1.05) contrast(1.1)' }} />
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#FD8973' }}>
-                LEET
-                <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #FD8973 0%, #FD8973 50%, transparent 100%)', borderRadius: '2px' }}></span>
-              </h1>
+              <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
+              LEET
+                <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+            </h1>
             </div>
             <Link
               href="/admin/passages/new/leet"
-              className="group relative inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 overflow-hidden"
-              style={{ background: 'linear-gradient(to right, #FD8973, #FFBF65)', color: '#13181B' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(to right, #FFBF65, #FD8973)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(to right, #FD8973, #FFBF65)';
-              }}
+              className="group relative inline-flex items-center transition-all duration-200"
             >
-              <span className="relative z-10 flex items-center gap-2">
                 <svg 
-                  className="w-5 h-5 drop-shadow-lg" 
+                className="w-8 h-8" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
-                  style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}
+                style={{ color: '#13181B' }}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                새 지문 추가
-              </span>
             </Link>
           </div>
         </div>
 
         <div className="mb-6 space-y-4">
           <div className="relative group">
-            <div className="relative rounded-2xl p-4 shadow-xl border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+            <div className="relative rounded-xl p-4 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
               <div className="flex items-center gap-3">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.6 }}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -192,7 +182,7 @@ export default function LEETPassageList() {
                   <button
                     onClick={() => setSearchQuery("")}
                     className="p-1 rounded-full transition-colors"
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
+                    onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.6 }}>
@@ -204,7 +194,7 @@ export default function LEETPassageList() {
             </div>
           </div>
 
-          <div className="rounded-2xl p-6 shadow-xl border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+          <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>문학/비문학</label>
@@ -214,15 +204,21 @@ export default function LEETPassageList() {
                     setSelectedLiteraryType(e.target.value);
                     setSelectedSubCategory("all");
                   }}
-                  className="w-full rounded-xl px-4 py-2.5 text-sm transition-all shadow-sm border-2"
-                  style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#FD8973'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                  className="w-full rounded-xl px-4 py-2.5 text-sm transition-all shadow-sm border"
+                  style={{ backgroundColor: '#FFFFFF', borderColor: '#13181B', color: '#13181B' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                  }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#FD8973';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                     e.currentTarget.style.outline = 'none';
                   }}
-                  onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                  }}
                 >
                   <option value="all">전체</option>
                   <option value="비문학">비문학</option>
@@ -235,32 +231,32 @@ export default function LEETPassageList() {
                 <select
                   value={selectedSubCategory}
                   onChange={(e) => setSelectedSubCategory(e.target.value)}
-                  className="w-full rounded-xl px-4 py-2.5 text-sm transition-all shadow-sm border-2"
+                  className="w-full rounded-xl px-4 py-2.5 text-sm transition-all shadow-sm border"
                   style={{ 
-                    backgroundColor: selectedLiteraryType === "all" ? '#CCD5DA' : '#F0EEEB', 
-                    borderColor: '#CCD5DA', 
+                    backgroundColor: selectedLiteraryType === "all" ? '#CCD5DA' : '#FFFFFF', 
+                    borderColor: '#13181B', 
                     color: selectedLiteraryType === "all" ? '#CCD5DA' : '#13181B' 
                   }}
-                  disabled={selectedLiteraryType === "all"}
+                  disabled={selectedLiteraryType !== "all"}
                   onMouseEnter={(e) => {
                     if (selectedLiteraryType !== "all") {
-                      e.currentTarget.style.borderColor = '#FD8973';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (selectedLiteraryType !== "all") {
-                      e.currentTarget.style.borderColor = '#CCD5DA';
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                     }
                   }}
                   onFocus={(e) => {
                     if (selectedLiteraryType !== "all") {
-                      e.currentTarget.style.borderColor = '#FD8973';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                       e.currentTarget.style.outline = 'none';
                     }
                   }}
                   onBlur={(e) => {
                     if (selectedLiteraryType !== "all") {
-                      e.currentTarget.style.borderColor = '#CCD5DA';
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                     }
                   }}
                 >
@@ -279,7 +275,7 @@ export default function LEETPassageList() {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="text-lg font-semibold" style={{ color: '#13181B' }}>
-              총 <span style={{ color: '#FD8973' }}>{filteredPassages.length}</span>개의 지문
+              총 <span style={{ color: '#13181B' }}>{filteredPassages.length}</span>개의 지문
             </div>
           </div>
         </div>
@@ -291,16 +287,18 @@ export default function LEETPassageList() {
             const isYearExpanded = expandedYears.has(year);
             
             return (
-              <div key={year} className="rounded-2xl shadow-xl overflow-hidden border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+              <div key={year} className="rounded-xl shadow-sm overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
                 <button
                   onClick={() => toggleYear(year)}
-                  className="w-full px-6 py-4 flex items-center justify-between transition-all"
-                  style={{ background: 'linear-gradient(to right, #FD8973, #FFBF65)', color: '#13181B' }}
+                  className="w-full px-6 py-4 flex items-center justify-between transition-all rounded-t-xl"
+                  style={{ backgroundColor: '#FFF0ED', color: '#13181B', borderBottom: '1px solid #CCD5DA' }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(to right, #FFBF65, #FD8973)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(253, 137, 115, 0.2)';
+                    e.currentTarget.style.backgroundColor = '#FFE0D9';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(to right, #FD8973, #FFBF65)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.backgroundColor = '#FFF0ED';
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -327,13 +325,19 @@ export default function LEETPassageList() {
                       const isTypeExpanded = expandedTypes.has(typeKey);
                       
                       return (
-                        <div key={type} className="rounded-xl overflow-hidden border-2" style={{ borderColor: '#CCD5DA' }}>
+                        <div key={type} className="rounded-xl overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
                           <button
                             onClick={() => toggleType(year, type)}
-                            className="w-full px-5 py-3 flex items-center justify-between transition-all"
-                            style={{ backgroundColor: '#CCD5DA' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F0EEEB'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
+                            className="w-full px-5 py-3 flex items-center justify-between transition-all rounded-t-xl"
+                            style={{ backgroundColor: '#FFF0ED', borderBottom: '1px solid #CCD5DA' }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#FFE0D9';
+                              e.currentTarget.style.boxShadow = '0 2px 8px rgba(253, 137, 115, 0.2)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#FFF0ED';
+                              e.currentTarget.style.boxShadow = 'none';
+                            }}
                           >
                             <div className="flex items-center gap-3">
                               <svg 
@@ -346,26 +350,24 @@ export default function LEETPassageList() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
                               <span className="font-semibold" style={{ color: '#13181B' }}>{type}</span>
-                              <span className="text-sm" style={{ color: '#13181B', opacity: 0.7 }}>({typePassages.length}개)</span>
+                              <span className="text-sm" style={{ color: '#13181B', opacity: 0.9 }}>({typePassages.length}개)</span>
                             </div>
                           </button>
                           
                           {isTypeExpanded && (
-                            <div className="p-4" style={{ backgroundColor: '#F0EEEB' }}>
+                            <div className="p-4" style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #F0EEEB' }}>
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {typePassages.map((p: any) => (
                                   <Link
                                     key={p.id}
                                     href={`/admin/passages/${p.id}`}
-                                    className="group relative rounded-xl p-5 transition-all duration-300 transform hover:-translate-y-1 overflow-hidden border-2"
-                                    style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}
+                                    className="group relative rounded-xl p-5 transition-all duration-300 transform hover:-translate-y-1 overflow-hidden shadow-sm"
+                                    style={{ backgroundColor: '#FFFFFF' }}
                                     onMouseEnter={(e) => {
-                                      e.currentTarget.style.borderColor = '#FD8973';
-                                      e.currentTarget.style.boxShadow = '0 10px 25px rgba(253, 137, 115, 0.2)';
+                                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                                     }}
                                     onMouseLeave={(e) => {
-                                      e.currentTarget.style.borderColor = '#CCD5DA';
-                                      e.currentTarget.style.boxShadow = 'none';
+                                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                                     }}
                                   >
                                     <div className="relative z-10">
@@ -380,7 +382,7 @@ export default function LEETPassageList() {
                                           </span>
                                         )}
                                         {p.sub_category && (
-                                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
+                                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#13181B', color: '#13181B' }}>
                                             {p.sub_category.split(",").join(", ")}
                                           </span>
                                         )}
@@ -389,10 +391,10 @@ export default function LEETPassageList() {
                                       <div className="space-y-1.5 text-xs">
                                         {p.source && (
                                           <div className="flex items-start gap-2">
-                                            <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#FD8973', opacity: 0.8 }}>
+                                            <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.8 }}>
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
-                                            <span className="line-clamp-1" style={{ color: '#FD8973' }}>{p.source}</span>
+                                            <span className="line-clamp-1" style={{ color: '#13181B' }}>{p.source}</span>
                                           </div>
                                         )}
                                       </div>
@@ -404,7 +406,7 @@ export default function LEETPassageList() {
                                         fill="none" 
                                         stroke="currentColor" 
                                         viewBox="0 0 24 24"
-                                        style={{ color: '#FD8973' }}
+                                        style={{ color: '#13181B' }}
                                       >
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                                       </svg>
@@ -426,27 +428,19 @@ export default function LEETPassageList() {
 
         {filteredPassages.length === 0 && (
           <div className="text-center py-20">
-            <div className="inline-block p-8 rounded-2xl shadow-xl border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+            <div className="inline-block p-8 rounded-xl shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
               <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#CCD5DA' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <p className="text-lg font-semibold mb-2" style={{ color: '#13181B' }}>조건에 맞는 지문이 없습니다</p>
-              <p className="text-sm mb-6" style={{ color: '#13181B', opacity: 0.8 }}>검색어나 필터를 변경해보세요</p>
+              <p className="text-sm mb-6" style={{ color: '#13181B', opacity: 0.9 }}>검색어나 필터를 변경해보세요</p>
               <Link
                 href="/admin/passages/new/leet"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                style={{ background: 'linear-gradient(to right, #FD8973, #FFBF65)', color: '#13181B' }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(to right, #FFBF65, #FD8973)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(to right, #FD8973, #FFBF65)';
-                }}
+                className="inline-flex items-center transition-all duration-200"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                새 지문 추가하기
               </Link>
             </div>
           </div>

@@ -166,7 +166,7 @@ export default function EditPassageMetadata() {
         <p style={{ color: '#13181B', opacity: 0.8 }}>지문의 메타데이터를 수정할 수 있습니다.</p>
       </div>
 
-      <div className="border-2 rounded-2xl p-6 space-y-4" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+      <div className="rounded-xl p-6 space-y-4 shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
         <div className="flex flex-col gap-2">
           <label className="text-sm font-semibold" style={{ color: '#13181B' }}>카테고리 *</label>
           <select

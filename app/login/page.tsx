@@ -130,7 +130,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden" style={{ backgroundColor: '#000000' }}>
       {/* 배경에 큰 비숍 */}
       <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 0.3 }}>
-        <img 
+              <img 
           src="/bishop-logo.png" 
           alt="Bishop Background" 
           className="w-[900px] h-auto"
@@ -138,15 +138,13 @@ export default function LoginPage() {
             filter: 'grayscale(100%) brightness(0.8)',
             transform: 'scale(1.3)',
             pointerEvents: 'none'
-          }}
-        />
-      </div>
+                }}
+              />
+            </div>
 
-      {/* CHECK MATE 텍스트 (카드 바깥) - 세로 배치, 위아래로 분리 */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
-        {/* CHECK - 카드 위쪽 */}
+      {/* CHECK MATE 텍스트 (카드 바깥) */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
         <span
-          className="absolute"
           style={{
             opacity: 0.25,
             fontSize: 'clamp(60px, 15vw, 200px)',
@@ -155,30 +153,10 @@ export default function LoginPage() {
             color: '#FFFFFF',
             textShadow: '0 0 40px rgba(255, 255, 255, 0.3)',
             whiteSpace: 'nowrap',
-            userSelect: 'none',
-            top: '15%',
-            transform: 'translateY(-50%)'
+            userSelect: 'none'
           }}
         >
-          CHECK
-        </span>
-        {/* MATE - 카드 아래쪽 */}
-        <span
-          className="absolute"
-          style={{
-            opacity: 0.25,
-            fontSize: 'clamp(60px, 15vw, 200px)',
-            fontWeight: 900,
-            letterSpacing: '0.1em',
-            color: '#FFFFFF',
-            textShadow: '0 0 40px rgba(255, 255, 255, 0.3)',
-            whiteSpace: 'nowrap',
-            userSelect: 'none',
-            bottom: '15%',
-            transform: 'translateY(50%)'
-          }}
-        >
-          MATE
+          CHECK MATE
         </span>
       </div>
 

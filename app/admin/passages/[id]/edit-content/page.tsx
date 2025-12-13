@@ -108,7 +108,7 @@ export default function EditPassageContent() {
         <p className="text-sm md:text-base" style={{ color: '#13181B', opacity: 0.8 }}>{passage.title}</p>
       </div>
 
-      <div className="border-2 rounded-2xl p-6 flex flex-col gap-4" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+      <div className="rounded-xl p-6 flex flex-col gap-4 shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
         <div>
           <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>지문 내용</label>
           <textarea

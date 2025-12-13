@@ -49,7 +49,7 @@ async function generateIcons() {
       }])
       .png()
       .toBuffer();
-    
+
     await fs.promises.writeFile(path.join(publicDir, 'icon-192.png'), icon192);
     console.log('✓ icon-192.png 생성 완료');
 
@@ -76,7 +76,7 @@ async function generateIcons() {
       }])
       .png()
       .toBuffer();
-    
+
     await fs.promises.writeFile(path.join(publicDir, 'icon-512.png'), icon512);
     console.log('✓ icon-512.png 생성 완료');
 

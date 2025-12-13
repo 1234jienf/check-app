@@ -103,7 +103,7 @@ export default function StudentOtherPassageList() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F0EEEB' }}>
         <div className="text-center">
           <div className="mx-auto mb-4" style={{ 
             animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
@@ -134,7 +134,7 @@ export default function StudentOtherPassageList() {
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-10" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
+    <div className="min-h-screen p-6 md:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <Link 
@@ -152,15 +152,15 @@ export default function StudentOtherPassageList() {
           <div className="flex items-center gap-3">
             <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
-              기타
+            기타
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
-            </h1>
+          </h1>
           </div>
         </div>
 
         <div className="mb-6 space-y-4">
           <div className="relative group">
-            <div className="relative rounded-2xl p-4 shadow-xl border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+            <div className="relative rounded-xl p-4 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
               <div className="flex items-center gap-3">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.6 }}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -195,7 +195,7 @@ export default function StudentOtherPassageList() {
             </div>
           </div>
 
-          <div className="rounded-2xl p-6 shadow-xl border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+          <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>문학/비문학</label>
@@ -280,16 +280,16 @@ export default function StudentOtherPassageList() {
             const isYearExpanded = expandedYears.has(year);
             
             return (
-              <div key={year} className="rounded-2xl shadow-xl overflow-hidden border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+              <div key={year} className="rounded-xl shadow-sm overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
                 <button
                   onClick={() => toggleYear(year)}
                   className="w-full px-6 py-4 flex items-center justify-between transition-all"
-                  style={{ background: 'linear-gradient(to right, #13181B, #CCD5DA)', color: '#F0EEEB' }}
+                  style={{ backgroundColor: '#E8E9EA', color: '#13181B' }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(to right, #CCD5DA, #13181B)';
+                    e.currentTarget.style.backgroundColor = '#CCD5DA';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(to right, #13181B, #CCD5DA)';
+                    e.currentTarget.style.backgroundColor = '#E8E9EA';
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -309,21 +309,19 @@ export default function StudentOtherPassageList() {
                 </button>
                 
                 {isYearExpanded && (
-                  <div className="p-4" style={{ backgroundColor: '#F0EEEB' }}>
+                  <div className="p-4" style={{ backgroundColor: '#FFFFFF' }}>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {yearPassages.map((p: any) => (
                         <Link
                           key={p.id}
                           href={`/student/passages/${p.id}/checkpoint`}
-                          className="group relative rounded-xl p-5 transition-all duration-300 transform hover:-translate-y-1 overflow-hidden border-2"
-                          style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}
+                          className="group relative rounded-xl p-5 transition-all duration-300 overflow-hidden shadow-sm"
+                          style={{ backgroundColor: '#FFFFFF' }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = '#13181B';
-                            e.currentTarget.style.boxShadow = '0 10px 25px rgba(19, 24, 27, 0.2)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = '#CCD5DA';
-                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                           }}
                         >
                           <div className="relative z-10">
@@ -379,7 +377,7 @@ export default function StudentOtherPassageList() {
 
         {filteredPassages.length === 0 && (
           <div className="text-center py-20">
-            <div className="inline-block p-8 rounded-2xl shadow-xl border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+            <div className="inline-block p-8 rounded-xl shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
               <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.6 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>

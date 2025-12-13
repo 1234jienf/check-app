@@ -23,35 +23,35 @@ export default function MyCheckpointsPage() {
       setUserId(user.id);
       
       const fetchPassages = async () => {
-        // 내가 체크포인트를 작성한 지문들 가져오기
-        const { data: submissions } = await supabase
-          .from("student_checkpoint_record")
-          .select("passage_id, passages(id, title, category, source)")
-          .eq("user_id", user.id);
+      // 내가 체크포인트를 작성한 지문들 가져오기
+      const { data: submissions } = await supabase
+        .from("student_checkpoint_record")
+        .select("passage_id, passages(id, title, category, source)")
+        .eq("user_id", user.id);
 
-        if (submissions) {
-          // 중복 제거 및 정렬
-          const passageMap = new Map();
-          submissions
-            .filter((s: any) => s.passages)
-            .forEach((s: any) => {
-              if (!passageMap.has(s.passage_id)) {
-                passageMap.set(s.passage_id, s.passages);
-              }
-            });
-          
-          const uniquePassages = Array.from(passageMap.values());
-          // 제목으로 정렬
-          uniquePassages.sort((a: any, b: any) => {
-            const titleA = a.title || "";
-            const titleB = b.title || "";
-            return titleA.localeCompare(titleB, "ko");
+      if (submissions) {
+        // 중복 제거 및 정렬
+        const passageMap = new Map();
+        submissions
+          .filter((s: any) => s.passages)
+          .forEach((s: any) => {
+            if (!passageMap.has(s.passage_id)) {
+              passageMap.set(s.passage_id, s.passages);
+            }
           });
-          
-          setMyPassages(uniquePassages);
-        }
+        
+        const uniquePassages = Array.from(passageMap.values());
+        // 제목으로 정렬
+        uniquePassages.sort((a: any, b: any) => {
+          const titleA = a.title || "";
+          const titleB = b.title || "";
+          return titleA.localeCompare(titleB, "ko");
+        });
+        
+        setMyPassages(uniquePassages);
+      }
 
-        setLoading(false);
+      setLoading(false);
       };
 
       fetchPassages();
@@ -92,7 +92,7 @@ export default function MyCheckpointsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F0EEEB' }}>
         <div className="text-center">
           <div className="mx-auto mb-4" style={{ 
             animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
@@ -129,23 +129,29 @@ export default function MyCheckpointsPage() {
           <div className="flex items-center gap-3 mb-2">
             <img src="/pawn_black.svg" alt="Pawn" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
-              내 체크포인트
+            내 체크포인트
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
-            </h1>
+          </h1>
           </div>
           <p className="text-sm md:text-base" style={{ color: '#13181B', opacity: 0.8 }}>작성한 체크포인트를 확인할 수 있는 지문 목록입니다.</p>
         </div>
 
         {myPassages.length === 0 ? (
-          <div className="p-12 text-center border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+          <div className="p-12 text-center rounded-xl shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="text-6xl mb-4">📝</div>
             <p className="text-lg mb-2" style={{ color: '#CCD5DA' }}>아직 작성한 체크포인트가 없습니다.</p>
             <Link
               href="/student"
-              className="inline-block mt-4 px-6 py-3 font-semibold transition-all duration-200"
+              className="inline-block mt-4 px-6 py-3 font-semibold transition-all duration-200 rounded-xl"
               style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#003A6C'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.9';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             >
               지문 선택하러 가기
             </Link>
@@ -156,13 +162,13 @@ export default function MyCheckpointsPage() {
               <Link
                 key={passage.id}
                 href={`/student/passages/${passage.id}/checkpoint`}
-                className="group p-6 transition-all duration-200 border-2"
-                style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}
+                className="group p-6 transition-all duration-200 rounded-xl shadow-sm"
+                style={{ backgroundColor: '#FFFFFF' }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#CCD5DA';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#F0EEEB';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                 }}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -172,10 +178,8 @@ export default function MyCheckpointsPage() {
                     </h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="px-3 py-1.5 text-xs font-semibold rounded-full" style={{ 
-                        backgroundColor: passage.category === "EBS" ? '#003A6C' : 
-                                         passage.category === "기출" || passage.category === "평가원" ? '#FFBF65' :
-                                         passage.category === "LEET" ? '#FD8973' : '#13181B', 
-                        color: '#F0EEEB' 
+                        backgroundColor: '#CCD5DA', 
+                        color: '#13181B' 
                       }}>
                         {passage.category === "기출" || passage.category === "평가원" ? "평가원 기출" : passage.category || "기타"}
                       </span>

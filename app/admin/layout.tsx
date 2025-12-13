@@ -120,12 +120,12 @@ export default function AdminLayout({
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: '#F0EEEB' }}>
       {/* 모바일 헤더 */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 shadow-lg" style={{ backgroundColor: '#F0EEEB', borderBottom: '2px solid #13181B', color: '#13181B' }}>
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 shadow-sm" style={{ backgroundColor: '#F0EEEB', color: '#13181B' }}>
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <img 
               src="/checkmate-white.png" 
-              alt="CHECK MATE" 
+              alt="BAEK MATE" 
               className="h-10 w-auto"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
@@ -136,29 +136,34 @@ export default function AdminLayout({
                 }
               }}
             />
-            <div className="flex flex-col items-center gap-1">
-              <div className="text-xs font-bold" style={{ color: '#13181B' }}>CHECK</div>
-              <div className="text-xs font-bold" style={{ color: '#13181B' }}>MATE</div>
+            <div className="flex flex-row items-center gap-1">
+              <div className="text-xs font-bold" style={{ color: '#13181B' }}>BAEK MATE</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <AdminNotificationBar isMobile={true} />
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 border-2 transition-colors"
-              style={{ borderColor: '#13181B' }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              aria-label="메뉴 열기"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg shadow-sm transition-all"
+              style={{ backgroundColor: '#F0EEEB' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.15)';
+                e.currentTarget.style.backgroundColor = '#CCD5DA';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                e.currentTarget.style.backgroundColor = '#F0EEEB';
+              }}
+            aria-label="메뉴 열기"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {mobileMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
           </div>
         </div>
       </div>
@@ -173,15 +178,12 @@ export default function AdminLayout({
       )}
 
       {/* 사이드바 */}
-      <aside className={`fixed inset-y-0 left-0 z-[60] w-72 flex flex-col transform transition-transform duration-300 ease-in-out ${
+      <aside className={`fixed inset-y-0 left-0 z-[60] w-72 flex flex-col transform transition-transform duration-300 ease-in-out shadow-lg ${
         mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      }`} style={{ backgroundColor: '#F0EEEB', borderRight: '2px solid #13181B' }}>
-        <div style={{ backgroundColor: '#13181B', borderBottom: '2px solid #13181B' }}>
+      }`} style={{ backgroundColor: '#F0EEEB', boxShadow: '2px 0 12px rgba(19, 24, 27, 0.1)' }}>
+        <div className="rounded-b-xl shadow-sm" style={{ backgroundColor: '#13181B' }}>
           <div className="flex flex-col items-center gap-2 p-6">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex items-center justify-center gap-3 w-full cursor-pointer"
-            >
+            <div className="flex items-center justify-center gap-3 w-full">
               <div className="text-sm font-bold" style={{ color: '#F0EEEB' }}>CHECK</div>
               <img 
                 src="/bishop-logo.png" 
@@ -189,8 +191,8 @@ export default function AdminLayout({
                 className="h-20 w-auto"
               />
               <div className="text-sm font-bold" style={{ color: '#F0EEEB' }}>MATE</div>
-            </button>
-            <p className="text-xs text-center" style={{ color: '#F0EEEB', opacity: 0.9 }}>국어 강의 관리</p>
+            </div>
+            <p className="text-xs text-center" style={{ color: '#F0EEEB', opacity: 0.9 }}>백지훈 국어</p>
           </div>
         </div>
 
@@ -202,28 +204,38 @@ export default function AdminLayout({
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`group relative flex items-center gap-3 px-4 py-3 border-2 transition-all duration-200 min-h-[72px] ${
+                className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl shadow-sm transition-all duration-200 min-h-[72px] ${
                   active
                     ? ""
-                    : "hover:opacity-90"
+                    : "hover:shadow-md"
                 }`}
                 style={active ? {
                   backgroundColor: item.color || '#13181B',
                   color: '#F0EEEB',
-                  borderColor: item.color || '#13181B'
+                  boxShadow: '0 2px 8px rgba(19, 24, 27, 0.2)'
                 } : {
                   backgroundColor: '#F0EEEB',
                   color: '#13181B',
-                  borderColor: '#13181B'
+                  boxShadow: '0 1px 3px rgba(19, 24, 27, 0.1)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) {
+                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                  }
                 }}
               >
-                <div className="w-10 h-10 border-2 flex items-center justify-center transition-all"
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center transition-all shadow-sm"
                      style={active ? {
                        backgroundColor: '#F0EEEB',
-                       borderColor: '#F0EEEB'
+                       boxShadow: '0 1px 3px rgba(240, 238, 235, 0.3)'
                      } : {
                        backgroundColor: '#F0EEEB',
-                       borderColor: '#13181B'
+                       boxShadow: '0 1px 2px rgba(19, 24, 27, 0.1)'
                      }}>
                   {'black' in item.icon && 'white' in item.icon ? (
                     <img 
@@ -244,7 +256,7 @@ export default function AdminLayout({
                   </div>
                 </div>
                 {active && (
-                  <div className="absolute right-2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#FFBF65' }}></div>
+                  <div className="absolute right-2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#13181B' }}></div>
                 )}
                 {!active && (
                   <svg 
@@ -262,9 +274,9 @@ export default function AdminLayout({
           })}
         </nav>
 
-        <div className="p-6 space-y-4" style={{ borderTop: '2px solid #13181B' }}>
+        <div className="p-6 space-y-4">
           <div className="flex items-center gap-2 text-xs" style={{ color: '#13181B', opacity: 0.8 }}>
-            <div className="w-8 h-8 border-2 flex items-center justify-center" style={{ borderColor: '#13181B', backgroundColor: '#F0EEEB' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
               <span className="text-sm font-bold" style={{ color: '#13181B' }}>N</span>
             </div>
             <div>
@@ -296,10 +308,16 @@ export default function AdminLayout({
               // 로그인 페이지로 이동
               router.push("/login");
             }}
-            className="w-full px-4 py-3 border-2 font-semibold transition-all duration-200 flex items-center justify-center gap-2"
-            style={{ backgroundColor: '#13181B', color: '#F0EEEB', borderColor: '#13181B' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
+            className="w-full px-4 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
+            style={{ backgroundColor: '#13181B', color: '#F0EEEB', boxShadow: '0 2px 6px rgba(19, 24, 27, 0.2)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.3)';
+              e.currentTarget.style.backgroundColor = '#13181B';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.2)';
+              e.currentTarget.style.backgroundColor = '#13181B';
+            }}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

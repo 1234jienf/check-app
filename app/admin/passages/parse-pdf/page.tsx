@@ -280,7 +280,7 @@ function ParsePDFContent() {
 export default function ParsePDFPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen p-6 md:p-10 flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
+      <div className="min-h-screen p-6 md:p-10 flex items-center justify-center" style={{ backgroundColor: '#F0EEEB' }}>
         <div className="text-center">
           <div className="mx-auto mb-4" style={{ 
             animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',

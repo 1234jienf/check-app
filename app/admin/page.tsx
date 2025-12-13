@@ -123,12 +123,11 @@ export default function AdminPage() {
     <div className="min-h-screen p-6 md:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <img src="/pawn_black.svg" alt="Pawn" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
+          <div className="mb-2">
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
-              학생 관리
+            학생 관리
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
-            </h1>
+          </h1>
           </div>
           <p className="text-sm md:text-base" style={{ color: '#13181B', opacity: 0.8 }}>학생 승인 및 학생별 작성한 지문과 체크포인트를 확인하세요.</p>
         </div>
@@ -143,8 +142,8 @@ export default function AdminPage() {
                 : ""
             }`}
             style={activeTab === "students" ? {
-              color: '#003A6C',
-              borderBottom: '2px solid #003A6C'
+              color: '#13181B',
+              borderBottom: '2px solid #13181B'
             } : {
               color: '#13181B',
               opacity: 0.7
@@ -170,8 +169,8 @@ export default function AdminPage() {
                 : ""
             }`}
             style={activeTab === "approval" ? {
-              color: '#003A6C',
-              borderBottom: '2px solid #003A6C'
+              color: '#13181B',
+              borderBottom: '2px solid #13181B'
             } : {
               color: '#13181B',
               opacity: 0.7
@@ -188,7 +187,7 @@ export default function AdminPage() {
             }}
           >
             승인 관리 {pendingStudents.length > 0 && (
-              <span className="ml-2 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ backgroundColor: '#FD8973', color: '#F0EEEB' }}>
+              <span className="ml-2 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ backgroundColor: '#FFF0ED', color: '#13181B' }}>
                 {pendingStudents.length}
               </span>
             )}
@@ -197,7 +196,7 @@ export default function AdminPage() {
 
         {/* 승인 관리 탭 */}
         {activeTab === "approval" && (
-              <div className="border-2 p-6" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+              <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
             <h2 className="text-2xl font-bold mb-4" style={{ color: '#13181B' }}>승인 대기 학생</h2>
             {pendingStudents.length === 0 ? (
               <div className="text-center py-12">
@@ -208,8 +207,8 @@ export default function AdminPage() {
                 {pendingStudents.map((s: any) => (
                   <div
                     key={s.id}
-                    className="p-4 border-2 rounded-lg"
-                    style={{ backgroundColor: '#FFBF65', borderColor: '#FD8973' }}
+                    className="p-4 rounded-xl shadow-sm"
+                    style={{ backgroundColor: '#FFF5E8' }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -238,43 +237,42 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* 왼쪽: 학생 목록 */}
             <div className="lg:col-span-1">
-              <div className="border-2 p-6 sticky top-4" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+              <div className="rounded-xl p-6 shadow-sm sticky top-4" style={{ backgroundColor: '#FFFFFF' }}>
                 <h2 className="text-xl font-bold mb-4" style={{ color: '#13181B' }}>학생 목록</h2>
-                <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                <div className="max-h-[600px] overflow-y-auto">
                   {approvedStudents.length === 0 ? (
                     <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>승인된 학생이 없습니다.</p>
                   ) : (
-                    approvedStudents.map((s: any) => (
-                      <button
-                        key={s.id}
-                        onClick={() => setSelectedStudentId(s.id)}
-                        className="w-full p-3 text-left rounded-lg transition-all border-2"
+                    <div className="flex flex-col gap-2">
+                      {approvedStudents.map((s: any) => (
+                        <button
+                          key={s.id}
+                          onClick={() => setSelectedStudentId(s.id)}
+                          className="w-full p-3 text-left rounded-xl transition-all shadow-sm"
                         style={selectedStudentId === s.id ? {
                           backgroundColor: '#13181B',
-                          borderColor: '#13181B',
-                          color: '#F0EEEB'
+                          color: '#F0EEEB',
+                          boxShadow: '0 2px 6px rgba(19, 24, 27, 0.2)'
                         } : {
-                          backgroundColor: '#F0EEEB',
-                          borderColor: '#CCD5DA',
+                          backgroundColor: '#FFFFFF',
                           color: '#13181B'
                         }}
                         onMouseEnter={(e) => {
                           if (selectedStudentId !== s.id) {
-                            e.currentTarget.style.borderColor = '#13181B';
-                            e.currentTarget.style.backgroundColor = '#CCD5DA';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                           }
                         }}
                         onMouseLeave={(e) => {
                           if (selectedStudentId !== s.id) {
-                            e.currentTarget.style.borderColor = '#CCD5DA';
-                            e.currentTarget.style.backgroundColor = '#F0EEEB';
+                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                           }
                         }}
-                      >
-                        <div className="font-medium">{s.name}</div>
-                        <div className="text-xs" style={{ opacity: selectedStudentId === s.id ? 0.9 : 0.7 }}>{s.email}</div>
-                      </button>
-                    ))
+                        >
+                          <div className="font-medium">{s.name}</div>
+                          <div className="text-xs" style={{ opacity: selectedStudentId === s.id ? 0.9 : 0.7 }}>{s.email}</div>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
@@ -287,12 +285,12 @@ export default function AdminPage() {
                   {studentPassages[selectedStudentId] ? (
                     <div className="space-y-6">
                       {Object.entries(studentPassages[selectedStudentId]).map(([category, passages]: [string, any[]]) => {
-                        const categoryColor = category === "EBS" ? '#003A6C' : 
-                                            category === "기출" || category === "평가원" ? '#FFBF65' :
-                                            category === "LEET" ? '#FD8973' : '#13181B';
+                        const categoryColor = category === "EBS" ? '#E8F0F8' : 
+                                            category === "기출" || category === "평가원" ? '#FFF5E8' :
+                                            category === "LEET" ? '#FFF0ED' : '#E8E9EA';
                         return (
-                        <div key={category} className="border-2 p-6" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
-                          <h3 className="text-xl font-bold mb-4 pb-3 border-b-2" style={{ color: '#13181B', borderBottomColor: '#CCD5DA' }}>
+                        <div key={category} className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+                          <h3 className="text-xl font-bold mb-4 pb-3 border-b" style={{ color: '#13181B', borderBottomColor: '#CCD5DA' }}>
                             {categoryLabels[category] || category} ({passages.length}개)
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -320,19 +318,30 @@ export default function AdminPage() {
                                 <Link
                                   key={passage.id}
                                   href={`/admin/passages/${passage.id}?student=${selectedStudentId}`}
-                                  className="group p-4 border-2 rounded-lg transition-all"
-                                  style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}
+                                  className="group p-4 rounded-xl shadow-sm transition-all"
+                                  style={{ backgroundColor: '#FFFFFF' }}
                                   onMouseEnter={(e) => {
-                                    e.currentTarget.style.borderColor = categoryColor;
-                                    e.currentTarget.style.backgroundColor = '#CCD5DA';
+                                    e.currentTarget.style.backgroundColor = '#FFFFFF';
+                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                                   }}
                                   onMouseLeave={(e) => {
-                                    e.currentTarget.style.borderColor = '#CCD5DA';
-                                    e.currentTarget.style.backgroundColor = '#F0EEEB';
+                                    e.currentTarget.style.backgroundColor = '#FFFFFF';
+                                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                                   }}
                                 >
-                                  <div className="font-semibold mb-2 transition-colors" style={{ color: '#13181B' }}>
-                                    {passage.title || "(제목 없음)"}
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div className="font-semibold transition-colors flex-1" style={{ color: '#13181B' }}>
+                                      {passage.title || "(제목 없음)"}
+                                    </div>
+                                    <svg 
+                                      className="w-5 h-5 flex-shrink-0 ml-2 transition-transform group-hover:translate-x-1" 
+                                      fill="none" 
+                                      stroke="currentColor" 
+                                      viewBox="0 0 24 24"
+                                      style={{ color: '#13181B', filter: 'brightness(0) saturate(100%)' }}
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
                                   </div>
                                   {passage.year && (
                                     <div className="text-xs mb-2" style={{ color: '#13181B', opacity: 0.7 }}>
@@ -340,7 +349,7 @@ export default function AdminPage() {
                                     </div>
                                   )}
                                   {sortedParagraphs.length > 0 && (
-                                    <div className="mt-3 pt-3 border-t space-y-2" style={{ borderTopColor: '#CCD5DA' }}>
+                                    <div className="mt-3 pt-3 space-y-2">
                                       {sortedParagraphs.map((cp: any) => {
                                         const paraNum = cp.paragraph || cp.paragraph_index;
                                         const isDontKnow = cp.reason && cp.reason.trim().length > 0;
@@ -349,24 +358,51 @@ export default function AdminPage() {
                                           .map((c: any) => c.attempt_number || 1));
                                         
                                         return (
-                                          <div key={paraNum} className="text-sm">
-                                            <div className="flex items-center gap-2 mb-1">
-                                              <span className="px-3 py-1.5 rounded text-xs font-bold" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
-                                                {maxAttempt}차
-                                              </span>
-                                              <span className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
-                                                {paraNum}문단
-                                              </span>
+                                          <div
+                                            key={paraNum}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.location.href = `/admin/passages/${passage.id}?student=${selectedStudentId}`;
+                                            }}
+                                            className="group/checkpoint flex items-center justify-between p-2 rounded-lg transition-all cursor-pointer"
+                                            style={{ backgroundColor: '#FFFFFF' }}
+                                            onMouseEnter={(e) => {
+                                              e.currentTarget.style.backgroundColor = '#FFFFFF';
+                                              e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.1)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              e.currentTarget.style.backgroundColor = '#FFFFFF';
+                                              e.currentTarget.style.boxShadow = 'none';
+                                            }}
+                                          >
+                                            <div className="flex-1 text-sm">
+                                              <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-xs font-semibold" style={{ color: '#13181B' }}>
+                                                  {maxAttempt}차
+                                                </span>
+                                                <span className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
+                                                  {paraNum}문단
+                                                </span>
+                                              </div>
+                                              {isDontKnow ? (
+                                                <div className="text-xs italic" style={{ color: '#13181B', opacity: 0.6 }}>
+                                                  모름
+                                                </div>
+                                              ) : cp.checkpoint_text ? (
+                                                <div className="text-xs line-clamp-1" style={{ color: '#13181B', opacity: 0.8 }}>
+                                                  {cp.checkpoint_text}
+                                                </div>
+                                              ) : null}
                                             </div>
-                                            {isDontKnow ? (
-                                              <div className="text-xs italic" style={{ color: '#13181B', opacity: 0.6 }}>
-                                                모름
-                                              </div>
-                                            ) : cp.checkpoint_text ? (
-                                              <div className="text-xs line-clamp-1" style={{ color: '#13181B', opacity: 0.8 }}>
-                                                {cp.checkpoint_text}
-                                              </div>
-                                            ) : null}
+                                            <svg 
+                                              className="w-4 h-4 flex-shrink-0 ml-2 transition-transform group-hover/checkpoint:translate-x-1" 
+                                              fill="none" 
+                                              stroke="currentColor" 
+                                              viewBox="0 0 24 24"
+                                              style={{ color: '#13181B', filter: 'brightness(0) saturate(100%)' }}
+                                            >
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
                                           </div>
                                         );
                                       })}
@@ -380,7 +416,7 @@ export default function AdminPage() {
                       )})}
                     </div>
                   ) : (
-                    <div className="border-2 p-8 text-center" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+                    <div className="rounded-xl p-8 text-center shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
                       <div className="mx-auto mb-4" style={{ 
                         animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
                         width: '60px',
@@ -409,8 +445,8 @@ export default function AdminPage() {
                   )}
                 </div>
               ) : (
-                <div className="border-2 rounded-2xl p-8 text-center" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
-                  <p className="text-lg" style={{ color: '#13181B', opacity: 0.8 }}>왼쪽에서 학생을 선택하세요.</p>
+                    <div className="rounded-xl p-8 text-center shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+                  <p className="text-lg" style={{ color: '#13181B', opacity: 0.8 }}>학생을 선택하세요.</p>
                 </div>
               )}
             </div>

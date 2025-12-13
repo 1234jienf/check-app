@@ -46,18 +46,12 @@ export default function TeacherCalendar() {
       const startDate = new Date(year, month, 1);
       const endDate = new Date(year, month + 1, 0);
       
-      // 오늘 날짜 이전의 스케줄은 제외 (지난 스케줄은 로드하지 않음)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStr = today.toISOString().split("T")[0];
-
       const { data, error } = await supabase
         .from("teacher_schedule")
         .select("*")
         .eq("teacher_id", teacherId)
         .gte("schedule_date", startDate.toISOString().split("T")[0])
         .lte("schedule_date", endDate.toISOString().split("T")[0])
-        .gte("schedule_date", todayStr) // 오늘 이후의 스케줄만
         .order("schedule_date", { ascending: true })
         .order("start_time", { ascending: true });
 
@@ -275,7 +269,7 @@ export default function TeacherCalendar() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
       {/* 왼쪽: 달력 */}
       <div className="lg:col-span-1">
-        <div className="rounded-xl md:rounded-2xl p-3 md:p-5 shadow-lg border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+        <div className="rounded-xl md:rounded-2xl p-3 md:p-5 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={prevMonth}
@@ -339,7 +333,8 @@ export default function TeacherCalendar() {
                   onClick={() => handleDateClick(date)}
                   className="relative aspect-square flex items-center justify-center text-xs md:text-sm rounded-lg transition-all border-2"
                   style={!isCurrentMonth(date) ? {
-                    color: '#CCD5DA',
+                    color: '#13181B',
+                    opacity: 0.4,
                     borderColor: 'transparent',
                     backgroundColor: '#F0EEEB'
                   } : isToday(date) ? {
@@ -388,7 +383,7 @@ export default function TeacherCalendar() {
       {/* 오른쪽: 스케줄 입력 및 목록 */}
       <div className="lg:col-span-2">
         {selectedDate ? (
-          <div className="rounded-xl p-4 md:p-6 shadow-lg border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+          <div className="rounded-xl p-4 md:p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="mb-4 md:mb-6">
               <h3 className="text-lg md:text-xl font-bold mb-1" style={{ color: '#13181B' }}>
                 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일
@@ -397,7 +392,7 @@ export default function TeacherCalendar() {
             </div>
 
             {/* 스케줄 입력 폼 */}
-            <div className="mb-6 p-4 rounded-lg border-2" style={{ backgroundColor: '#CCD5DA', borderColor: '#13181B' }}>
+            <div className="mb-6 p-4 rounded-lg shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
               <h4 className="text-sm font-semibold mb-4" style={{ color: '#13181B' }}>
                 {editingSchedule ? "스케줄 수정" : "새 스케줄 추가"}
               </h4>
@@ -621,8 +616,8 @@ export default function TeacherCalendar() {
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-xl p-12 shadow-lg text-center">
-            <p className="text-gray-500 text-lg">왼쪽 달력에서 날짜를 선택하세요.</p>
+          <div className="rounded-xl p-12 shadow-sm text-center" style={{ backgroundColor: '#FFFFFF' }}>
+            <p style={{ color: '#13181B', opacity: 0.7 }}>날짜를 선택하세요.</p>
           </div>
         )}
       </div>

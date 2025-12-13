@@ -73,13 +73,13 @@ export default function AllPassagesPage() {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "EBS":
-        return '#003A6C';
+        return '#E8F0F8';
       case "기출":
-        return '#FFBF65';
+        return '#FFF5E8';
       case "LEET":
-        return '#FD8973';
+        return '#FFF0ED';
       default:
-        return '#13181B';
+        return '#E8E9EA';
     }
   };
 
@@ -104,7 +104,7 @@ export default function AllPassagesPage() {
             href="/admin/passages" 
             className="inline-flex items-center mb-4 transition-colors"
             style={{ color: '#13181B' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#003A6C'}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#13181B'}
             onMouseLeave={(e) => e.currentTarget.style.color = '#13181B'}
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,41 +115,41 @@ export default function AllPassagesPage() {
           <div className="flex items-center gap-3 mb-2">
             <img src="/pawn_black.svg" alt="Pawn" className="w-10 h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
             <h1 className="text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
-              전체 지문 보기
+            전체 지문 보기
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
-            </h1>
+          </h1>
           </div>
           <p style={{ color: '#13181B', opacity: 0.8 }}>모든 카테고리의 지문을 한 번에 확인합니다.</p>
         </div>
 
         <div className="mb-6 space-y-4">
-          <div className="border-2 rounded-xl p-4" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
-            <div className="flex items-center gap-3">
+          <div className="rounded-xl p-4 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+              <div className="flex items-center gap-3">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.7 }}>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                placeholder="제목, 출처, 내용으로 검색"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="제목, 출처, 내용으로 검색"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 bg-transparent border-none outline-none text-lg"
                 style={{ color: '#13181B' }}
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
                   className="p-1 rounded-full transition-colors"
                   style={{ color: '#13181B', opacity: 0.7 }}
                   onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
                   onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
-                >
+                  >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             <style jsx>{`
               input::placeholder {
                 color: #13181B;
@@ -158,7 +158,7 @@ export default function AllPassagesPage() {
             `}</style>
           </div>
 
-          <div className="border-2 rounded-xl p-6" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+          <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>카테고리 필터</label>
             <select
               value={selectedCategory}
@@ -193,11 +193,11 @@ export default function AllPassagesPage() {
             const categoryColor = getCategoryColor(category);
             
             return (
-              <div key={category} className="border-2 rounded-2xl overflow-hidden" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+              <div key={category} className="rounded-xl overflow-hidden shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
                 <button
                   onClick={() => toggleCategory(category)}
                   className="w-full px-6 py-4 flex items-center justify-between transition-all"
-                  style={{ backgroundColor: categoryColor, color: '#F0EEEB' }}
+                  style={{ backgroundColor: categoryColor, color: '#13181B' }}
                   onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
                   onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                 >
@@ -218,21 +218,19 @@ export default function AllPassagesPage() {
                 </button>
                 
                 {isExpanded && (
-                  <div className="p-4" style={{ backgroundColor: '#F0EEEB' }}>
+                  <div className="p-4" style={{ backgroundColor: '#FFFFFF' }}>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {categoryPassages.map((p: any) => (
                         <Link
                           key={p.id}
                           href={`/admin/passages/${p.id}`}
-                          className="group relative border-2 rounded-xl p-5 transition-all duration-300"
-                          style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}
+                          className="group relative rounded-xl p-5 transition-all duration-300 shadow-sm"
+                          style={{ backgroundColor: '#FFFFFF' }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = categoryColor;
-                            e.currentTarget.style.backgroundColor = '#CCD5DA';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = '#CCD5DA';
-                            e.currentTarget.style.backgroundColor = '#F0EEEB';
+                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                           }}
                         >
                           <div className="relative z-10">
@@ -247,7 +245,7 @@ export default function AllPassagesPage() {
                                 </span>
                               )}
                               {p.sub_category && (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: categoryColor, color: '#F0EEEB' }}>
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: categoryColor, color: '#13181B' }}>
                                   {p.sub_category.split(",").join(", ")}
                                 </span>
                               )}
@@ -291,7 +289,7 @@ export default function AllPassagesPage() {
 
         {filteredPassages.length === 0 && (
           <div className="text-center py-20">
-            <div className="inline-block p-8 border-2 rounded-2xl" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+            <div className="inline-block p-8 rounded-xl shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
               <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.5 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>

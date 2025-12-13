@@ -127,23 +127,25 @@ export default function AdminAnnouncementsPage() {
           </div>
           <Link
             href="/admin/announcements/new"
-            className="px-6 py-3 rounded-xl font-semibold transition-all"
-            style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+            className="p-3 rounded-xl transition-all"
+            style={{ color: '#13181B' }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '0.9';
-              e.currentTarget.style.transform = 'scale(1.02)';
+              e.currentTarget.style.backgroundColor = '#CCD5DA';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.1)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '1';
-              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
-            새 공지 작성
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
           </Link>
         </div>
 
         {announcements.length === 0 ? (
-          <div className="text-center py-20 border-2 rounded-xl" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+          <div className="text-center py-20 rounded-xl shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
             <p style={{ color: '#13181B', opacity: 0.7 }}>등록된 공지사항이 없습니다.</p>
           </div>
         ) : (
@@ -151,29 +153,24 @@ export default function AdminAnnouncementsPage() {
             {announcements.map((announcement) => (
               <div
                 key={announcement.id}
-                className="border-2 rounded-xl p-6 transition-all"
+                className="rounded-xl p-6 transition-all shadow-sm"
                 style={{
-                  backgroundColor: announcement.is_pinned ? '#CCD5DA' : '#F0EEEB',
-                  borderColor: '#13181B'
+                  backgroundColor: announcement.is_pinned ? '#CCD5DA' : '#FFFFFF'
                 }}
                 onMouseEnter={(e) => {
-                  if (!announcement.is_pinned) {
-                    e.currentTarget.style.backgroundColor = '#CCD5DA';
-                  }
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                 }}
                 onMouseLeave={(e) => {
-                  if (!announcement.is_pinned) {
-                    e.currentTarget.style.backgroundColor = '#F0EEEB';
-                  }
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                 }}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       {announcement.is_pinned && (
-                        <span className="text-xs font-bold px-2 py-1 rounded" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
-                          고정
-                        </span>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B' }}>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
                       )}
                       <h2 className="text-xl font-bold" style={{ color: '#13181B' }}>
                         {announcement.title}
@@ -190,30 +187,39 @@ export default function AdminAnnouncementsPage() {
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/admin/announcements/${announcement.id}/edit`}
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                      style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                      className="p-2 rounded-lg transition-all"
+                      style={{ color: '#13181B' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#CCD5DA';
+                        e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
                     >
-                      수정
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
                     </Link>
                     <button
                       onClick={() => handleDelete(announcement.id)}
-                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                      style={{ backgroundColor: '#FD8973', color: '#F0EEEB' }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                      className="p-2 rounded-lg transition-all"
+                      style={{ color: '#13181B' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#CCD5DA';
+                        e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
                     >
-                      삭제
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
                     </button>
                   </div>
-                </div>
-                <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: '#F0EEEB', border: '1px solid #CCD5DA' }}>
-                  <p className="whitespace-pre-wrap" style={{ color: '#13181B', lineHeight: '1.6' }}>
-                    {announcement.content.length > 200
-                      ? `${announcement.content.substring(0, 200)}...`
-                      : announcement.content}
-                  </p>
                 </div>
               </div>
             ))}

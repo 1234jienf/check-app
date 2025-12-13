@@ -61,18 +61,18 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #13181B;
+  background: #CCD5DA !important;
   border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #13181B;
+  background: #A8B2B8 !important;
 }
 
 /* Firefox 스크롤바 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #13181B #F0EEEB;
+  scrollbar-color: #CCD5DA #F0EEEB;
 }
 
 /* 스크롤바가 레이아웃을 밀어내지 않도록 */

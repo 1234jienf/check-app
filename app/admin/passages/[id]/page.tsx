@@ -21,6 +21,7 @@ export default function AdminPassageDetail() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [editingCheckpointId, setEditingCheckpointId] = useState<string | null>(null);
   const [editCheckpointText, setEditCheckpointText] = useState<string>("");
+  const [selectedCheckpoint, setSelectedCheckpoint] = useState<any | null>(null);
 
   // 카테고리 키워드 체크 (영어로 변경)
   const isCategoryKeyword = (str: string) => {
@@ -197,12 +198,12 @@ export default function AdminPassageDetail() {
     return (
       <div className="p-10">
         <h1 className="text-2xl font-bold mb-4">잘못된 경로</h1>
-        <p className="mb-4" style={{ color: '#FD8973' }}>
+        <p className="mb-4" style={{ color: '#13181B' }}>
           유효하지 않은 지문 ID입니다. ({id})
         </p>
-        <Link href="/admin/passages" className="transition-colors" style={{ color: '#003A6C' }}
+        <Link href="/admin/passages" className="transition-colors" style={{ color: '#13181B' }}
               onMouseEnter={(e) => e.currentTarget.style.color = '#13181B'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#003A6C'}>
+              onMouseLeave={(e) => e.currentTarget.style.color = '#13181B'}>
           ← 지문 관리로 돌아가기
         </Link>
       </div>
@@ -211,13 +212,32 @@ export default function AdminPassageDetail() {
 
   if (!passage) {
     return (
-      <div className="p-10">
-        <h1 className="text-2xl font-bold mb-4" style={{ color: '#13181B' }}>지문을 불러오는 중...</h1>
-        <Link href="/admin/passages" className="transition-colors" style={{ color: '#003A6C' }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#13181B'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#003A6C'}>
-          ← 지문 관리로 돌아가기
-        </Link>
+      <div className="flex items-center justify-center h-screen" style={{ backgroundColor: '#F0EEEB' }}>
+        <div className="text-center">
+          <div className="mx-auto mb-4" style={{ 
+            animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
+            width: '80px',
+            height: '80px'
+          }}>
+            <img 
+              src="/bishop-logo.png" 
+              alt="Loading" 
+              className="w-full h-full"
+              style={{ filter: 'grayscale(100%) brightness(0.8)' }}
+            />
+          </div>
+          <p style={{ color: '#13181B' }}>로딩 중...</p>
+          <style jsx>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+            @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.6; }
+            }
+          `}</style>
+        </div>
       </div>
     );
   }
@@ -228,10 +248,10 @@ export default function AdminPassageDetail() {
     : [];
 
   const getCategoryColor = (category: string) => {
-    if (category === "EBS") return '#003A6C';
-    if (category === "기출" || category === "평가원") return '#FFBF65';
-    if (category === "LEET") return '#FD8973';
-    return '#13181B';
+    if (category === "EBS") return '#E8F0F8';
+    if (category === "기출" || category === "평가원") return '#FFF5E8';
+    if (category === "LEET") return '#FFF0ED';
+    return '#E8E9EA';
   };
 
   const categoryColor = getCategoryColor(passage.category);
@@ -241,17 +261,14 @@ export default function AdminPassageDetail() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: categoryColor === '#003A6C' ? 'brightness(0) saturate(100%) invert(15%) sepia(95%) saturate(2000%) hue-rotate(195deg) brightness(0.3) contrast(1.2)' :
-                                                                              categoryColor === '#FFBF65' ? 'brightness(0) saturate(100%) invert(76%) sepia(95%) saturate(2000%) hue-rotate(340deg) brightness(1.1) contrast(1.1)' :
-                                                                              categoryColor === '#FD8973' ? 'brightness(0) saturate(100%) invert(60%) sepia(95%) saturate(2000%) hue-rotate(330deg) brightness(1.05) contrast(1.1)' :
-                                                                              'brightness(0) saturate(100%)' }} />
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: categoryColor }}>
-              {passage.title || "(제목 없음)"}
-              <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: `linear-gradient(to right, ${categoryColor} 0%, ${categoryColor} 50%, transparent 100%)`, borderRadius: '2px' }}></span>
-            </h1>
+            <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
+            {passage.title || "(제목 없음)"}
+              <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: `linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)`, borderRadius: '2px' }}></span>
+          </h1>
           </div>
           {passage.source && (
-            <p className="text-sm mb-3" style={{ color: categoryColor, opacity: 0.9 }}>출처: {passage.source}</p>
+            <p className="text-sm mb-3" style={{ color: '#13181B', opacity: 0.9 }}>출처: {passage.source}</p>
           )}
           {studentNames.length > 0 && (
             <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -271,20 +288,20 @@ export default function AdminPassageDetail() {
                       className="px-3 py-1.5 rounded-full text-sm font-medium transition-all"
                       style={selectedStudentId === studentId ? {
                         backgroundColor: categoryColor,
-                        color: '#F0EEEB'
+                        color: '#13181B'
                       } : {
-                        backgroundColor: '#CCD5DA',
+                        backgroundColor: 'transparent',
                         color: '#13181B'
                       }}
                       onMouseEnter={(e) => {
                         if (selectedStudentId !== studentId) {
                           e.currentTarget.style.backgroundColor = categoryColor;
-                          e.currentTarget.style.color = '#F0EEEB';
+                          e.currentTarget.style.color = '#13181B';
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (selectedStudentId !== studentId) {
-                          e.currentTarget.style.backgroundColor = '#CCD5DA';
+                          e.currentTarget.style.backgroundColor = 'transparent';
                           e.currentTarget.style.color = '#13181B';
                         }
                       }}
@@ -304,28 +321,26 @@ export default function AdminPassageDetail() {
             <div className="flex flex-wrap gap-2 md:gap-3 mb-4 md:mb-6">
               <Link
                 href={`/admin/passages/${id}/edit-metadata`}
-                className="px-3 md:px-4 py-2 text-sm md:text-base border-2 rounded-lg font-medium transition-colors"
-                style={{ borderColor: categoryColor, color: categoryColor, backgroundColor: '#F0EEEB' }}
+                className="px-3 md:px-4 py-2 text-sm md:text-base rounded-lg font-medium transition-colors shadow-sm"
+                style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = categoryColor;
-                  e.currentTarget.style.color = '#F0EEEB';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#F0EEEB';
-                  e.currentTarget.style.color = categoryColor;
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                 }}
               >
                 지문 정보 수정
               </Link>
               <Link
                 href={`/admin/passages/${id}/edit-content`}
-                className="px-3 md:px-4 py-2 text-sm md:text-base border-2 rounded-lg font-medium transition-colors"
-                style={{ borderColor: '#CCD5DA', color: '#13181B', backgroundColor: '#F0EEEB' }}
+                className="px-3 md:px-4 py-2 text-sm md:text-base rounded-lg font-medium transition-colors shadow-sm"
+                style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#CCD5DA';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#F0EEEB';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                 }}
               >
                 지문 내용 수정
@@ -376,15 +391,13 @@ export default function AdminPassageDetail() {
                   alert("삭제 중 오류가 발생했습니다: " + (error.message || "알 수 없는 오류"));
                 }
               }}
-                className="px-3 md:px-4 py-2 text-sm md:text-base border-2 rounded-lg font-medium transition-colors"
-                style={{ borderColor: '#FD8973', color: '#FD8973', backgroundColor: '#F0EEEB' }}
+                className="px-3 md:px-4 py-2 text-sm md:text-base rounded-lg font-medium transition-colors shadow-sm"
+                style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#FD8973';
-                  e.currentTarget.style.color = '#F0EEEB';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#F0EEEB';
-                  e.currentTarget.style.color = '#FD8973';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                 }}
               >
                 지문 삭제
@@ -393,7 +406,7 @@ export default function AdminPassageDetail() {
 
           {/* 지문 내용 미리보기 - 문단별로 표시 */}
           {passage.content && (
-            <div className="mb-4 md:mb-6 border-2 p-4 md:p-6" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+            <div className="mb-4 md:mb-6 rounded-xl p-4 md:p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
               <h3 className="font-semibold mb-4 text-lg" style={{ color: '#13181B' }}>지문 내용 (문단별)</h3>
               <div className="space-y-4">
                 {paragraphs.map((paragraph: string, idx: number) => {
@@ -403,20 +416,18 @@ export default function AdminPassageDetail() {
                   const normalizedParagraph = paragraph.trim().replace(/\n/g, " ");
                   
                   return (
-                    <div key={idx} className="p-4 rounded-xl border-l-4" style={{ backgroundColor: '#CCD5DA', borderLeftColor: categoryColor }}>
+                    <div key={idx} className="p-4 rounded-xl border-l-4" style={{ borderLeftColor: categoryColor }}>
                       <div className="flex items-center justify-between mb-2">
-                        <div className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: categoryColor, color: '#F0EEEB' }}>{paragraphNum}문단</div>
+                        <span className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: categoryColor, color: '#13181B' }}>{paragraphNum}문단</span>
                         <Link
                           href={`/admin/passages/${id}/add-checkpoint?paragraph=${paragraphNum}`}
-                          className="text-xs border-2 px-3 py-1.5 rounded transition-colors"
-                          style={{ borderColor: categoryColor, color: categoryColor, backgroundColor: '#F0EEEB' }}
+                          className="text-xs px-3 py-1.5 rounded transition-colors shadow-sm"
+                          style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = categoryColor;
-                            e.currentTarget.style.color = '#F0EEEB';
+                            e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.1)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#F0EEEB';
-                            e.currentTarget.style.color = categoryColor;
+                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                           }}
                         >
                           + 체크포인트 추가
@@ -427,6 +438,7 @@ export default function AdminPassageDetail() {
                           paragraph={normalizedParagraph}
                           checkpoints={paragraphCheckpoints}
                           currentUserId={currentUserId}
+                          onHighlightClick={(cp) => setSelectedCheckpoint(cp)}
                         />
                       </div>
                     </div>
@@ -436,20 +448,18 @@ export default function AdminPassageDetail() {
             </div>
           )}
 
-          <div className="border-2 p-6" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+          <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold" style={{ color: '#13181B' }}>체크포인트</h2>
               <Link
                 href={`/admin/passages/${id}/add-checkpoint`}
-                className="px-3 py-1.5 border-2 rounded-lg font-medium transition-colors text-sm"
-                style={{ borderColor: categoryColor, color: categoryColor, backgroundColor: '#F0EEEB' }}
+                className="px-3 py-1.5 rounded-lg font-medium transition-colors text-sm shadow-sm"
+                style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = categoryColor;
-                  e.currentTarget.style.color = '#F0EEEB';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#F0EEEB';
-                  e.currentTarget.style.color = categoryColor;
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                 }}
               >
                 + 체크포인트 추가
@@ -463,13 +473,9 @@ export default function AdminPassageDetail() {
                 
                 return (
                   <div 
-                    className="border-2 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-                    style={isMyCheckpoint ? {
-                      borderColor: categoryColor,
-                      backgroundColor: '#CCD5DA'
-                    } : {
-                      borderColor: '#CCD5DA',
-                      backgroundColor: '#F0EEEB'
+                    className="p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow"
+                    style={{
+                      backgroundColor: isMyCheckpoint ? '#FFFBE6' : '#FFFFFF'
                     }}
                     key={cp.id}
                   >
@@ -514,66 +520,77 @@ export default function AdminPassageDetail() {
                                   setEditCheckpointText("");
                                 }}
                                 className="px-3 py-1 text-xs rounded transition-colors"
-                                style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}
+                                style={{ color: '#13181B' }}
                                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                               >
                                 취소
                               </button>
                             </div>
                           </div>
                         ) : (
-                          <>
-                            <b style={{ color: categoryColor }}>{cp.order_num}. </b> 
+                          <div>
+                            {cp.paragraph && (
+                              <div className="mb-1">
+                                <span className="text-xs font-semibold" style={{ color: '#13181B' }}>
+                                  [{cp.paragraph}문단]
+                                </span>
+                              </div>
+                            )}
                             <span style={{ color: '#13181B' }}>{cp.text}</span>
-                          </>
+                          </div>
                         )}
                       </div>
-                      {isMyCheckpoint && !isEditing && (
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="px-3 py-1.5 text-xs rounded font-semibold" style={{ backgroundColor: categoryColor, color: '#F0EEEB' }}>
-                            내가 작성
-                          </span>
-                          <button
-                            onClick={() => {
-                              setEditingCheckpointId(cp.id);
-                              setEditCheckpointText(cp.text);
-                            }}
-                            className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
-                            title="수정"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={async () => {
-                              if (!confirm("정말 삭제하시겠습니까?")) return;
-                              
-                              const { error } = await supabase
-                                .from("checkpoints")
-                                .delete()
-                                .eq("id", cp.id);
-                              
-                              if (error) {
-                                alert("삭제 실패: " + error.message);
-                              } else {
-                                alert("삭제되었습니다.");
-                                window.location.reload();
-                              }
-                            }}
-                            className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
-                            title="삭제"
-                          >
-                            🗑️
-                          </button>
+                      {!isEditing && (
+                        <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          {isMyCheckpoint && (
+                            <button
+                              onClick={() => {
+                                setEditingCheckpointId(cp.id);
+                                setEditCheckpointText(cp.text);
+                              }}
+                              className="p-1.5 rounded transition-colors"
+                              style={{ color: '#13181B' }}
+                              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                              title="수정"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ filter: 'brightness(0) saturate(100%)' }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                          )}
+                          {isMyCheckpoint && (
+                            <button
+                              onClick={async () => {
+                                if (!confirm("정말 삭제하시겠습니까?")) return;
+                                
+                                const { error } = await supabase
+                                  .from("checkpoints")
+                                  .delete()
+                                  .eq("id", cp.id);
+                                
+                                if (error) {
+                                  alert("삭제 실패: " + error.message);
+                                } else {
+                                  alert("삭제되었습니다.");
+                                  window.location.reload();
+                                }
+                              }}
+                              className="p-1.5 rounded transition-colors"
+                              style={{ color: '#13181B' }}
+                              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                              title="삭제"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ filter: 'brightness(0) saturate(100%)' }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
-                    {cp.highlighted_text && (
-                      <div className="mt-2 p-3 rounded text-xs border-2" style={{ backgroundColor: '#FFBF65', borderColor: '#FD8973', color: '#13181B' }}>
-                        <span className="font-semibold">하이라이트: </span>
-                        {cp.highlighted_text}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -581,21 +598,82 @@ export default function AdminPassageDetail() {
           </div>
           </div>
 
+          {/* 체크포인트 상세 모달 */}
+          {selectedCheckpoint && (
+            <div 
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+              onClick={() => setSelectedCheckpoint(null)}
+            >
+              <div 
+                className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold" style={{ color: '#13181B' }}>체크포인트 상세</h3>
+                  <button
+                    onClick={() => setSelectedCheckpoint(null)}
+                    className="p-2 rounded transition-colors"
+                    style={{ color: '#13181B' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F0EEEB'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                {selectedCheckpoint.paragraph && (
+                  <div className="mb-3">
+                    <span className="text-sm font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: categoryColor, color: '#13181B' }}>
+                      [{selectedCheckpoint.paragraph}문단]
+                    </span>
+                  </div>
+                )}
+                <div className="mb-4">
+                  <p className="text-sm font-semibold mb-2" style={{ color: '#13181B' }}>체크포인트 내용:</p>
+                  <p className="text-base whitespace-pre-wrap" style={{ color: '#13181B' }}>{selectedCheckpoint.text}</p>
+                </div>
+                {selectedCheckpoint.highlighted_text && (
+                  <div className="mb-4">
+                    <p className="text-sm font-semibold mb-2" style={{ color: '#13181B' }}>하이라이트:</p>
+                    <p className="text-base" style={{ color: '#13181B' }}>{selectedCheckpoint.highlighted_text}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* 오른쪽: 학생 제출 현황 */}
           <div className="w-full lg:w-96 flex-shrink-0">
           <div className="lg:sticky lg:top-4">
-            <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 pb-3 border-b-2" style={{ color: '#13181B', borderBottomColor: '#13181B' }}>학생 제출 현황</h2>
+            <div className="flex items-center justify-between mb-4 md:mb-6 pb-3 border-b" style={{ borderBottomColor: '#CCD5DA' }}>
+              <h2 className="text-xl md:text-2xl font-bold" style={{ color: '#13181B' }}>학생 제출 현황</h2>
+              <Link
+                href={`/admin/passages/${id}/results`}
+                className="text-xs transition-colors"
+                style={{ color: '#13181B', opacity: 0.7 }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+              >
+                자세히
+              </Link>
+            </div>
 
             {Object.keys(filteredByStudent).length > 0 ? (
               <div className="space-y-4 max-h-[600px] lg:max-h-[calc(100vh-200px)] overflow-y-auto">
                 {Object.entries(filteredByStudent).map(([userId, studentData]: [string, any]) => (
-                  <div key={userId} className="border-2 p-4 md:p-5 transition-all duration-300" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}
-                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
-                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F0EEEB'}>
+                  <div key={userId} className="rounded-xl p-4 md:p-5 transition-all duration-300 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}
+                       onMouseEnter={(e) => {
+                         e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                       }}
+                       onMouseLeave={(e) => {
+                         e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                       }}>
                     <div className="flex items-center justify-between mb-4 pb-3 border-b-2" style={{ borderBottomColor: '#CCD5DA' }}>
                       <h3 className="text-lg font-bold" style={{ color: '#13181B' }}>
-                        {studentData.name} 님 ({studentData.submissions.length}개 제출)
-                      </h3>
+                      {studentData.name} 님 ({studentData.submissions.length}개 제출)
+                    </h3>
                       <button
                         onClick={async () => {
                           if (!confirm(`이 학생의 이 지문에 작성한 모든 체크포인트(1,2,3차 모든 문단)를 삭제하시겠습니까?`)) return;
@@ -615,7 +693,7 @@ export default function AdminPassageDetail() {
                           }
                         }}
                         className="text-xs px-3 py-1.5 rounded transition-all font-semibold"
-                        style={{ backgroundColor: '#FD8973', color: '#F0EEEB' }}
+                        style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
                         onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
                         onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                         title="이 학생의 이 지문 전체 체크포인트 삭제"
@@ -671,22 +749,11 @@ export default function AdminPassageDetail() {
                 ))}
               </div>
             ) : (
-              <div className="border-2 rounded-2xl p-6 text-center" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+              <div className="rounded-xl p-6 text-center shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
                 <p className="text-lg" style={{ color: '#13181B', opacity: 0.8 }}>아직 제출한 학생이 없습니다.</p>
               </div>
             )}
 
-            <div className="mt-4">
-              <Link
-                href={`/admin/passages/${id}/results`}
-                className="text-sm transition-colors"
-                style={{ color: categoryColor }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-              >
-                👉 상세 보기
-              </Link>
-            </div>
           </div>
           </div>
         </div>
@@ -729,237 +796,228 @@ function ParagraphSubmissions({
   passageId: string;
   studentUserId: string;
 }) {
-  const [selectedAttempt, setSelectedAttempt] = useState<number | null>(null); // 기본값을 null로 변경하여 전체 보기
-  // selectedAttempt가 null이면 모든 차수, 아니면 선택된 차수만
+
+  // 기본값을 첫 번째 attempt로 설정
+  const [selectedAttempt, setSelectedAttempt] = useState<number | null>(
+    attemptNumbers.length > 0 ? attemptNumbers[0] : null
+  );
+
   const currentSubmissions = selectedAttempt === null 
-    ? Object.values(submissionsByAttempt).flat().sort((a: any, b: any) => (a.attempt_number || 1) - (b.attempt_number || 1))
+    ? []
     : (submissionsByAttempt[selectedAttempt] || []);
 
   return (
-    <div className="border-l-4 pl-3 py-2" style={{ borderLeftColor: categoryColor }}>
+    <div className="border-l-4 pl-3 py-2" style={{ borderLeftColor: '#CCD5DA' }}>
       <div className="flex items-center justify-between mb-3">
-        <div className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: categoryColor, color: '#F0EEEB' }}>
-          {paragraphNum}문단
-        </div>
+        <span className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: '#F0EEEB', color: '#13181B' }}>
+                                {paragraphNum}문단
+                              </span>
         {attemptNumbers.length > 0 && (
-          <div className="flex gap-1">
-            <button
-              onClick={() => setSelectedAttempt(null)}
-              className="px-3 py-1.5 text-xs rounded transition-all font-semibold"
-              style={selectedAttempt === null ? {
-                backgroundColor: categoryColor,
-                color: '#F0EEEB'
-              } : {
-                backgroundColor: '#CCD5DA',
-                color: '#13181B'
-              }}
-            >
-              전체
-            </button>
+                                <div className="flex gap-1">
             {attemptNumbers.map((attemptNum) => (
               <button
                 key={attemptNum}
                 onClick={() => setSelectedAttempt(attemptNum)}
                 className="px-3 py-1.5 text-xs rounded transition-all font-semibold"
                 style={selectedAttempt === attemptNum ? {
-                  backgroundColor: categoryColor,
+                  backgroundColor: '#13181B',
                   color: '#F0EEEB'
                 } : {
-                  backgroundColor: '#CCD5DA',
+                  backgroundColor: 'transparent',
                   color: '#13181B'
                 }}
               >
                 {attemptNum}차
               </button>
-            ))}
-          </div>
-        )}
-      </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
 
       {/* 선택된 attempt_number의 체크포인트 표시 */}
       {currentSubmissions.length > 0 ? (
-        <div className="space-y-2">
+                              <div className="space-y-2">
           {currentSubmissions.map((submission: any) => (
-            <div key={submission.id} className="border-2 rounded p-3" style={{ borderColor: '#CCD5DA', backgroundColor: '#F0EEEB' }}>
+            <div key={submission.id} className="rounded-xl p-3 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold px-3 py-1.5 rounded" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
-                  {submission.attempt_number || 1}차
-                </span>
+                <span className="text-xs font-bold px-3 py-1.5 rounded" style={{ backgroundColor: '#FFFFFF', color: '#13181B' }}>
+                                        {submission.attempt_number || 1}차
+                                      </span>
                 <span className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
-                  {submission.created_at ? new Date(submission.created_at).toLocaleDateString('ko-KR') : ''}
-                </span>
-              </div>
+                                        {submission.created_at ? new Date(submission.created_at).toLocaleDateString('ko-KR') : ''}
+                                      </span>
+                                    </div>
 
-              {/* 체크포인트 */}
+                                    {/* 체크포인트 */}
               <div className="mb-2">
-                {submission?.checkpoint_text && submission.checkpoint_text.trim() ? (
-                  <div className="text-xs p-3 rounded" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
-                    {submission.checkpoint_text}
-                  </div>
-                ) : (
+                                      {submission?.checkpoint_text && submission.checkpoint_text.trim() ? (
+                  <div className="text-xs p-3 rounded" style={{ color: '#13181B' }}>
+                                          {submission.checkpoint_text}
+                                        </div>
+                                      ) : (
                   <span className="text-xs italic" style={{ color: '#13181B', opacity: 0.6 }}>체크포인트 없음</span>
-                )}
-              </div>
+                                      )}
+                                    </div>
 
-              {/* 모름 사유 */}
-              {submission?.reason && (
-                <div className="mt-2 p-3 rounded border-l-4" style={{ backgroundColor: '#FFBF65', borderLeftColor: '#FD8973' }}>
+                                    {/* 모름 사유 */}
+                                    {submission?.reason && (
+                <div className="mt-2 p-3 rounded border-l-4" style={{ borderLeftColor: '#CCD5DA' }}>
                   <span className="text-xs font-semibold" style={{ color: '#13181B' }}>⚠️ 모름: </span>
                   <span className="text-xs whitespace-pre-wrap" style={{ color: '#13181B' }}>
-                    {submission.reason}
-                  </span>
-                </div>
-              )}
+                                          {submission.reason}
+                                        </span>
+                                      </div>
+                                    )}
 
-              {/* 학생 자기 피드백 */}
-              {studentFeedbacks[submission.id] && (
-                <div className="mt-2 p-3 rounded border-2" style={{ backgroundColor: '#CCD5DA', borderColor: '#13181B' }}>
-                  <div className="flex items-center justify-between mb-1">
+                                    {/* 학생 자기 피드백 */}
+                                    {studentFeedbacks[submission.id] && (
+                <div className="mt-2 p-3 rounded-xl shadow-sm">
+                                        <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold" style={{ color: '#13181B' }}>
-                      ✍️ 학생 자기 피드백
-                    </span>
-                    {!studentFeedbacks[submission.id].teacher_viewed && (
-                      <span className="text-xs text-white px-3 py-1.5 rounded" style={{ backgroundColor: '#FD8973' }}>
-                        NEW
-                      </span>
-                    )}
-                  </div>
+                                            ✍️ 학생 자기 피드백
+                                          </span>
+                                          {!studentFeedbacks[submission.id].teacher_viewed && (
+                      <span className="text-xs text-white px-3 py-1.5 rounded" style={{ backgroundColor: '#13181B' }}>
+                                              NEW
+                                            </span>
+                                          )}
+                                        </div>
                   <div className="text-xs whitespace-pre-wrap mt-1" style={{ color: '#13181B' }}>
-                    {studentFeedbacks[submission.id].feedback_text}
-                  </div>
-                  <button
-                    onClick={async () => {
-                      const { error } = await supabase
-                        .from("student_feedback")
-                        .update({ teacher_viewed: true })
-                        .eq("id", studentFeedbacks[submission.id].id);
+                                          {studentFeedbacks[submission.id].feedback_text}
+                                        </div>
+                                        <button
+                                          onClick={async () => {
+                                            const { error } = await supabase
+                                              .from("student_feedback")
+                                              .update({ teacher_viewed: true })
+                                              .eq("id", studentFeedbacks[submission.id].id);
 
-                      if (!error) {
+                                            if (!error) {
                         setStudentFeedbacks((prev: any) => ({
-                          ...prev,
-                          [submission.id]: {
-                            ...prev[submission.id],
-                            teacher_viewed: true,
-                          },
-                        }));
-                      }
-                    }}
+                                                ...prev,
+                                                [submission.id]: {
+                                                  ...prev[submission.id],
+                                                  teacher_viewed: true,
+                                                },
+                                              }));
+                                            }
+                                          }}
                     className="mt-2 text-xs transition-colors"
-                    style={{ color: categoryColor }}
+                    style={{ color: '#13181B' }}
                     onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
                     onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                  >
-                    확인 완료
-                  </button>
-                </div>
-              )}
+                                        >
+                                          확인 완료
+                                        </button>
+                                      </div>
+                                    )}
 
-              {/* 댓글 섹션 */}
-              <div className="mt-2">
-                <button
-                  onClick={() => {
+                                    {/* 댓글 섹션 */}
+                                    <div className="mt-2">
+                                      <button
+                                        onClick={() => {
                     setShowCommentInput((prev: any) => ({
-                      ...prev,
-                      [submission.id]: !prev[submission.id],
-                    }));
-                  }}
+                                            ...prev,
+                                            [submission.id]: !prev[submission.id],
+                                          }));
+                                        }}
                   className="text-xs mb-2 transition-colors"
-                  style={{ color: categoryColor }}
+                  style={{ color: '#13181B' }}
                   onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
                   onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                >
-                  💬 댓글 {comments[submission.id]?.length || 0}개
-                </button>
+                                      >
+                                        댓글 {comments[submission.id]?.length || 0}개
+                                      </button>
 
-                {/* 기존 댓글 */}
-                {comments[submission.id] && comments[submission.id].length > 0 && (
-                  <div className="space-y-2 mb-2">
-                    {comments[submission.id].map((comment: any) => (
-                      <div key={comment.id} className="p-3 rounded text-xs" style={{ backgroundColor: '#CCD5DA' }}>
+                                      {/* 기존 댓글 */}
+                                      {comments[submission.id] && comments[submission.id].length > 0 && (
+                                        <div className="space-y-2 mb-2">
+                                          {comments[submission.id].map((comment: any) => (
+                      <div key={comment.id} className="p-3 rounded text-xs">
                         <div className="font-semibold mb-1" style={{ color: '#13181B' }}>선생님</div>
                         <div className="whitespace-pre-wrap" style={{ color: '#13181B' }}>
-                          {comment.comment_text}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                                                {comment.comment_text}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
 
-                {/* 댓글 입력 */}
-                {showCommentInput[submission.id] && (
-                  <div className="mt-2">
-                    <textarea
-                      value={commentTexts[submission.id] || ""}
-                      onChange={(e) => {
+                                      {/* 댓글 입력 */}
+                                      {showCommentInput[submission.id] && (
+                                        <div className="mt-2">
+                                          <textarea
+                                            value={commentTexts[submission.id] || ""}
+                                            onChange={(e) => {
                         setCommentTexts((prev: any) => ({
-                          ...prev,
-                          [submission.id]: e.target.value,
-                        }));
-                      }}
-                      placeholder="댓글을 입력하세요..."
-                      className="w-full text-xs p-2 border-2 rounded mb-2 transition-all"
-                      style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                                                ...prev,
+                                                [submission.id]: e.target.value,
+                                              }));
+                                            }}
+                                            placeholder="댓글을 입력하세요..."
+                      className="w-full text-xs p-2 rounded-xl mb-2 transition-all shadow-sm"
+                      style={{ backgroundColor: '#FFFFFF', color: '#13181B' }}
                       onFocus={(e) => {
-                        e.currentTarget.style.borderColor = categoryColor;
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                         e.currentTarget.style.outline = 'none';
                       }}
-                      onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-                      rows={3}
-                    />
-                    <button
-                      onClick={async () => {
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (!user) return;
+                      onBlur={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)'}
+                                            rows={3}
+                                          />
+                                          <button
+                                            onClick={async () => {
+                                              const { data: { user } } = await supabase.auth.getUser();
+                                              if (!user) return;
 
-                        const { error } = await supabase
-                          .from("teacher_comments")
-                          .insert({
-                            student_submission_id: submission.id,
-                            teacher_id: user.id,
-                            comment_text: commentTexts[submission.id] || "",
-                          });
+                                              const { error } = await supabase
+                                                .from("teacher_comments")
+                                                .insert({
+                                                  student_submission_id: submission.id,
+                                                  teacher_id: user.id,
+                                                  comment_text: commentTexts[submission.id] || "",
+                                                });
 
-                        if (error) {
-                          alert("댓글 작성 실패: " + error.message);
-                        } else {
+                                              if (error) {
+                                                alert("댓글 작성 실패: " + error.message);
+                                              } else {
                           setCommentTexts((prev: any) => ({
-                            ...prev,
-                            [submission.id]: "",
-                          }));
+                                                  ...prev,
+                                                  [submission.id]: "",
+                                                }));
                           setShowCommentInput((prev: any) => ({
-                            ...prev,
-                            [submission.id]: false,
-                          }));
-                          // 댓글 다시 로드
-                          const { data: commentsData } = await supabase
-                            .from("teacher_comments")
-                            .select("*")
-                            .eq("student_submission_id", submission.id)
-                            .order("created_at", { ascending: false });
-                          if (commentsData) {
+                                                  ...prev,
+                                                  [submission.id]: false,
+                                                }));
+                                                // 댓글 다시 로드
+                                                const { data: commentsData } = await supabase
+                                                  .from("teacher_comments")
+                                                  .select("*")
+                                                  .eq("student_submission_id", submission.id)
+                                                  .order("created_at", { ascending: false });
+                                                if (commentsData) {
                             setComments((prev: any) => ({
-                              ...prev,
-                              [submission.id]: commentsData,
-                            }));
-                          }
-                        }
-                      }}
+                                                    ...prev,
+                                                    [submission.id]: commentsData,
+                                                  }));
+                                                }
+                                              }
+                                            }}
                       className="text-xs text-white px-3 py-1 rounded transition-colors"
                       style={{ backgroundColor: categoryColor }}
                       onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
                       onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                    >
-                      댓글 작성
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
+                                          >
+                                            댓글 작성
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
         <div className="text-xs italic" style={{ color: '#13181B', opacity: 0.6 }}>아직 제출하지 않음</div>
-      )}
+            )}
     </div>
   );
 }
@@ -969,10 +1027,12 @@ function ParagraphWithHighlights({
   paragraph,
   checkpoints,
   currentUserId,
+  onHighlightClick,
 }: {
   paragraph: string;
   checkpoints: any[];
   currentUserId: string | null;
+  onHighlightClick?: (cp: any) => void;
 }) {
   // 본인이 작성한 체크포인트만 필터링
   const myCheckpoints = checkpoints.filter((cp: any) => 
@@ -1013,8 +1073,15 @@ function ParagraphWithHighlights({
       elements.push(
         <span
           key={`highlight-${idx}`}
-          className="rounded text-sm font-medium"
-          style={{ backgroundColor: '#FFBF65', color: '#13181B', padding: '2px 4px' }}
+          className="rounded text-sm font-medium cursor-pointer"
+          style={{ backgroundColor: '#FFFBE6', color: '#13181B', padding: '2px 4px' }}
+          onClick={() => onHighlightClick?.(cp)}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#FFF9D6';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#FFFBE6';
+          }}
         >
           {highlightedText}
         </span>

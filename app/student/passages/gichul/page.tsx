@@ -133,7 +133,7 @@ export default function StudentGichulPassageList() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F0EEEB' }}>
         <div className="text-center">
           <div className="mx-auto mb-4" style={{ 
             animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
@@ -164,16 +164,16 @@ export default function StudentGichulPassageList() {
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-10" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
+    <div className="min-h-screen p-6 md:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-7xl mx-auto">
         {/* 헤더 섹션 */}
         <div className="mb-8">
           <Link 
             href="/student" 
             className="inline-flex items-center mb-4 transition-colors"
-            style={{ color: '#003A6C' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#13181B'}
-            onMouseLeave={(e) => e.currentTarget.style.color = '#003A6C'}
+            style={{ color: '#13181B' }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -181,11 +181,11 @@ export default function StudentGichulPassageList() {
             자료 선택으로 돌아가기
           </Link>
           <div className="flex items-center gap-3">
-            <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%) invert(76%) sepia(95%) saturate(2000%) hue-rotate(340deg) brightness(1.1) contrast(1.1)' }} />
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#FFBF65' }}>
-              평가원 기출
-              <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #FFBF65 0%, #FFBF65 50%, transparent 100%)', borderRadius: '2px' }}></span>
-            </h1>
+            <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
+            평가원 기출
+              <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+          </h1>
           </div>
         </div>
 
@@ -193,7 +193,7 @@ export default function StudentGichulPassageList() {
         <div className="mb-6 space-y-4">
           {/* 검색 바 */}
           <div className="relative group">
-            <div className="relative rounded-2xl p-4 shadow-xl border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+            <div className="relative rounded-xl p-4 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
               <div className="flex items-center gap-3">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.6 }}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -223,7 +223,7 @@ export default function StudentGichulPassageList() {
           </div>
 
           {/* 필터 섹션 */}
-          <div className="rounded-2xl p-6 shadow-xl border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+          <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* 문학/비문학 필터 */}
               <div>
@@ -236,10 +236,10 @@ export default function StudentGichulPassageList() {
                   }}
                   className="w-full rounded-xl px-4 py-2.5 text-sm transition-all shadow-sm border-2"
                   style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#003A6C'}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#13181B'}
                   onMouseLeave={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#003A6C';
+                    e.currentTarget.style.borderColor = '#13181B';
                     e.currentTarget.style.outline = 'none';
                   }}
                   onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
@@ -301,7 +301,7 @@ export default function StudentGichulPassageList() {
         {/* 지문 목록 - 년도별 그룹화 */}
         <div className="mb-6">
             <div className="text-lg font-semibold" style={{ color: '#13181B' }}>
-            총 <span style={{ color: '#FFBF65' }}>{filteredPassages.length}</span>개의 지문
+            총 <span style={{ color: '#13181B' }}>{filteredPassages.length}</span>개의 지문
           </div>
         </div>
 
@@ -312,17 +312,17 @@ export default function StudentGichulPassageList() {
             const isYearExpanded = expandedYears.has(year);
             
             return (
-              <div key={year} className="rounded-2xl shadow-xl overflow-hidden border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+              <div key={year} className="rounded-xl shadow-sm overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
                 {/* 년도 헤더 */}
                 <button
                   onClick={() => toggleYear(year)}
                   className="w-full px-6 py-4 flex items-center justify-between transition-all"
-                  style={{ background: 'linear-gradient(to right, #FFBF65, #FD8973)', color: '#13181B' }}
+                  style={{ backgroundColor: '#FFF5E8', color: '#13181B' }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(to right, #FD8973, #FFBF65)';
+                    e.currentTarget.style.backgroundColor = '#CCD5DA';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'linear-gradient(to right, #FFBF65, #FD8973)';
+                    e.currentTarget.style.backgroundColor = '#FFF5E8';
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -350,14 +350,20 @@ export default function StudentGichulPassageList() {
                       const isTypeExpanded = expandedTypes.has(typeKey);
                       
                       return (
-                        <div key={type} className="rounded-xl overflow-hidden border-2" style={{ borderColor: '#CCD5DA' }}>
+                        <div key={type} className="rounded-xl overflow-hidden" style={{ backgroundColor: '#F0EEEB' }}>
                           {/* 타입 헤더 */}
                           <button
                             onClick={() => toggleType(year, type)}
-                            className="w-full px-5 py-3 flex items-center justify-between transition-all"
-                            style={{ backgroundColor: '#CCD5DA' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F0EEEB'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
+                            className="w-full px-5 py-3 flex items-center justify-between transition-all rounded-t-xl"
+                            style={{ backgroundColor: '#FFF5E8', borderBottom: '1px solid #CCD5DA' }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#E8E0D0';
+                              e.currentTarget.style.boxShadow = '0 2px 8px rgba(255, 191, 101, 0.15)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#FFF5E8';
+                              e.currentTarget.style.boxShadow = 'none';
+                            }}
                           >
                             <div className="flex items-center gap-3">
                               <svg 
@@ -376,21 +382,19 @@ export default function StudentGichulPassageList() {
                           
                           {/* 갤러리 뷰 */}
                           {isTypeExpanded && (
-                            <div className="p-4" style={{ backgroundColor: '#F0EEEB' }}>
+                            <div className="p-4" style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #F0EEEB' }}>
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {typePassages.map((p: any) => (
                                   <Link
                                     key={p.id}
                                     href={`/student/passages/${p.id}/checkpoint`}
-                                    className="group relative rounded-xl p-5 transition-all duration-300 transform hover:-translate-y-1 overflow-hidden border-2"
-                                    style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}
+                                    className="group relative rounded-xl p-5 transition-all duration-300 overflow-hidden shadow-sm"
+                                    style={{ backgroundColor: '#FFFFFF' }}
                                     onMouseEnter={(e) => {
-                                      e.currentTarget.style.borderColor = '#FFBF65';
-                                      e.currentTarget.style.boxShadow = '0 10px 25px rgba(255, 191, 101, 0.2)';
+                                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                                     }}
                                     onMouseLeave={(e) => {
-                                      e.currentTarget.style.borderColor = '#CCD5DA';
-                                      e.currentTarget.style.boxShadow = 'none';
+                                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                                     }}
                                   >
                                     <div className="relative z-10">
@@ -405,7 +409,7 @@ export default function StudentGichulPassageList() {
                                           </span>
                                         )}
                                         {p.sub_category && (
-                                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
+                                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
                                             {p.sub_category.split(",").join(", ")}
                                           </span>
                                         )}
@@ -414,10 +418,10 @@ export default function StudentGichulPassageList() {
                                       <div className="space-y-1.5 text-xs">
                                         {p.source && (
                                           <div className="flex items-start gap-2">
-                                            <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#FFBF65', opacity: 0.8 }}>
+                                            <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.8 }}>
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
-                                            <span className="line-clamp-1" style={{ color: '#FFBF65' }}>{p.source}</span>
+                                            <span className="line-clamp-1" style={{ color: '#13181B' }}>{p.source}</span>
                                           </div>
                                         )}
                                       </div>
@@ -430,7 +434,7 @@ export default function StudentGichulPassageList() {
                                         fill="none" 
                                         stroke="currentColor" 
                                         viewBox="0 0 24 24"
-                                        style={{ color: '#FFBF65' }}
+                                        style={{ color: '#13181B' }}
                                       >
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                                       </svg>
@@ -452,7 +456,7 @@ export default function StudentGichulPassageList() {
 
         {filteredPassages.length === 0 && (
           <div className="text-center py-20">
-            <div className="inline-block p-8 rounded-2xl shadow-xl border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+            <div className="inline-block p-8 rounded-xl shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
               <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.6 }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>

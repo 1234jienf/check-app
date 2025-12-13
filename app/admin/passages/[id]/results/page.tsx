@@ -12,6 +12,8 @@ export default function PassageResults() {
   const [selectedStudentName, setSelectedStudentName] = useState<string>("");
   const [comments, setComments] = useState<Record<string, any[]>>({});
   const [studentFeedbacks, setStudentFeedbacks] = useState<Record<string, any>>({});
+  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [showCommentInput, setShowCommentInput] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -30,6 +32,8 @@ export default function PassageResults() {
         .select("*, users(name, email)")
         .eq("passage_id", id);
 
+      let finalData: any[] = [];
+      
       if (error) {
         console.error("학생 제출 조회 오류:", error);
         // users 테이블 조인 실패 시 직접 조회
@@ -39,6 +43,7 @@ export default function PassageResults() {
           .eq("passage_id", id);
         
         if (checkpointsData) {
+          finalData = checkpointsData;
           // users 테이블에서 이름 가져오기
           const userIds = [...new Set(checkpointsData.map((c: any) => c.user_id))];
           const { data: usersData } = await supabase
@@ -54,12 +59,13 @@ export default function PassageResults() {
           setResults(resultsWithUsers);
         }
       } else {
-        setResults(data || []);
+        finalData = data || [];
+        setResults(finalData);
       }
 
       // 댓글 로드
-      if (data && data.length > 0) {
-        const submissionIds = data.map((c: any) => c.id);
+      if (finalData.length > 0) {
+        const submissionIds = finalData.map((c: any) => c.id);
         const { data: commentsData } = await supabase
           .from("teacher_comments")
           .select("*")
@@ -79,8 +85,8 @@ export default function PassageResults() {
       }
 
       // 학생 피드백 로드
-      if (data && data.length > 0) {
-        const submissionIds = data.map((c: any) => c.id);
+      if (finalData.length > 0) {
+        const submissionIds = finalData.map((c: any) => c.id);
         const { data: feedbacksData } = await supabase
           .from("student_feedback")
           .select("*")
@@ -99,10 +105,10 @@ export default function PassageResults() {
   }, [id]);
 
   const getCategoryColor = (category: string) => {
-    if (category === "EBS") return '#003A6C';
-    if (category === "기출" || category === "평가원") return '#FFBF65';
-    if (category === "LEET") return '#FD8973';
-    return '#13181B';
+    if (category === "EBS") return '#E8F0F8';
+    if (category === "기출" || category === "평가원") return '#FFF5E8';
+    if (category === "LEET") return '#FFF0ED';
+    return '#E8E9EA';
   };
 
   const categoryColor = passage ? getCategoryColor(passage.category) : '#13181B';
@@ -151,7 +157,7 @@ export default function PassageResults() {
         <div className="mb-4 md:mb-6">
           <h2 className="text-base md:text-lg mb-2" style={{ color: '#13181B' }}>{passage.title}</h2>
           {passage.source && (
-            <p className="text-sm" style={{ color: categoryColor, opacity: 0.9 }}>출처: {passage.source}</p>
+            <p className="text-sm" style={{ color: '#13181B', opacity: 0.9 }}>출처: {passage.source}</p>
           )}
         </div>
       )}
@@ -160,7 +166,7 @@ export default function PassageResults() {
         {/* 왼쪽: 학생 목록 */}
         <div className="w-full lg:w-80 flex-shrink-0">
           {results.length === 0 ? (
-            <div className="p-4 rounded border-2" style={{ backgroundColor: '#FFBF65', borderColor: '#FD8973', color: '#13181B' }}>
+            <div className="p-4 rounded-xl shadow-sm" style={{ color: '#13181B' }}>
               아직 제출한 학생이 없습니다.
             </div>
           ) : (
@@ -169,26 +175,22 @@ export default function PassageResults() {
                 <button
                   key={s.student_id}
                   onClick={() => handleStudentClick(s.student_id, s.name)}
-                  className="border-2 p-3 md:p-4 rounded text-left transition-colors whitespace-nowrap lg:whitespace-normal"
+                  className="p-3 md:p-4 rounded-xl text-left transition-colors whitespace-nowrap lg:whitespace-normal shadow-sm"
                   style={selectedStudentId === s.student_id ? {
                     backgroundColor: categoryColor,
-                    borderColor: categoryColor,
-                    color: '#F0EEEB'
+                    color: '#13181B'
                   } : {
-                    backgroundColor: '#F0EEEB',
-                    borderColor: '#CCD5DA',
+                    backgroundColor: '#FFFFFF',
                     color: '#13181B'
                   }}
                   onMouseEnter={(e) => {
                     if (selectedStudentId !== s.student_id) {
-                      e.currentTarget.style.borderColor = categoryColor;
-                      e.currentTarget.style.backgroundColor = '#CCD5DA';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (selectedStudentId !== s.student_id) {
-                      e.currentTarget.style.borderColor = '#CCD5DA';
-                      e.currentTarget.style.backgroundColor = '#F0EEEB';
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                     }
                   }}
                 >
@@ -235,8 +237,8 @@ export default function PassageResults() {
                 }, {});
 
                 return (
-                  <div key={student.student_id} className="border-2 rounded-lg p-4 md:p-6 shadow-sm" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
-                    <h4 className="text-lg font-bold mb-4 pb-2 border-b-2" style={{ color: '#13181B', borderBottomColor: '#CCD5DA' }}>
+                  <div key={student.student_id} className="rounded-xl p-4 md:p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+                    <h4 className="text-lg font-bold mb-4 pb-2 border-b" style={{ color: '#13181B', borderBottomColor: '#CCD5DA' }}>
                       {student.name} 님
                     </h4>
 
@@ -247,18 +249,18 @@ export default function PassageResults() {
                         const attemptNumbers = Object.keys(paragraphAttempts).map(Number).sort((a, b) => a - b);
 
                         return (
-                          <div key={idx} className="border-l-4 pl-4 py-2" style={{ borderLeftColor: categoryColor }}>
+                          <div key={idx} className="border-l-4 pl-4 py-2" style={{ borderLeftColor: '#CCD5DA' }}>
                             <div className="flex items-center justify-between mb-3">
-                              <div className="text-sm font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: categoryColor, color: '#F0EEEB' }}>
+                              <span className="text-sm font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: '#F0EEEB', color: '#13181B' }}>
                                 {paragraphNum}문단
-                              </div>
+                              </span>
                               {attemptNumbers.length > 0 && (
                                 <div className="flex gap-1">
                                   {attemptNumbers.map((attemptNum) => (
                                     <span
                                       key={attemptNum}
                                       className="px-3 py-1.5 text-xs rounded font-semibold"
-                                      style={{ backgroundColor: '#FFBF65', color: '#13181B' }}
+                                      style={{ color: '#13181B' }}
                                     >
                                       {attemptNum}차
                                     </span>
@@ -273,40 +275,40 @@ export default function PassageResults() {
                                 {attemptNumbers.map((attemptNum) => {
                                   const attemptCheckpoints = paragraphAttempts[attemptNum] || [];
                                   return attemptCheckpoints.map((checkpoint: any) => (
-                                    <div key={checkpoint.id} className="border-2 rounded p-3 mb-2" style={{ borderColor: '#CCD5DA', backgroundColor: '#F0EEEB' }}>
+                                    <div key={checkpoint.id} className="rounded-xl p-3 mb-2 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
                                       <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-xs font-bold px-3 py-1.5 rounded" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
+                                        <span className="text-xs font-bold px-3 py-1.5 rounded" style={{ color: '#13181B' }}>
                                           {attemptNum}차
                                         </span>
                                         <span className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
                                           {checkpoint.created_at ? new Date(checkpoint.created_at).toLocaleDateString('ko-KR') : ''}
-                                        </span>
-                                      </div>
+                              </span>
+                            </div>
 
-                                      {/* 체크포인트 */}
-                                      <div className="mb-2">
-                                        {checkpoint?.checkpoint_text && checkpoint.checkpoint_text.trim() ? (
-                                          <div className="text-sm p-3 rounded" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
-                                            {checkpoint.checkpoint_text}
-                                          </div>
-                                        ) : (
+                            {/* 체크포인트 */}
+                            <div className="mb-2">
+                              {checkpoint?.checkpoint_text && checkpoint.checkpoint_text.trim() ? (
+                                          <div className="text-sm p-3 rounded" style={{ color: '#13181B' }}>
+                                  {checkpoint.checkpoint_text}
+                                </div>
+                              ) : (
                                           <span className="text-sm italic" style={{ color: '#13181B', opacity: 0.6 }}>체크포인트 없음</span>
-                                        )}
-                                      </div>
+                              )}
+                            </div>
 
-                                      {/* 모름 사유 */}
-                                      {checkpoint?.reason && (
-                                        <div className="mt-2 p-3 rounded border-l-4" style={{ backgroundColor: '#FFBF65', borderLeftColor: '#FD8973' }}>
+                            {/* 모름 사유 */}
+                            {checkpoint?.reason && (
+                                        <div className="mt-2 p-3 rounded border-l-4" style={{ borderLeftColor: '#CCD5DA' }}>
                                           <span className="text-xs font-semibold" style={{ color: '#13181B' }}>⚠️ 모름 - 사유: </span>
                                           <span className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>
-                                            {checkpoint.reason}
-                                          </span>
+                                  {checkpoint.reason}
+                                </span>
                                         </div>
                                       )}
 
                                       {/* 학생 자기 피드백 */}
                                       {studentFeedbacks[checkpoint.id] && (
-                                        <div className="mt-2 p-3 rounded border-2" style={{ backgroundColor: '#CCD5DA', borderColor: '#13181B' }}>
+                                        <div className="mt-2 p-3 rounded-xl shadow-sm">
                                           <div className="text-xs font-semibold mb-1" style={{ color: '#13181B' }}>
                                             ✍️ 학생 자기 피드백
                                           </div>
@@ -317,23 +319,135 @@ export default function PassageResults() {
                                       )}
 
                                       {/* 선생님 댓글 */}
-                                      {comments[checkpoint.id] && comments[checkpoint.id].length > 0 && (
-                                        <div className="mt-2">
-                                          <div className="text-xs font-semibold mb-2" style={{ color: categoryColor }}>
-                                            💬 선생님 댓글 ({comments[checkpoint.id].length}개)
-                                          </div>
-                                          <div className="space-y-2">
+                                      <div className="mt-2">
+                                        <button
+                                          onClick={() => {
+                                            setShowCommentInput((prev: any) => ({
+                                              ...prev,
+                                              [checkpoint.id]: !prev[checkpoint.id],
+                                            }));
+                                          }}
+                                          className="text-xs mb-2 transition-colors"
+                                          style={{ color: '#13181B' }}
+                                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                        >
+                                          댓글 {comments[checkpoint.id]?.length || 0}개
+                                        </button>
+
+                                        {/* 기존 댓글 */}
+                                        {comments[checkpoint.id] && comments[checkpoint.id].length > 0 && (
+                                          <div className="space-y-2 mb-2">
                                             {comments[checkpoint.id].map((comment: any) => (
-                                              <div key={comment.id} className="p-3 rounded text-sm" style={{ backgroundColor: '#CCD5DA' }}>
-                                                <div className="font-semibold mb-1" style={{ color: '#13181B' }}>선생님</div>
-                                                <div className="whitespace-pre-wrap" style={{ color: '#13181B' }}>
+                                              <div key={comment.id} className="p-3 rounded-lg shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
+                                                <div className="text-xs mb-1" style={{ color: '#13181B', opacity: 0.7 }}>
+                                                  {new Date(comment.created_at).toLocaleString('ko-KR')}
+                                                </div>
+                                                <div className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>
                                                   {comment.comment_text}
                                                 </div>
                                               </div>
                                             ))}
                                           </div>
-                                        </div>
-                                      )}
+                                        )}
+
+                                        {/* 댓글 입력 */}
+                                        {showCommentInput[checkpoint.id] && (
+                                          <div className="mt-2">
+                                            <textarea
+                                              value={commentTexts[checkpoint.id] || ""}
+                                              onChange={(e) => {
+                                                setCommentTexts((prev: any) => ({
+                                                  ...prev,
+                                                  [checkpoint.id]: e.target.value,
+                                                }));
+                                              }}
+                                              placeholder="댓글을 입력하세요..."
+                                              className="w-full text-sm p-3 rounded-xl mb-2 transition-all shadow-sm"
+                                              style={{ 
+                                                backgroundColor: '#FFFFFF', 
+                                                border: '1px solid #CCD5DA',
+                                                color: '#13181B'
+                                              }}
+                                              onFocus={(e) => {
+                                                e.currentTarget.style.borderColor = '#13181B';
+                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                                                e.currentTarget.style.outline = 'none';
+                                              }}
+                                              onBlur={(e) => {
+                                                e.currentTarget.style.borderColor = '#CCD5DA';
+                                                e.currentTarget.style.boxShadow = 'none';
+                                              }}
+                                              rows={3}
+                                            />
+                                            <button
+                                              onClick={async () => {
+                                                const commentText = commentTexts[checkpoint.id];
+                                                if (!commentText?.trim()) {
+                                                  alert("댓글을 입력해주세요.");
+                                                  return;
+                                                }
+
+                                                const { data: { user } } = await supabase.auth.getUser();
+                                                if (!user) {
+                                                  alert("로그인이 필요합니다.");
+                                                  return;
+                                                }
+
+                                                const { error } = await supabase
+                                                  .from("teacher_comments")
+                                                  .insert({
+                                                    student_submission_id: checkpoint.id,
+                                                    teacher_id: user.id,
+                                                    comment_text: commentText,
+                                                  });
+
+                                                if (error) {
+                                                  alert("댓글 추가 실패: " + error.message);
+                                                } else {
+                                                  // 댓글 다시 로드
+                                                  const { data: commentsData } = await supabase
+                                                    .from("teacher_comments")
+                                                    .select("*")
+                                                    .eq("student_submission_id", checkpoint.id)
+                                                    .order("created_at", { ascending: false });
+
+                                                  if (commentsData) {
+                                                    setComments((prev: any) => ({
+                                                      ...prev,
+                                                      [checkpoint.id]: commentsData,
+                                                    }));
+                                                  }
+
+                                                  setCommentTexts((prev: any) => ({
+                                                    ...prev,
+                                                    [checkpoint.id]: "",
+                                                  }));
+                                                  setShowCommentInput((prev: any) => ({
+                                                    ...prev,
+                                                    [checkpoint.id]: false,
+                                                  }));
+                                                }
+                                              }}
+                                              className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                                              style={{ 
+                                                backgroundColor: '#13181B',
+                                                color: '#F0EEEB'
+                                              }}
+                                              onMouseEnter={(e) => {
+                                                e.currentTarget.style.opacity = '0.9';
+                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.2)';
+                                              }}
+                                              onMouseLeave={(e) => {
+                                                e.currentTarget.style.opacity = '1';
+                                                e.currentTarget.style.boxShadow = 'none';
+                                              }}
+                                            >
+                                              댓글 작성
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   ));
                                 })}
@@ -350,7 +464,7 @@ export default function PassageResults() {
               })}
 
               {Object.keys(byStudent).length === 0 && (
-                <div className="p-4 rounded border-2" style={{ backgroundColor: '#FFBF65', borderColor: '#FD8973', color: '#13181B' }}>
+                <div className="p-4 rounded-xl shadow-sm" style={{ color: '#13181B' }}>
                   아직 제출한 학생이 없습니다.
                 </div>
               )}

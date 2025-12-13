@@ -37,7 +37,7 @@ export default function MyCheckpointsPage() {
           .or(`teacher_id.eq.${user.id},teacher_id.is.null`);
 
         if (error) {
-          console.error("체크포인트 로드 오류:", error);
+          console.error(" 로드 오류:", error);
           // 컬럼이 없으면 빈 배열로 설정
           if (error.code === "42703") {
             setMyCheckpoints([]);
@@ -131,7 +131,7 @@ export default function MyCheckpointsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F0EEEB' }}>
         <div className="text-center">
           <div className="mx-auto mb-4" style={{ 
             animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
@@ -166,18 +166,17 @@ export default function MyCheckpointsPage() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <img src="/pawn_black.svg" alt="Pawn" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
-              내가 작성한 체크포인트
+            체크포인트
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
-            </h1>
+          </h1>
           </div>
-          <p className="text-sm md:text-base" style={{ color: '#13181B', opacity: 0.8 }}>본인이 작성한 체크포인트가 있는 지문을 확인할 수 있습니다.</p>
+          <p className="text-sm md:text-base" style={{ color: '#13181B', opacity: 0.8 }}>체크포인트가 있는 지문을 확인 할 수 있습니다.</p>
         </div>
 
         {/* 필터 섹션 */}
         {myCheckpoints.length > 0 && (
-          <div className="mb-6 border-2 p-4 rounded-xl" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+          <div className="mb-6 rounded-xl p-4 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 검색 */}
               <div>
@@ -247,7 +246,7 @@ export default function MyCheckpointsPage() {
         )}
 
         {myCheckpoints.length === 0 ? (
-          <div className="p-12 text-center border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+          <div className="p-12 text-center rounded-xl shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="text-6xl mb-4">📝</div>
             <h2 className="text-2xl font-bold mb-2" style={{ color: '#13181B' }}>작성한 체크포인트가 없습니다</h2>
             <p className="mb-6" style={{ color: '#13181B', opacity: 0.8 }}>
@@ -257,14 +256,14 @@ export default function MyCheckpointsPage() {
               href="/admin/passages"
               className="inline-flex items-center px-6 py-3 font-semibold transition-all duration-200"
               style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#003A6C'}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
             >
               지문 관리로 이동
             </Link>
           </div>
         ) : filteredCheckpoints.length === 0 ? (
-          <div className="p-12 text-center border-2" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
+          <div className="p-12 text-center rounded-xl shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="text-4xl mb-4">🔍</div>
             <h2 className="text-2xl font-bold mb-2" style={{ color: '#13181B' }}>검색 결과가 없습니다</h2>
             <p className="mb-6" style={{ color: '#13181B', opacity: 0.8 }}>
@@ -276,10 +275,14 @@ export default function MyCheckpointsPage() {
             {filteredCheckpoints.map((passage: any) => (
               <div
                 key={passage.id}
-                className="p-6 transition-all duration-300 flex flex-col border-2"
-                style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F0EEEB'}
+                className="p-6 transition-all duration-300 flex flex-col rounded-xl shadow-sm"
+                style={{ backgroundColor: '#FFFFFF' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                }}
               >
                 {/* 헤더 */}
                 <div className="mb-4">
@@ -288,18 +291,33 @@ export default function MyCheckpointsPage() {
                       href={`/admin/passages/${passage.id}`}
                       className="text-xl font-bold transition-colors line-clamp-2 flex-1"
                       style={{ color: '#13181B' }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = '#003A6C'}
+                      onMouseEnter={(e) => e.currentTarget.style.color = '#13181B'}
                       onMouseLeave={(e) => e.currentTarget.style.color = '#13181B'}
                     >
                       {passage.title || "(제목 없음)"}
                     </Link>
+                    <Link
+                      href={`/admin/passages/${passage.id}`}
+                      className="flex-shrink-0 ml-2 transition-transform hover:translate-x-1"
+                      style={{ color: '#13181B' }}
+                    >
+                      <svg 
+                        className="w-5 h-5" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                        style={{ filter: 'brightness(0) saturate(100%)' }}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap mb-2">
                     <span className="px-3 py-1.5 text-xs font-semibold rounded-full" style={{ 
-                      backgroundColor: passage.category === "EBS" ? '#003A6C' : 
-                                       passage.category === "기출" || passage.category === "평가원" ? '#FFBF65' :
-                                       passage.category === "LEET" ? '#FD8973' : '#13181B', 
-                      color: '#F0EEEB' 
+                      backgroundColor: passage.category === "EBS" ? '#E8F0F8' : 
+                                       passage.category === "기출" || passage.category === "평가원" ? '#FFF5E8' :
+                                       passage.category === "LEET" ? '#FFF0ED' : '#E8E9EA', 
+                      color: '#13181B' 
                     }}>
                       {passage.category || "기타"}
                     </span>
@@ -308,7 +326,12 @@ export default function MyCheckpointsPage() {
                         {passage.year}년
                       </span>
                     )}
-                    <span className="px-3 py-1.5 text-xs font-semibold rounded-full" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
+                    <span className="px-3 py-1.5 text-xs font-semibold rounded-full" style={{ 
+                      backgroundColor: passage.category === "EBS" ? '#E8F0F8' : 
+                                       passage.category === "기출" || passage.category === "평가원" ? '#FFF5E8' :
+                                       passage.category === "LEET" ? '#FFF0ED' : '#E8E9EA', 
+                      color: '#13181B' 
+                    }}>
                       체크 {passage.checkpoints.length}개
                     </span>
                   </div>
@@ -325,26 +348,16 @@ export default function MyCheckpointsPage() {
                     .map((cp: any) => (
                       <div
                         key={cp.id}
-                        className="p-3 rounded-lg border"
-                        style={{ backgroundColor: '#CCD5DA', borderColor: passage.category === "EBS" ? '#003A6C' : 
-                                                                    passage.category === "기출" || passage.category === "평가원" ? '#FFBF65' :
-                                                                    passage.category === "LEET" ? '#FD8973' : '#13181B' }}
+                        className="p-3 rounded-lg"
+                        style={{ backgroundColor: '#FFFFFF' }}
                       >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="px-3 py-1 text-xs font-bold rounded" style={{ 
-                            backgroundColor: passage.category === "EBS" ? '#003A6C' : 
-                                           passage.category === "기출" || passage.category === "평가원" ? '#FFBF65' :
-                                           passage.category === "LEET" ? '#FD8973' : '#13181B', 
-                            color: '#F0EEEB' 
-                          }}>
-                            {cp.order_num || "?"}
-                          </span>
-                          {cp.paragraph && (
-                            <span className="text-xs" style={{ color: '#13181B' }}>
-                              {cp.paragraph}문단
+                        {cp.paragraph && (
+                          <div className="mb-1">
+                            <span className="text-xs font-semibold" style={{ color: '#13181B' }}>
+                              [{cp.paragraph}문단]
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                         <p className="text-xs line-clamp-2" style={{ color: '#13181B' }}>{cp.text}</p>
                       </div>
                     ))}
@@ -355,19 +368,6 @@ export default function MyCheckpointsPage() {
                   )}
                 </div>
 
-                {/* 하단 버튼 */}
-                <Link
-                  href={`/admin/passages/${passage.id}`}
-                  className="w-full px-4 py-2.5 font-semibold transition-all flex items-center justify-center gap-2 text-sm"
-                  style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#003A6C'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
-                >
-                  지문 보기
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
               </div>
             ))}
           </div>

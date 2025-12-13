@@ -89,16 +89,16 @@ export default function NewAnnouncementPage() {
               className="w-full px-4 py-3 border-2 rounded-xl transition-all"
               style={{
                 backgroundColor: '#F0EEEB',
-                borderColor: '#13181B',
+                borderColor: '#CCD5DA',
                 color: '#13181B',
                 outline: 'none'
               }}
               onFocus={(e) => {
-                e.currentTarget.style.borderColor = '#13181B';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                 e.currentTarget.style.boxShadow = '0 0 0 3px rgba(19, 24, 27, 0.1)';
               }}
               onBlur={(e) => {
-                e.currentTarget.style.borderColor = '#13181B';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                 e.currentTarget.style.boxShadow = 'none';
               }}
               placeholder="공지사항 제목을 입력하세요"
@@ -123,16 +123,16 @@ export default function NewAnnouncementPage() {
               className="w-full px-4 py-3 border-2 rounded-xl transition-all resize-none"
               style={{
                 backgroundColor: '#F0EEEB',
-                borderColor: '#13181B',
+                borderColor: '#CCD5DA',
                 color: '#13181B',
                 outline: 'none'
               }}
               onFocus={(e) => {
-                e.currentTarget.style.borderColor = '#13181B';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                 e.currentTarget.style.boxShadow = '0 0 0 3px rgba(19, 24, 27, 0.1)';
               }}
               onBlur={(e) => {
-                e.currentTarget.style.borderColor = '#13181B';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
                 e.currentTarget.style.boxShadow = 'none';
               }}
               placeholder="공지사항 내용을 입력하세요"
@@ -184,13 +184,15 @@ export default function NewAnnouncementPage() {
             </button>
             <Link
               href="/admin/announcements"
-              className="px-8 py-3 rounded-xl font-semibold transition-all border-2"
-              style={{ backgroundColor: 'transparent', borderColor: '#13181B', color: '#13181B' }}
+              className="px-8 py-3 rounded-xl font-semibold transition-all shadow-sm"
+              style={{ backgroundColor: '#F0EEEB', color: '#13181B' }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#CCD5DA';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.backgroundColor = '#F0EEEB';
+                e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
               }}
             >
               취소

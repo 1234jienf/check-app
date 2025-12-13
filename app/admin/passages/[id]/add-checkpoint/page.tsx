@@ -92,11 +92,14 @@ function AddCheckpointContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-6 lg:p-10">
+    <div className="min-h-screen p-4 md:p-6 lg:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-4xl mx-auto">
         <Link
           href={`/admin/passages/${passageId}`}
-          className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4 md:mb-6 transition-colors text-sm md:text-base"
+          className="inline-flex items-center mb-4 md:mb-6 transition-colors text-sm md:text-base"
+          style={{ color: '#13181B' }}
+          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
         >
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -104,12 +107,12 @@ function AddCheckpointContent() {
           지문 상세로 돌아가기
         </Link>
 
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4 md:mb-6">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6" style={{ color: '#13181B' }}>
           체크포인트 추가
         </h1>
 
-        <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-xl mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
+        <div className="rounded-xl p-6 shadow-sm mb-6" style={{ backgroundColor: '#FFFFFF' }}>
+          <label className="block text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
             문단 선택
           </label>
           <select
@@ -120,7 +123,17 @@ function AddCheckpointContent() {
               setHighlightStart(null);
               setHighlightEnd(null);
             }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-xl text-sm"
+            style={{ 
+              backgroundColor: '#F0EEEB', 
+              border: '1px solid #CCD5DA',
+              color: '#13181B'
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = '#13181B';
+              e.currentTarget.style.outline = 'none';
+            }}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
           >
             {paragraphs.map((_: string, idx: number) => (
               <option key={idx} value={idx + 1}>
@@ -131,52 +144,98 @@ function AddCheckpointContent() {
         </div>
 
         {paragraphs[paragraphNum - 1] && (
-          <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-xl mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
+          <div className="rounded-xl p-6 shadow-sm mb-6" style={{ backgroundColor: '#FFFFFF' }}>
+            <label className="block text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
               문단 내용 (텍스트를 선택하면 하이라이트됩니다)
             </label>
             <div
-              className="p-4 bg-gray-50 rounded-xl border-2 border-gray-200 min-h-[200px]"
+              className="p-4 rounded-xl min-h-[200px]"
               onMouseUp={handleTextSelect}
-              style={{ userSelect: "text" }}
+              style={{ 
+                userSelect: "text",
+                backgroundColor: '#F0EEEB',
+                border: '1px solid #CCD5DA',
+                color: '#13181B',
+                lineHeight: '1.6'
+              }}
             >
               {paragraphs[paragraphNum - 1].split("\n").map((line: string, idx: number) => (
-                <p key={idx} className="mb-2 text-gray-700">
+                <p key={idx} className="mb-2" style={{ color: '#13181B' }}>
                   {line}
                 </p>
               ))}
             </div>
             {selectedText && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-700 font-semibold mb-1">선택된 텍스트:</p>
-                <p className="text-sm text-gray-800">{selectedText}</p>
+              <div className="mt-4 p-3 rounded-lg shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
+                <p className="text-sm font-semibold mb-1" style={{ color: '#13181B' }}>선택된 텍스트:</p>
+                <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>{selectedText}</p>
               </div>
             )}
           </div>
         )}
 
-        <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-xl mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
+        <div className="rounded-xl p-6 shadow-sm mb-6" style={{ backgroundColor: '#FFFFFF' }}>
+          <label className="block text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
             체크포인트 내용
           </label>
           <textarea
             value={checkpointText}
             onChange={(e) => setCheckpointText(e.target.value)}
             placeholder="체크포인트 내용을 입력하세요..."
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[150px]"
+            className="w-full px-4 py-3 rounded-xl min-h-[150px] text-sm"
+            style={{ 
+              backgroundColor: '#F0EEEB',
+              border: '1px solid #CCD5DA',
+              color: '#13181B'
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = '#13181B';
+              e.currentTarget.style.outline = 'none';
+            }}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
           />
+          <style jsx>{`
+            textarea::placeholder {
+              color: #13181B;
+              opacity: 0.5;
+            }
+          `}</style>
         </div>
 
         <div className="flex gap-3">
           <button
             onClick={handleAddCheckpoint}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            className="px-6 py-3 rounded-xl font-semibold transition-all"
+            style={{ 
+              backgroundColor: '#13181B',
+              color: '#F0EEEB'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '0.9';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '1';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             체크포인트 추가
           </button>
           <Link
             href={`/admin/passages/${passageId}`}
-            className="px-6 py-3 bg-gray-500 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            className="px-6 py-3 rounded-xl font-semibold transition-all"
+            style={{ 
+              backgroundColor: '#CCD5DA',
+              color: '#13181B'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#A8B2B8';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#CCD5DA';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             취소
           </Link>
@@ -189,7 +248,7 @@ function AddCheckpointContent() {
 export default function AddCheckpointPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen p-6 md:p-10 flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #F0EEEB, #CCD5DA)' }}>
+      <div className="min-h-screen p-6 md:p-10 flex items-center justify-center" style={{ backgroundColor: '#F0EEEB' }}>
         <div className="text-center">
           <div className="mx-auto mb-4" style={{ 
             animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
