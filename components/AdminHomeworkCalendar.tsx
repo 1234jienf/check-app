@@ -418,8 +418,8 @@ export default function AdminHomeworkCalendar() {
               key={idx}
               onClick={() => handleDateClick(date)}
               className="relative aspect-square flex flex-col items-center justify-center text-xs rounded-lg transition-all border-2 p-1"
-              style={{ minHeight: '60px' }}
-              style={!isCurrentMonth(date) ? {
+              style={{ minHeight: '60px', 
+              ...(!isCurrentMonth(date) ? {
                 color: '#13181B',
                 opacity: 0.4,
                 borderColor: 'transparent',
@@ -440,7 +440,8 @@ export default function AdminHomeworkCalendar() {
                 color: '#13181B',
                 borderColor: 'transparent',
                 backgroundColor: '#FFFFFF'
-              }}
+              }),
+            }}
               onMouseEnter={(e) => {
                 if (isCurrentMonth(date)) {
                   e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.1)';

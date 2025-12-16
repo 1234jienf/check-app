@@ -13,6 +13,7 @@ interface DailyHomework {
     task_text: string;
     is_completed: boolean;
     is_from_teacher?: boolean; // 선생님이 내준 Daily 숙제인지
+    order_num?: number;
   }>;
 }
 
@@ -345,7 +346,7 @@ export default function StudentHomeworkCalendar() {
         .insert({
           student_id: studentId,
           homework_date: dateStr,
-          subject: currentSubjectValue,
+          subject: currentSubject,
         })
         .select()
         .single();
