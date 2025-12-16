@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function StudentDetail() {
   const { id: studentId } = useParams();
   const search = useSearchParams();
+  const router = useRouter();
   const passageId = search.get("passage");
 
   const [checkpoints, setCheckpoints] = useState<any[]>([]);
@@ -14,6 +16,63 @@ export default function StudentDetail() {
   const [comments, setComments] = useState<Record<string, any[]>>({});
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [showCommentInput, setShowCommentInput] = useState<Record<string, boolean>>({});
+  const [studentInfo, setStudentInfo] = useState<any>(null);
+  const [studentSubjects, setStudentSubjects] = useState<string[]>([]);
+  const [isEditingSubjects, setIsEditingSubjects] = useState(false);
+
+  // 학생 정보 및 과목 불러오기
+  useEffect(() => {
+    const loadStudentInfo = async () => {
+      if (!studentId) return;
+      
+      try {
+        // 먼저 기본 정보만 가져오기
+        const { data: basicData, error: basicError } = await supabase
+          .from("users")
+          .select("id, name, email")
+          .eq("id", studentId)
+          .single();
+
+        if (basicError) {
+          return;
+        }
+
+        if (!basicData) return;
+
+        // subjects 필드가 있는지 확인 (에러 무시)
+        let hasSubjectsField = false;
+        let studentSubjectsData: string[] = ['korean'];
+        
+        try {
+          const { data: testData, error: testError } = await supabase
+            .from("users")
+            .select("subjects")
+            .eq("id", studentId)
+            .single();
+
+          if (!testError && testData && testData.subjects !== undefined) {
+            hasSubjectsField = true;
+            studentSubjectsData = testData.subjects || ['korean'];
+          }
+        } catch (testErr: any) {
+          // 400 에러나 다른 에러는 subjects 필드가 없는 것으로 간주
+          hasSubjectsField = false;
+        }
+
+        if (hasSubjectsField) {
+          // subjects 필드가 있는 경우
+          setStudentInfo({ ...basicData, subjects: studentSubjectsData });
+          setStudentSubjects(studentSubjectsData);
+        } else {
+          // subjects 필드가 없는 경우 기본값
+          setStudentInfo({ ...basicData, subjects: ['korean'] });
+          setStudentSubjects(['korean']);
+        }
+      } catch (err) {
+      }
+    };
+    loadStudentInfo();
+  }, [studentId]);
 
   useEffect(() => {
     const load = async () => {
@@ -62,6 +121,59 @@ export default function StudentDetail() {
     load();
   }, [studentId, passageId]);
 
+  // 학생 과목 업데이트
+  const updateStudentSubjects = async () => {
+    if (studentSubjects.length === 0) {
+      alert("최소 하나의 과목을 선택해주세요.");
+      return;
+    }
+
+    try {
+      // 먼저 subjects 필드가 있는지 확인 (에러 무시)
+      let hasSubjectsField = false;
+      try {
+        const { data: testData, error: testError } = await supabase
+          .from("users")
+          .select("subjects")
+          .eq("id", studentId)
+          .single();
+
+        if (!testError && testData && testData.subjects !== undefined) {
+          hasSubjectsField = true;
+        }
+      } catch (testErr: any) {
+        // 400 에러나 다른 에러는 subjects 필드가 없는 것으로 간주
+        hasSubjectsField = false;
+      }
+
+      if (!hasSubjectsField) {
+        // subjects 컬럼이 없는 경우
+        alert("과목 필드가 데이터베이스에 없습니다. 먼저 SQL 스크립트를 실행해주세요.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("users")
+        .update({ subjects: studentSubjects })
+        .eq("id", studentId);
+
+      if (error) {
+        // subjects 컬럼 업데이트 실패 시 에러 메시지
+        if (error.code === '42703') {
+          alert("과목 필드가 데이터베이스에 없습니다. 먼저 SQL 스크립트를 실행해주세요.");
+        } else {
+          alert("과목 업데이트 실패: " + error.message);
+        }
+      } else {
+        alert("과목이 업데이트되었습니다.");
+        setIsEditingSubjects(false);
+        setStudentInfo({ ...studentInfo, subjects: studentSubjects });
+      }
+    } catch (err) {
+      alert("과목 업데이트 중 오류가 발생했습니다.");
+    }
+  };
+
   // 지문을 문단별로 나누기
   const paragraphs = passage?.content
     ? passage.content.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0)
@@ -79,13 +191,141 @@ export default function StudentDetail() {
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-3 mb-4">
-          <img src="/pawn_black.svg" alt="Pawn" className="w-10 h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
-          학생 답변 상세
-            <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
-        </h1>
+        <div className="mb-6">
+          <Link 
+            href="/admin"
+            className="inline-flex items-center mb-4 transition-colors"
+            style={{ color: '#13181B' }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            학생 관리로 돌아가기
+          </Link>
+          
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <img src="/pawn_black.svg" alt="Pawn" className="w-10 h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
+                {studentInfo ? `${studentInfo.name} 학생` : '학생 상세'}
+                <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+              </h1>
+            </div>
+          </div>
+
+          {/* 학생 정보 및 과목 관리 */}
+          {studentInfo && (
+            <div className="rounded-xl p-6 shadow-sm mb-6" style={{ backgroundColor: '#FFFFFF' }}>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-bold mb-2" style={{ color: '#13181B' }}>학생 정보</h2>
+                  <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>{studentInfo.email}</p>
+                </div>
+                <button
+                  onClick={() => setIsEditingSubjects(!isEditingSubjects)}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                  style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E8E9EA'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
+                >
+                  {isEditingSubjects ? '취소' : '과목 수정'}
+                </button>
+              </div>
+
+              {isEditingSubjects ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>접근 가능한 과목</label>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={studentSubjects.includes('korean')}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setStudentSubjects([...studentSubjects, 'korean']);
+                            } else {
+                              setStudentSubjects(studentSubjects.filter(sub => sub !== 'korean'));
+                            }
+                          }}
+                          className="w-4 h-4"
+                          style={{ accentColor: '#13181B' }}
+                        />
+                        <span style={{ color: '#13181B' }}>국어</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={studentSubjects.includes('english')}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setStudentSubjects([...studentSubjects, 'english']);
+                            } else {
+                              setStudentSubjects(studentSubjects.filter(sub => sub !== 'english'));
+                            }
+                          }}
+                          className="w-4 h-4"
+                          style={{ accentColor: '#13181B' }}
+                        />
+                        <span style={{ color: '#13181B' }}>영어</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={updateStudentSubjects}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                      style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                    >
+                      저장
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingSubjects(false);
+                        setStudentSubjects(studentInfo.subjects || ['korean']);
+                      }}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                      style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E8E9EA'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
+                    >
+                      취소
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm font-semibold mb-2" style={{ color: '#13181B' }}>접근 가능한 과목:</p>
+                  <div className="flex gap-2">
+                    {studentInfo.subjects?.includes('korean') && (
+                      <span className="px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}>국어</span>
+                    )}
+                    {studentInfo.subjects?.includes('english') && (
+                      <span className="px-3 py-1 rounded-lg text-sm" style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}>영어</span>
+                    )}
+                    {(!studentInfo.subjects || studentInfo.subjects.length === 0) && (
+                      <span className="text-sm" style={{ color: '#13181B', opacity: 0.7 }}>과목이 설정되지 않았습니다.</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
+        {passageId && (
+          <div className="flex items-center gap-3 mb-4">
+            <img src="/pawn_black.svg" alt="Pawn" className="w-10 h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
+            <h2 className="text-2xl md:text-3xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
+          학생 답변 상세
+              <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+            </h2>
+          </div>
+        )}
         {passage && (
           <div className="mb-4 md:mb-6">
             <h2 className="text-xl md:text-2xl font-semibold mb-2" style={{ color: '#13181B' }}>{passage.title}</h2>
@@ -162,7 +402,7 @@ export default function StudentDetail() {
                       </button>
 
                       {/* 기존 댓글 */}
-                      {comments[checkpoint.id] && comments[checkpoint.id].length > 0 && (
+                    {comments[checkpoint.id] && comments[checkpoint.id].length > 0 && (
                         <div className="space-y-2 mb-2">
                           {comments[checkpoint.id].map((comment: any) => (
                             <div key={comment.id} className="p-3 rounded-lg shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
@@ -271,8 +511,8 @@ export default function StudentDetail() {
                           >
                             댓글 작성
                           </button>
-                        </div>
-                      )}
+                      </div>
+                    )}
                     </div>
                   </div>
                 ) : (

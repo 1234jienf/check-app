@@ -35,7 +35,6 @@ export default function PassageResults() {
       let finalData: any[] = [];
       
       if (error) {
-        console.error("학생 제출 조회 오류:", error);
         // users 테이블 조인 실패 시 직접 조회
         const { data: checkpointsData } = await supabase
           .from("student_checkpoint_record")
@@ -84,20 +83,24 @@ export default function PassageResults() {
         }
       }
 
-      // 학생 피드백 로드
+      // 학생 피드백 로드 (에러 무시)
       if (finalData.length > 0) {
         const submissionIds = finalData.map((c: any) => c.id);
-        const { data: feedbacksData } = await supabase
-          .from("student_feedback")
-          .select("*")
-          .in("student_submission_id", submissionIds);
+        try {
+          const { data: feedbacksData, error: feedbackError } = await supabase
+            .from("student_feedback")
+            .select("*")
+            .in("student_submission_id", submissionIds);
 
-        if (feedbacksData) {
-          const feedbacksMap: Record<string, any> = {};
-          feedbacksData.forEach((feedback: any) => {
-            feedbacksMap[feedback.student_submission_id] = feedback;
-          });
-          setStudentFeedbacks(feedbacksMap);
+          if (!feedbackError && feedbacksData) {
+            const feedbacksMap: Record<string, any> = {};
+            feedbacksData.forEach((feedback: any) => {
+              feedbacksMap[feedback.student_submission_id] = feedback;
+            });
+            setStudentFeedbacks(feedbacksMap);
+          }
+        } catch (feedbackErr: any) {
+          // student_feedback 테이블이 없거나 접근 권한이 없으면 무시
         }
       }
     };

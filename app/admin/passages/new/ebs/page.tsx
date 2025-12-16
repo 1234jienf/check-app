@@ -36,7 +36,6 @@ export default function NewEBSPage() {
           // 사용 후 삭제
           sessionStorage.removeItem('parsedPassage');
         } catch (e) {
-          console.error('Failed to parse stored passage:', e);
         }
       }
     }
@@ -178,11 +177,9 @@ export default function NewEBSPage() {
       ? (subCategory || null)
       : (subCategories.length > 0 ? subCategories.join(",") : null);
     
-    const finalSubject = literaryType === "비문학"
-      ? (subCategory ? `${ebsType} - ${subCategory} (비문학)` : `${ebsType} (비문학)`)
-      : (subCategories.length > 0 
-          ? `${ebsType} - ${subCategories.join(", ")} (문학)` 
-          : `${ebsType} (문학)`);
+    // 세션에서 선택한 과목 확인
+    const selectedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : 'korean';
+    const subject = selectedSubject || 'korean';
 
     const { data, error } = await supabase
       .from("passages")
@@ -193,7 +190,7 @@ export default function NewEBSPage() {
           literary_type: literaryType,
           sub_category: subCategoryStr, // 비문학: 단일 값, 문학: 쉼표로 구분된 문자열 (예: "고전시가,고전수필")
           year,
-          subject: finalSubject, // 기존 호환성 유지
+          subject: subject, // korean 또는 english
           source,
           title,
           content,

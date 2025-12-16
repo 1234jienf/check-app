@@ -63,7 +63,6 @@ export async function POST(request: NextRequest) {
       try {
         pythonResult = JSON.parse(stdout);
       } catch (parseError) {
-        console.error("Python JSON 파싱 실패:", stdout.substring(0, 500));
         throw new Error("Python 스크립트 출력을 파싱할 수 없습니다.");
       }
       
@@ -71,11 +70,6 @@ export async function POST(request: NextRequest) {
         throw new Error(pythonResult.error);
       }
 
-      console.log("Python 파서 결과:", {
-        passagesCount: pythonResult.passages?.length || 0,
-        totalPassages: pythonResult.total_passages,
-        firstPassageLength: pythonResult.passages?.[0]?.content?.length || 0,
-      });
 
       // Python 파서 결과 반환 (여러 지문 지원)
       if (pythonResult.passages && pythonResult.passages.length > 0) {
@@ -85,11 +79,9 @@ export async function POST(request: NextRequest) {
           total_passages: pythonResult.total_passages,
         });
       } else {
-        console.log("Python 파서가 지문을 찾지 못했습니다. 폴백 파서로 전환합니다.");
         throw new Error("Python 파서가 지문을 찾지 못했습니다.");
       }
     } catch (pythonError: any) {
-      console.log("Python 파서 실패, 기본 파서로 전환:", pythonError.message);
       // Python 파서 실패 시 기존 파서로 폴백
     } finally {
       // 임시 파일 정리
@@ -97,7 +89,6 @@ export async function POST(request: NextRequest) {
         try {
           await unlink(tempPdfPath);
         } catch (e) {
-          console.error("임시 파일 삭제 실패:", e);
         }
       }
     }
@@ -125,14 +116,6 @@ export async function POST(request: NextRequest) {
     // 텍스트에서 제목, 출처, subject 등을 추출
     const parsed = parseText(text);
 
-    console.log('파싱된 결과:', {
-      title: parsed.title,
-      source: parsed.source,
-      subject: parsed.subject,
-      contentLength: parsed.content.length,
-      year: parsed.year,
-    });
-
     // 문단 개수 계산
     const paragraphs = parsed.content.split(/\n\s*\n/).filter(p => p.trim().length > 0);
     
@@ -141,7 +124,6 @@ export async function POST(request: NextRequest) {
       paragraphCount: paragraphs.length,
     });
   } catch (error: any) {
-    console.error("PDF 파싱 오류:", error);
     return NextResponse.json(
       { error: error.message || "PDF 파싱 실패" },
       { status: 500 }

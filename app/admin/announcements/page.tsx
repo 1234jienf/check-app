@@ -21,6 +21,17 @@ export default function AdminAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
+
+  // 세션에서 선택한 과목 불러오기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSubject = sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null;
+      if (savedSubject) {
+        setSelectedSubject(savedSubject);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -33,15 +44,42 @@ export default function AdminAnnouncementsPage() {
 
       setUserId(user.id);
 
-      // 공지사항 목록 가져오기 (고정 공지 먼저, 그 다음 최신순)
-      const { data: announcementsData, error } = await supabase
+      // 세션에서 선택한 과목 확인
+      const savedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : 'korean';
+      const subject = (savedSubject || 'korean') as "korean" | "english";
+      setSelectedSubject(subject);
+
+      // 공지사항 목록 가져오기 (과목별 필터링, 고정 공지 먼저, 그 다음 최신순)
+      let query = supabase
         .from("announcements")
-        .select("*")
+        .select("*");
+
+      // subject 컬럼이 있는지 확인하고 필터링
+      try {
+        // 먼저 subject 컬럼이 있는지 테스트
+        const { data: testData, error: testError } = await supabase
+          .from("announcements")
+          .select("subject")
+          .limit(1)
+          .maybeSingle();
+
+        if (!testError && testData && testData.subject !== undefined) {
+          // subject 컬럼이 있는 경우 필터링
+          if (subject === "korean") {
+            query = query.or("subject.eq.korean,subject.is.null");
+          } else {
+            query = query.eq("subject", "english");
+          }
+        }
+      } catch (testErr: any) {
+        // subject 컬럼이 없으면 모든 공지사항 표시
+      }
+
+      const { data: announcementsData, error } = await query
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("공지사항 로드 오류:", error);
       } else if (announcementsData) {
         // 작성자 이름 가져오기
         const authorIds = [...new Set(announcementsData.map((a: any) => a.author_id))];
@@ -64,7 +102,7 @@ export default function AdminAnnouncementsPage() {
     };
 
     loadData();
-  }, [router]);
+  }, [router, selectedSubject]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("이 공지사항을 삭제하시겠습니까?")) return;
@@ -75,7 +113,6 @@ export default function AdminAnnouncementsPage() {
       .eq("id", id);
 
     if (error) {
-      console.error("삭제 오류:", error);
       alert("삭제에 실패했습니다.");
     } else {
       setAnnouncements(announcements.filter(a => a.id !== id));
@@ -153,15 +190,18 @@ export default function AdminAnnouncementsPage() {
             {announcements.map((announcement) => (
               <div
                 key={announcement.id}
-                className="rounded-xl p-6 transition-all shadow-sm"
+                className="rounded-xl p-6 transition-all shadow-sm cursor-pointer"
                 style={{
                   backgroundColor: announcement.is_pinned ? '#CCD5DA' : '#FFFFFF'
                 }}
+                onClick={() => router.push(`/admin/announcements/${announcement.id}`)}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 <div className="flex items-start justify-between mb-4">
@@ -189,6 +229,7 @@ export default function AdminAnnouncementsPage() {
                       href={`/admin/announcements/${announcement.id}/edit`}
                       className="p-2 rounded-lg transition-all"
                       style={{ color: '#13181B' }}
+                      onClick={(e) => e.stopPropagation()}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = '#CCD5DA';
                         e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.1)';
@@ -203,7 +244,10 @@ export default function AdminAnnouncementsPage() {
                       </svg>
                     </Link>
                     <button
-                      onClick={() => handleDelete(announcement.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(announcement.id);
+                      }}
                       className="p-2 rounded-lg transition-all"
                       style={{ color: '#13181B' }}
                       onMouseEnter={(e) => {
@@ -225,6 +269,7 @@ export default function AdminAnnouncementsPage() {
             ))}
           </div>
         )}
+
       </div>
     </div>
   );

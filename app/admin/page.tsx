@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
   const [pendingStudents, setPendingStudents] = useState<any[]>([]);
@@ -10,7 +11,21 @@ export default function AdminPage() {
   const [studentPassages, setStudentPassages] = useState<Record<string, Record<string, any[]>>>({});
   const [studentCheckpoints, setStudentCheckpoints] = useState<Record<string, Record<string, any[]>>>({});
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"approval" | "students">("students");
+  const [activeTab, setActiveTab] = useState<"approval" | "students" | "student-edit">("students");
+  const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
+  const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+  const [editingStudentSubjects, setEditingStudentSubjects] = useState<string[]>([]);
+  const [allApprovedStudents, setAllApprovedStudents] = useState<any[]>([]);
+
+  // 세션에서 선택한 과목 불러오기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSubject = sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null;
+      if (savedSubject) {
+        setSelectedSubject(savedSubject);
+      }
+    }
+  }, []);
 
   // 승인 대기 학생 불러오기
   const fetchPending = async () => {
@@ -23,17 +38,82 @@ export default function AdminPage() {
     if (!error) setPendingStudents(data || []);
   };
 
-  // 승인된 학생 불러오기
-  const fetchApproved = async () => {
-    const { data, error } = await supabase
+  // 승인된 학생 불러오기 (선택한 과목으로 필터링)
+  const fetchApproved = useCallback(async () => {
+    try {
+      // 세션 스토리지에서 최신 과목 값 가져오기 (상태 동기화 보장)
+      const currentSubject = typeof window !== 'undefined' 
+        ? (sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null) || "korean"
+        : selectedSubject;
+      
+      
+      // subjects 컬럼을 포함해서 직접 쿼리 시도
+      const { data: fullData, error: fullError } = await supabase
+        .from("users")
+        .select("id, name, email, approved, subjects")
+        .eq("role", "student")
+        .eq("approved", true)
+        .order("name", { ascending: true });
+
+      if (fullError) {
+        const { data: basicData, error: basicError } = await supabase
       .from("users")
       .select("id, name, email, approved")
       .eq("role", "student")
       .eq("approved", true)
       .order("name", { ascending: true });
 
-    if (!error) setApprovedStudents(data || []);
-  };
+        if (basicError) {
+          setApprovedStudents([]);
+          return;
+        }
+
+        // subjects 필드가 없으면 기본값 처리
+        const filtered = currentSubject === "korean" 
+          ? (basicData || [])
+          : []; // 영어 선택 시 subjects 필드가 없으면 빈 배열
+        setApprovedStudents(filtered);
+        return;
+      }
+
+      if (!fullData) {
+        setApprovedStudents([]);
+        return;
+      }
+
+      // subjects 필드가 있는 경우 - 필터링 적용
+      const filtered = fullData.filter((student: any) => {
+        // subjects가 null이거나 undefined인 경우
+        if (student.subjects === null || student.subjects === undefined) {
+          // null이면 국어로 간주 (기존 데이터 호환성)
+          return currentSubject === "korean";
+        }
+        
+        // subjects를 배열로 변환
+        let studentSubjects: string[] = [];
+        if (Array.isArray(student.subjects)) {
+          studentSubjects = student.subjects;
+        } else if (typeof student.subjects === 'string') {
+          studentSubjects = [student.subjects];
+        } else {
+          // 예상치 못한 타입이면 국어로 간주
+          return currentSubject === "korean";
+        }
+        
+        // 빈 배열이면 아무 과목도 없는 것으로 간주
+        if (studentSubjects.length === 0) {
+          return false;
+        }
+        
+        const hasAccess = studentSubjects.includes(currentSubject);
+        
+        return hasAccess;
+      });
+      setApprovedStudents(filtered);
+    } catch (err) {
+      setApprovedStudents([]);
+    }
+  }, [selectedSubject]); // selectedSubject가 변경되면 다시 실행되지만, 함수 내부에서는 세션 스토리지의 최신 값을 사용
 
   // 학생별 작성한 지문 불러오기
   const fetchStudentPassages = async (studentId: string) => {
@@ -46,16 +126,26 @@ export default function AdminPage() {
         attempt_number,
         created_at,
         reason,
-        passages!inner(id, title, category, year, source)
+        passages!inner(id, title, category, year, source, subject)
       `)
       .eq("user_id", studentId)
       .order("created_at", { ascending: false });
 
     if (!error && data) {
+      // 선택한 과목으로 필터링 (NULL도 국어로 간주)
+      const filteredData = data.filter((d: any) => {
+        if (!d.passages) return false;
+        if (selectedSubject === "korean") {
+          return d.passages.subject === "korean" || d.passages.subject === null || d.passages.subject === undefined;
+        } else {
+          return d.passages.subject === "english";
+        }
+      });
+
       // 중복 제거 및 카테고리별 그룹화
       const uniquePassages = Array.from(
         new Map(
-          data
+          filteredData
             .filter((d: any) => d.passages)
             .map((d: any) => [d.passage_id, d.passages])
         ).values()
@@ -75,7 +165,7 @@ export default function AdminPage() {
 
       // 지문별 체크포인트 그룹화
       const checkpointsByPassage: Record<string, any[]> = {};
-      data.forEach((record: any) => {
+      filteredData.forEach((record: any) => {
         if (!checkpointsByPassage[record.passage_id]) {
           checkpointsByPassage[record.passage_id] = [];
         }
@@ -86,30 +176,194 @@ export default function AdminPage() {
     }
   };
 
+  const [approvingStudentId, setApprovingStudentId] = useState<string | null>(null);
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+
   // 승인 처리
-  const approveStudent = async (id: string) => {
+  const approveStudent = async (id: string, subjects: string[]) => {
+    try {
+      let hasSubjectsField = false;
+      
+      // 먼저 subjects 필드가 있는지 확인 (에러 무시)
+      try {
+        const { data: testData, error: testError } = await supabase
+          .from("users")
+          .select("subjects")
+          .eq("id", id)
+          .single();
+
+        if (!testError && testData && testData.subjects !== undefined) {
+          hasSubjectsField = true;
+        }
+      } catch (testErr: any) {
+        // 400 에러나 다른 에러는 subjects 필드가 없는 것으로 간주
+        hasSubjectsField = false;
+      }
+
+      let updateData: any = { approved: true };
+      
+      // subjects 필드가 있으면 업데이트, 없으면 기본 필드만 업데이트
+      if (hasSubjectsField) {
+        updateData.subjects = subjects;
+      }
+
     const { error } = await supabase
       .from("users")
-      .update({ approved: true })
+        .update(updateData)
       .eq("id", id);
 
     if (!error) {
       alert("승인 완료!");
+        setApprovingStudentId(null);
+        setSelectedSubjects([]);
+        fetchPending();
+        fetchApproved();
+      } else {
+        // subjects 필드 업데이트 실패 시 기본 승인만 처리
+        if (hasSubjectsField && error.code === '42703') {
+          // subjects 컬럼이 없다는 에러면 기본 승인만
+          const { error: basicError } = await supabase
+            .from("users")
+            .update({ approved: true })
+            .eq("id", id);
+          
+          if (!basicError) {
+            alert("승인 완료! (과목 정보는 저장되지 않았습니다)");
+            setApprovingStudentId(null);
+            setSelectedSubjects([]);
       fetchPending();
       fetchApproved();
+          } else {
+            alert("승인 실패: " + basicError.message);
+          }
+        } else {
+          alert("승인 실패: " + error.message);
+        }
+      }
+    } catch (err) {
+      alert("승인 처리 중 오류가 발생했습니다.");
     }
   };
 
   useEffect(() => {
     fetchPending();
-    fetchApproved();
   }, []);
+
+  // 과목 변경 시 학생 목록 다시 불러오기 (디바운싱 적용)
+  useEffect(() => {
+    
+    // 짧은 지연을 두어 연속된 상태 변경을 방지
+    const timeoutId = setTimeout(() => {
+    fetchApproved();
+    }, 100);
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubject]);
+
+  // 모든 승인된 학생 불러오기 (학생 정보 편집용 - 필터링 없음)
+  const fetchAllApproved = useCallback(async () => {
+    try {
+      const { data: basicData, error: basicError } = await supabase
+        .from("users")
+        .select("id, name, email, approved")
+        .eq("role", "student")
+        .eq("approved", true)
+        .order("name", { ascending: true });
+
+      if (basicError || !basicData) {
+        setAllApprovedStudents([]);
+        return;
+      }
+
+      // subjects 필드가 있는지 확인
+      let hasSubjectsField = false;
+      if (basicData && basicData.length > 0) {
+        try {
+          const { data: testData, error: testError } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", basicData[0].id)
+            .single();
+
+          if (!testError && testData && testData.subjects !== undefined && Array.isArray(testData.subjects)) {
+            hasSubjectsField = true;
+          }
+        } catch (testErr: any) {
+          hasSubjectsField = false;
+        }
+      }
+
+      if (hasSubjectsField) {
+        try {
+          const { data: fullData, error: fullError } = await supabase
+            .from("users")
+            .select("id, name, email, approved, subjects")
+            .eq("role", "student")
+            .eq("approved", true)
+            .order("name", { ascending: true });
+
+          if (!fullError && fullData) {
+            setAllApprovedStudents(fullData);
+          } else {
+            setAllApprovedStudents(basicData);
+          }
+        } catch (fullErr: any) {
+          setAllApprovedStudents(basicData);
+        }
+      } else {
+        setAllApprovedStudents(basicData);
+      }
+    } catch (err) {
+      setAllApprovedStudents([]);
+    }
+  }, []);
+
+  // 학생 정보 편집 탭이 활성화될 때 모든 학생 불러오기
+  useEffect(() => {
+    if (activeTab === "student-edit") {
+      fetchAllApproved();
+    }
+  }, [activeTab, fetchAllApproved]);
+
+  // 세션에서 선택한 과목 불러오기 (초기 로드 시에만)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSubject = sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null;
+      const initialSubject = savedSubject || "korean";
+      setSelectedSubject(initialSubject);
+    }
+  }, []);
+
+  // 과목 변경 이벤트 리스너 (레이아웃에서 과목 변경 시)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleSubjectChanged = (event: CustomEvent) => {
+        const newSubject = event.detail.subject as "korean" | "english";
+        setSelectedSubject(newSubject);
+      };
+
+      window.addEventListener('subjectChanged', handleSubjectChanged as EventListener);
+      
+      return () => {
+        window.removeEventListener('subjectChanged', handleSubjectChanged as EventListener);
+      };
+    }
+  }, []);
+
+  // selectedSubject가 변경될 때마다 학생 목록 다시 불러오기
+  useEffect(() => {
+    fetchApproved();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubject]);
 
   useEffect(() => {
     if (selectedStudentId) {
       fetchStudentPassages(selectedStudentId);
     }
-  }, [selectedStudentId]);
+  }, [selectedStudentId, selectedSubject]);
 
   const categoryLabels: Record<string, string> = {
     "EBS": "EBS",
@@ -192,6 +446,33 @@ export default function AdminPage() {
               </span>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab("student-edit")}
+            className={`px-6 py-3 font-semibold transition-all ${
+              activeTab === "student-edit"
+                ? "-mb-[2px]"
+                : ""
+            }`}
+            style={activeTab === "student-edit" ? {
+              color: '#13181B',
+              borderBottom: '2px solid #13181B'
+            } : {
+              color: '#13181B',
+              opacity: 0.7
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== "student-edit") {
+                e.currentTarget.style.opacity = '1';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== "student-edit") {
+                e.currentTarget.style.opacity = '0.7';
+              }
+            }}
+          >
+            학생 정보 편집
+          </button>
         </div>
 
         {/* 승인 관리 탭 */}
@@ -210,21 +491,96 @@ export default function AdminPage() {
                     className="p-4 rounded-xl shadow-sm"
                     style={{ backgroundColor: '#FFF5E8' }}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-3">
                       <div className="flex-1">
                         <div className="font-bold mb-1" style={{ color: '#13181B' }}>{s.name}</div>
                         <div className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>{s.email}</div>
                       </div>
+                    </div>
+                    
+                    {approvingStudentId === s.id ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>접근 가능한 과목 선택</label>
+                          <div className="space-y-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selectedSubjects.includes('korean')}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedSubjects([...selectedSubjects, 'korean']);
+                                  } else {
+                                    setSelectedSubjects(selectedSubjects.filter(sub => sub !== 'korean'));
+                                  }
+                                }}
+                                className="w-4 h-4"
+                                style={{ accentColor: '#13181B' }}
+                              />
+                              <span style={{ color: '#13181B' }}>국어</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selectedSubjects.includes('english')}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedSubjects([...selectedSubjects, 'english']);
+                                  } else {
+                                    setSelectedSubjects(selectedSubjects.filter(sub => sub !== 'english'));
+                                  }
+                                }}
+                                className="w-4 h-4"
+                                style={{ accentColor: '#13181B' }}
+                              />
+                              <span style={{ color: '#13181B' }}>영어</span>
+                            </label>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              if (selectedSubjects.length === 0) {
+                                alert("최소 하나의 과목을 선택해주세요.");
+                                return;
+                              }
+                              approveStudent(s.id, selectedSubjects);
+                            }}
+                            className="flex-1 px-4 py-2 font-semibold rounded-lg transition-colors"
+                            style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                          >
+                            승인
+                          </button>
+                          <button
+                            onClick={() => {
+                              setApprovingStudentId(null);
+                              setSelectedSubjects([]);
+                            }}
+                            className="px-4 py-2 font-semibold rounded-lg transition-colors"
+                            style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E8E9EA'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
+                          >
+                            취소
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
                       <button
-                        onClick={() => approveStudent(s.id)}
-                        className="px-6 py-2 font-semibold rounded-lg transition-colors"
+                        onClick={() => {
+                          setApprovingStudentId(s.id);
+                          setSelectedSubjects(['korean']); // 기본값: 국어
+                        }}
+                        className="w-full px-6 py-2 font-semibold rounded-lg transition-colors"
                         style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#13181B'}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                       >
                         승인하기
                       </button>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -232,12 +588,198 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* 학생 정보 편집 탭 */}
+        {activeTab === "student-edit" && (
+          <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+            <h2 className="text-2xl font-bold mb-4" style={{ color: '#13181B' }}>학생 정보 편집</h2>
+            <p className="text-sm mb-6" style={{ color: '#13181B', opacity: 0.8 }}>학생의 국어/영어 접근 권한을 관리할 수 있습니다.</p>
+            
+            {allApprovedStudents.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-lg" style={{ color: '#13181B', opacity: 0.8 }}>승인된 학생이 없습니다.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {allApprovedStudents.map((s: any) => {
+                  const studentSubjects = s.subjects || ['korean'];
+                  const isEditing = editingStudentId === s.id;
+                  
+                  return (
+                    <div
+                      key={s.id}
+                      className="p-4 rounded-xl shadow-sm"
+                      style={{ backgroundColor: '#F0EEEB' }}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="font-bold mb-1" style={{ color: '#13181B' }}>{s.name}</div>
+                          <div className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>{s.email}</div>
+                        </div>
+                      </div>
+                      
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>접근 가능한 과목</label>
+                            <div className="space-y-2">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={editingStudentSubjects.includes('korean')}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setEditingStudentSubjects([...editingStudentSubjects, 'korean']);
+                                    } else {
+                                      setEditingStudentSubjects(editingStudentSubjects.filter(sub => sub !== 'korean'));
+                                    }
+                                  }}
+                                  className="w-4 h-4"
+                                  style={{ accentColor: '#13181B' }}
+                                />
+                                <span style={{ color: '#13181B' }}>국어</span>
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={editingStudentSubjects.includes('english')}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setEditingStudentSubjects([...editingStudentSubjects, 'english']);
+                                    } else {
+                                      setEditingStudentSubjects(editingStudentSubjects.filter(sub => sub !== 'english'));
+                                    }
+                                  }}
+                                  className="w-4 h-4"
+                                  style={{ accentColor: '#13181B' }}
+                                />
+                                <span style={{ color: '#13181B' }}>영어</span>
+                              </label>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={async () => {
+                                if (editingStudentSubjects.length === 0) {
+                                  alert("최소 하나의 과목을 선택해주세요.");
+                                  return;
+                                }
+                                
+                                try {
+                                  let hasSubjectsField = false;
+                                  try {
+                                    const { data: testData, error: testError } = await supabase
+                                      .from("users")
+                                      .select("subjects")
+                                      .eq("id", s.id)
+                                      .single();
+
+                                    if (!testError && testData && testData.subjects !== undefined) {
+                                      hasSubjectsField = true;
+                                    }
+                                  } catch (testErr: any) {
+                                    hasSubjectsField = false;
+                                  }
+
+                                  if (!hasSubjectsField) {
+                                    alert("과목 필드가 데이터베이스에 없습니다. 먼저 SQL 스크립트를 실행해주세요.");
+                                    return;
+                                  }
+
+                                  const { error } = await supabase
+                                    .from("users")
+                                    .update({ subjects: editingStudentSubjects })
+                                    .eq("id", s.id);
+
+                                  if (error) {
+                                    alert("과목 업데이트 실패: " + error.message);
+                                  } else {
+                                    alert("과목이 업데이트되었습니다.");
+                                    setEditingStudentId(null);
+                                    setEditingStudentSubjects([]);
+                                    fetchApproved();
+                                    fetchAllApproved();
+                                  }
+                                } catch (err) {
+                                  alert("과목 업데이트 중 오류가 발생했습니다.");
+                                }
+                              }}
+                              className="flex-1 px-4 py-2 font-semibold rounded-lg transition-colors"
+                              style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+                              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                            >
+                              저장
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingStudentId(null);
+                                setEditingStudentSubjects([]);
+                              }}
+                              className="px-4 py-2 font-semibold rounded-lg transition-colors"
+                              style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E8E9EA'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#CCD5DA'}
+                            >
+                              취소
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="text-sm font-semibold" style={{ color: '#13181B' }}>접근 가능한 과목:</div>
+                          <div className="flex gap-2 flex-wrap">
+                            {studentSubjects.includes('korean') && (
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}>
+                                국어
+                              </span>
+                            )}
+                            {studentSubjects.includes('english') && (
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}>
+                                영어
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => {
+                              setEditingStudentId(s.id);
+                              setEditingStudentSubjects([...studentSubjects]);
+                            }}
+                            className="w-full mt-3 px-4 py-2 font-semibold rounded-lg transition-colors"
+                            style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                          >
+                            수정
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 학생별 지문 관리 탭 */}
         {activeTab === "students" && (
+          <div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* 왼쪽: 학생 목록 */}
             <div className="lg:col-span-1">
-              <div className="rounded-xl p-6 shadow-sm sticky top-4" style={{ backgroundColor: '#FFFFFF' }}>
+              <div 
+                className="rounded-xl p-6 shadow-sm sticky top-4 transition-all"
+                style={{ backgroundColor: '#FFFFFF' }}
+                onMouseEnter={(e) => {
+                  if (!(e.target as HTMLElement).closest('.student-item')) {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                }}
+              >
                 <h2 className="text-xl font-bold mb-4" style={{ color: '#13181B' }}>학생 목록</h2>
                 <div className="max-h-[600px] overflow-y-auto">
                   {approvedStudents.length === 0 ? (
@@ -245,10 +787,10 @@ export default function AdminPage() {
                   ) : (
                     <div className="flex flex-col gap-2">
                       {approvedStudents.map((s: any) => (
-                        <button
-                          key={s.id}
-                          onClick={() => setSelectedStudentId(s.id)}
-                          className="w-full p-3 text-left rounded-xl transition-all shadow-sm"
+                      <button
+                        key={s.id}
+                        onClick={() => setSelectedStudentId(s.id)}
+                          className="student-item w-full p-3 text-left rounded-xl transition-all shadow-sm"
                         style={selectedStudentId === s.id ? {
                           backgroundColor: '#13181B',
                           color: '#F0EEEB',
@@ -267,10 +809,10 @@ export default function AdminPage() {
                             e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                           }
                         }}
-                        >
+                      >
                           <div className="font-medium">{s.name}</div>
                           <div className="text-xs" style={{ opacity: selectedStudentId === s.id ? 0.9 : 0.7 }}>{s.email}</div>
-                        </button>
+                      </button>
                       ))}
                     </div>
                   )}
@@ -331,7 +873,7 @@ export default function AdminPage() {
                                 >
                                   <div className="flex items-start justify-between mb-2">
                                     <div className="font-semibold transition-colors flex-1" style={{ color: '#13181B' }}>
-                                      {passage.title || "(제목 없음)"}
+                                    {passage.title || "(제목 없음)"}
                                     </div>
                                     <svg 
                                       className="w-5 h-5 flex-shrink-0 ml-2 transition-transform group-hover:translate-x-1" 
@@ -376,23 +918,23 @@ export default function AdminPage() {
                                             }}
                                           >
                                             <div className="flex-1 text-sm">
-                                              <div className="flex items-center gap-2 mb-1">
+                                            <div className="flex items-center gap-2 mb-1">
                                                 <span className="text-xs font-semibold" style={{ color: '#13181B' }}>
-                                                  {maxAttempt}차
-                                                </span>
+                                                {maxAttempt}차
+                                              </span>
                                                 <span className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
-                                                  {paraNum}문단
-                                                </span>
-                                              </div>
-                                              {isDontKnow ? (
+                                                {paraNum}문단
+                                              </span>
+                                            </div>
+                                            {isDontKnow ? (
                                                 <div className="text-xs italic" style={{ color: '#13181B', opacity: 0.6 }}>
-                                                  모름
-                                                </div>
-                                              ) : cp.checkpoint_text ? (
+                                                모름
+                                              </div>
+                                            ) : cp.checkpoint_text ? (
                                                 <div className="text-xs line-clamp-1" style={{ color: '#13181B', opacity: 0.8 }}>
-                                                  {cp.checkpoint_text}
-                                                </div>
-                                              ) : null}
+                                                {cp.checkpoint_text}
+                                              </div>
+                                            ) : null}
                                             </div>
                                             <svg 
                                               className="w-4 h-4 flex-shrink-0 ml-2 transition-transform group-hover/checkpoint:translate-x-1" 
@@ -413,7 +955,8 @@ export default function AdminPage() {
                             })}
                           </div>
                         </div>
-                      )})}
+                        )
+                      })}
                     </div>
                   ) : (
                     <div className="rounded-xl p-8 text-center shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
@@ -431,7 +974,7 @@ export default function AdminPage() {
                         />
                       </div>
                       <p style={{ color: '#13181B', opacity: 0.8 }}>로딩 중...</p>
-                      <style jsx>{`
+                      <style>{`
                         @keyframes spin {
                           from { transform: rotate(0deg); }
                           to { transform: rotate(360deg); }
@@ -445,10 +988,11 @@ export default function AdminPage() {
                   )}
                 </div>
               ) : (
-                    <div className="rounded-xl p-8 text-center shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+                <div className="rounded-xl p-8 text-center shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
                   <p className="text-lg" style={{ color: '#13181B', opacity: 0.8 }}>학생을 선택하세요.</p>
                 </div>
               )}
+            </div>
             </div>
           </div>
         )}

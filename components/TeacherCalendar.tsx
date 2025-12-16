@@ -147,7 +147,6 @@ export default function TeacherCalendar() {
 
       if (error) {
         alert("스케줄 수정에 실패했습니다.");
-        console.error(error);
       } else {
         // 스케줄 다시 불러오기
         await reloadSchedules();
@@ -165,7 +164,6 @@ export default function TeacherCalendar() {
 
       if (error) {
         alert("스케줄 추가에 실패했습니다.");
-        console.error(error);
       } else {
         // 스케줄 다시 불러오기
         await reloadSchedules();
@@ -221,7 +219,6 @@ export default function TeacherCalendar() {
 
     if (error) {
       alert("스케줄 삭제에 실패했습니다.");
-      console.error(error);
     } else {
       await reloadSchedules();
     }

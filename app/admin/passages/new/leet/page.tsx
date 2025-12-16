@@ -14,6 +14,18 @@ export default function NewLEETPage() {
   const [showPreview, setShowPreview] = useState(false);
   const router = useRouter();
 
+  // 영어 선택 시 LEET 지문 등록 페이지 접근 차단
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSubject = sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null;
+      if (savedSubject === "english") {
+        alert("LEET 지문은 국어 과목에서만 등록할 수 있습니다.");
+        router.push("/admin/passages");
+        return;
+      }
+    }
+  }, [router]);
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     let parsedTitle = urlParams.get("title");
@@ -31,7 +43,6 @@ export default function NewLEETPage() {
           parsedContent = parsed.content || "";
           sessionStorage.removeItem('parsedPassage');
         } catch (e) {
-          console.error('Failed to parse stored passage:', e);
         }
       }
     }
@@ -93,7 +104,9 @@ export default function NewLEETPage() {
       return;
     }
 
-    const finalSubject = leetType ? `${leetType} - ${source || "기타"}` : (source || "기타");
+    // 세션에서 선택한 과목 확인 (LEET는 국어만)
+    const selectedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : 'korean';
+    const subject = selectedSubject || 'korean';
 
     const { data, error } = await supabase
       .from("passages")
@@ -105,7 +118,7 @@ export default function NewLEETPage() {
           source,
           title,
           content,
-          subject: finalSubject,
+          subject: subject,
         },
       ])
       .select();

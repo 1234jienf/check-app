@@ -21,10 +21,15 @@ export default function StudentEBSPassageList() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
+      // 세션에서 선택한 과목 확인
+      const selectedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('selectedSubject') : 'korean';
+      const subject = selectedSubject || 'korean';
+      
       const { data } = await supabase
         .from("passages")
         .select("*")
         .eq("category", "EBS")
+        .eq("subject", subject)
         .order("year", { ascending: false })
         .order("ebs_type", { ascending: true })
         .order("created_at", { ascending: false });
@@ -169,7 +174,7 @@ export default function StudentEBSPassageList() {
         {/* 헤더 섹션 */}
         <div className="mb-8">
           <Link 
-            href="/student" 
+            href={typeof window !== 'undefined' && sessionStorage.getItem('selectedSubject') === 'english' ? "/student/english" : "/student/korean"} 
             className="inline-flex items-center mb-4 transition-colors"
             style={{ color: '#13181B' }}
             onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
@@ -387,7 +392,7 @@ export default function StudentEBSPassageList() {
                                 {typePassages.map((p: any) => (
                                   <Link
                                     key={p.id}
-                                    href={`/student/passages/${p.id}/checkpoint`}
+                                    href={`/student/${typeof window !== 'undefined' && sessionStorage.getItem('selectedSubject') === 'english' ? 'english' : 'korean'}/passages/${p.id}/checkpoint`}
                                     className="group relative rounded-xl p-5 transition-all duration-300 overflow-hidden shadow-sm"
                                     style={{ backgroundColor: '#FFFFFF' }}
                                     onMouseEnter={(e) => {

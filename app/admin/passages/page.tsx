@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 export default function AdminPassageList() {
   const [parsedPassage, setParsedPassage] = useState<any>(null);
+  const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
 
   useEffect(() => {
     // sessionStorage에서 파싱된 지문 확인
@@ -15,8 +16,27 @@ export default function AdminPassageList() {
         const parsed = JSON.parse(stored);
         setParsedPassage(parsed);
       } catch (e) {
-        console.error('Failed to parse stored passage:', e);
       }
+    }
+
+    // 세션에서 선택한 과목 불러오기
+    if (typeof window !== 'undefined') {
+      const savedSubject = sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null;
+      if (savedSubject) {
+        setSelectedSubject(savedSubject);
+      }
+
+      // 과목 변경 이벤트 리스너
+      const handleSubjectChanged = (event: CustomEvent) => {
+        const newSubject = event.detail.subject as "korean" | "english";
+        setSelectedSubject(newSubject);
+      };
+
+      window.addEventListener('subjectChanged', handleSubjectChanged as EventListener);
+      
+      return () => {
+        window.removeEventListener('subjectChanged', handleSubjectChanged as EventListener);
+      };
     }
   }, []);
 
@@ -109,32 +129,34 @@ export default function AdminPassageList() {
             </div>
           </Link>
 
-          <Link
-            href={getCategoryUrl("leet")}
-            className="group relative rounded-xl p-6 shadow-sm transition-all duration-200"
-            style={{ backgroundColor: '#F0EEEB' }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#CCD5DA';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#F0EEEB';
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold mb-1 relative inline-block pb-1" style={{ color: '#13181B' }}>
-                  LEET
-                  <span className="absolute bottom-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
-                </h2>
-                <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>LEET 언어이해/추리논증 지문 관리</p>
+          {selectedSubject === "korean" && (
+            <Link
+              href={getCategoryUrl("leet")}
+              className="group relative rounded-xl p-6 shadow-sm transition-all duration-200"
+              style={{ backgroundColor: '#F0EEEB' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#CCD5DA';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#F0EEEB';
+                e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold mb-1 relative inline-block pb-1" style={{ color: '#13181B' }}>
+                    LEET
+                    <span className="absolute bottom-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
+                  </h2>
+                  <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>LEET 언어이해/추리논증 지문 관리</p>
+                </div>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </div>
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </Link>
+            </Link>
+          )}
 
           <Link
             href={getCategoryUrl("other")}
@@ -209,24 +231,26 @@ export default function AdminPassageList() {
               </svg>
             </Link>
 
-            <Link
-              href="/admin/passages/new/leet"
-              className="group relative flex items-center justify-between p-4 rounded-xl shadow-sm transition-all"
-              style={{ backgroundColor: '#FFFFFF' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
-              }}
-            >
-              <div>
-                <span className="font-semibold" style={{ color: '#13181B' }}>LEET 지문 등록</span>
-              </div>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
+            {selectedSubject === "korean" && (
+              <Link
+                href="/admin/passages/new/leet"
+                className="group relative flex items-center justify-between p-4 rounded-xl shadow-sm transition-all"
+                style={{ backgroundColor: '#FFFFFF' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                }}
+              >
+                <div>
+                  <span className="font-semibold" style={{ color: '#13181B' }}>LEET 지문 등록</span>
+                </div>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            )}
 
             <Link
               href="/admin/passages/new/other"

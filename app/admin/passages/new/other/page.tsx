@@ -32,7 +32,6 @@ export default function NewOtherPage() {
           parsedContent = parsed.content || "";
           sessionStorage.removeItem('parsedPassage');
         } catch (e) {
-          console.error('Failed to parse stored passage:', e);
         }
       }
     }
@@ -86,7 +85,9 @@ export default function NewOtherPage() {
       return;
     }
 
-    const finalSubject = subCategory ? `${subCategory} (${literaryType})` : `기타 (${literaryType})`;
+    // 세션에서 선택한 과목 확인
+    const selectedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : 'korean';
+    const subject = selectedSubject || 'korean';
 
     const { data, error } = await supabase
       .from("passages")
@@ -99,7 +100,7 @@ export default function NewOtherPage() {
           source,
           title,
           content,
-          subject: finalSubject,
+          subject: subject,
         },
       ])
       .select();

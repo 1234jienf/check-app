@@ -10,23 +10,70 @@ export default function AllPassagesPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
+
+  // 세션에서 선택한 과목 불러오기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSubject = sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null;
+      if (savedSubject) {
+        setSelectedSubject(savedSubject);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
+      // 세션에서 선택한 과목 확인
+      const savedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : 'korean';
+      const subject = (savedSubject || 'korean') as "korean" | "english";
+      setSelectedSubject(subject);
+      
+      // 국어 선택 시: subject가 'korean'이거나 NULL인 경우 모두 포함
+      // 영어 선택 시: subject가 'english'인 경우만 포함
+      let query = supabase
         .from("passages")
-        .select("*")
+        .select("*");
+      
+      if (subject === "korean") {
+        query = query.or("subject.eq.korean,subject.is.null");
+      } else {
+        query = query.eq("subject", "english");
+      }
+      
+      const { data } = await query
         .order("category", { ascending: true })
         .order("year", { ascending: false })
         .order("created_at", { ascending: false });
-      setPassages(data || []);
+      // 영어 선택 시 LEET 카테고리 제외
+      const filteredData = subject === "english" 
+        ? (data || []).filter((p: any) => p.category !== "LEET")
+        : (data || []);
       
-      if (data && data.length > 0) {
-        const categories = Array.from(new Set(data.map((p: any) => p.category).filter(Boolean))) as string[];
+      setPassages(filteredData);
+      
+      if (filteredData && filteredData.length > 0) {
+        const categories = Array.from(new Set(filteredData.map((p: any) => p.category).filter(Boolean))) as string[];
         setExpandedCategories(new Set(categories));
       }
     };
     load();
+  }, [selectedSubject]);
+
+  // 과목 변경 이벤트 리스너
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleSubjectChanged = (event: CustomEvent) => {
+        const newSubject = event.detail.subject as "korean" | "english";
+        setSelectedSubject(newSubject);
+      };
+
+      window.addEventListener('subjectChanged', handleSubjectChanged as EventListener);
+      
+      return () => {
+        window.removeEventListener('subjectChanged', handleSubjectChanged as EventListener);
+      };
+    }
   }, []);
 
   useEffect(() => {

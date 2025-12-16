@@ -14,13 +14,30 @@ export default function OtherPassageList() {
   
   // 토글 상태
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
+  const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
+
+  // 세션에서 선택한 과목 불러오기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSubject = sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null;
+      if (savedSubject) {
+        setSelectedSubject(savedSubject);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const load = async () => {
+      // 세션에서 선택한 과목 확인
+      const savedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : 'korean';
+      const subject = (savedSubject || 'korean') as "korean" | "english";
+      setSelectedSubject(subject);
+      
       const { data } = await supabase
         .from("passages")
         .select("*")
         .eq("category", "기타")
+        .eq("subject", subject)
         .order("year", { ascending: false })
         .order("created_at", { ascending: false });
       setPassages(data || []);
@@ -31,7 +48,7 @@ export default function OtherPassageList() {
       }
     };
     load();
-  }, []);
+  }, [selectedSubject]);
 
   useEffect(() => {
     let filtered = [...passages];

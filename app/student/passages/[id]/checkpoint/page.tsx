@@ -310,7 +310,6 @@ export default function StudentCheckpointPage() {
         );
         
         if (error) {
-          console.error(`문단 ${paragraph} 제출 오류:`, error);
           errorCount++;
         } else {
           successCount++;
@@ -342,7 +341,6 @@ export default function StudentCheckpointPage() {
         );
 
         if (error) {
-          console.error(`문단 ${paragraph} 제출 오류:`, error);
           errorCount++;
         } else {
           successCount++;
@@ -368,7 +366,6 @@ export default function StudentCheckpointPage() {
       );
 
       if (error) {
-        console.error(`문단 ${paragraph} 제출 오류:`, error);
         errorCount++;
       } else {
         successCount++;
@@ -648,18 +645,35 @@ export default function StudentCheckpointPage() {
                       </button>
                       {expandedTeacherCheckpoints[paragraphNum] && (
                         <div className="mt-3 space-y-3">
-                          {teacherCheckpoints[paragraphNum].map((cp: any, idx: number) => (
-                            <div key={cp.id} className="p-3 border-2 rounded-lg" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
-                              {cp.highlighted_text && (
-                                <div className="mb-2 p-2 rounded text-xs" style={{ backgroundColor: '#F0EEEB', color: '#13181B' }}>
-                                  <span className="font-semibold">하이라이트:</span> {cp.highlighted_text}
+                          {teacherCheckpoints[paragraphNum].map((cp: any, idx: number) => {
+                            const categoryBg = cp.category === "거시" ? '#E8F0F8' : cp.category === "미시" ? '#FFF5E8' : '#F0EEEB';
+                            return (
+                              <div key={cp.id} className="p-3 border-2 rounded-lg" style={{ 
+                                backgroundColor: categoryBg, 
+                                borderColor: '#CCD5DA',
+                                borderLeft: `4px solid ${cp.category === "거시" ? '#13181B' : cp.category === "미시" ? '#13181B' : 'transparent'}`
+                              }}>
+                                <div className="flex items-center gap-2 mb-2">
+                                  {cp.category && (
+                                    <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                                      backgroundColor: cp.category === "거시" ? '#D4E4F4' : '#FFE5CC',
+                                      color: '#13181B'
+                                    }}>
+                                      {cp.category}
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                              <div className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>
-                                <span className="font-semibold">체크포인트:</span> {cp.text}
+                                {cp.highlighted_text && (
+                                  <div className="mb-2 p-2 rounded text-xs" style={{ backgroundColor: '#FFFFFF', color: '#13181B', opacity: 0.9 }}>
+                                    <span className="font-semibold">하이라이트:</span> {cp.highlighted_text}
+                                  </div>
+                                )}
+                                <div className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>
+                                  <span className="font-semibold">체크포인트:</span> {cp.text}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -739,7 +753,6 @@ export default function StudentCheckpointPage() {
                                         });
 
                                       if (error) {
-                                        console.error("답글 작성 오류:", error);
                                         alert("답글 작성에 실패했습니다: " + error.message);
                                       } else {
                                         alert("답글이 작성되었습니다.");
@@ -961,7 +974,6 @@ export default function StudentCheckpointPage() {
                                   });
 
                                 if (error) {
-                                  console.error("피드백 저장 오류:", error);
                                   alert("피드백 저장에 실패했습니다.");
                                 } else {
                                   alert("피드백이 저장되었습니다.");
@@ -1100,21 +1112,27 @@ function ParagraphWithHighlights({
     // 하이라이트된 텍스트
     const highlightedText = normalizedParagraph.substring(start, end);
     if (highlightedText) {
+      const categoryBg = cp.category === "거시" ? '#E8F0F8' : cp.category === "미시" ? '#FFF5E8' : '#FFFBE6';
+      const categoryBorder = cp.category === "거시" ? '#D4E4F4' : cp.category === "미시" ? '#FFE5CC' : '#FFFBE6';
       elements.push(
         <span
           key={`highlight-${idx}`}
           className="cursor-pointer transition-colors px-0.5 rounded text-sm"
-          style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+          style={{ 
+            backgroundColor: categoryBg, 
+            color: '#13181B',
+            borderBottom: `2px solid ${categoryBorder}`
+          }}
           onMouseEnter={(e) => {
             e.currentTarget.style.opacity = '0.9';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.2)';
+            e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.15)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.opacity = '1';
             e.currentTarget.style.boxShadow = 'none';
           }}
           onClick={() => onCheckpointClick(cp)}
-          title="클릭하여 체크포인트 보기"
+          title={`${cp.category || ''} 체크포인트 - 클릭하여 보기`}
         >
           {highlightedText}
         </span>

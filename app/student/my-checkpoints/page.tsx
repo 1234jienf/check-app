@@ -10,6 +10,7 @@ export default function MyCheckpointsPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [myPassages, setMyPassages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
 
   useEffect(() => {
     const loadData = async () => {
@@ -22,18 +23,37 @@ export default function MyCheckpointsPage() {
 
       setUserId(user.id);
       
+      // 현재 선택한 과목 가져오기 (경로에서 추론)
+      let currentSubject: "korean" | "english" = "korean";
+      if (typeof window !== 'undefined') {
+        const savedSubject = sessionStorage.getItem('selectedSubject') as "korean" | "english" | null;
+        if (savedSubject) {
+          currentSubject = savedSubject;
+        } else {
+          // 경로에서 추론
+          const path = window.location.pathname;
+          if (path.includes('/english') || path.includes('/student/materials') || path.includes('/daily-test')) {
+            currentSubject = "english";
+            sessionStorage.setItem('selectedSubject', 'english');
+          } else {
+            currentSubject = "korean";
+            sessionStorage.setItem('selectedSubject', 'korean');
+          }
+        }
+      }
+
       const fetchPassages = async () => {
-      // 내가 체크포인트를 작성한 지문들 가져오기
+      // 내가 체크포인트를 작성한 지문들 가져오기 (현재 과목에 맞는 것만)
       const { data: submissions } = await supabase
         .from("student_checkpoint_record")
-        .select("passage_id, passages(id, title, category, source)")
+        .select("passage_id, passages(id, title, category, source, subject)")
         .eq("user_id", user.id);
 
       if (submissions) {
-        // 중복 제거 및 정렬
+        // 중복 제거 및 정렬 (현재 과목에 맞는 것만)
         const passageMap = new Map();
         submissions
-          .filter((s: any) => s.passages)
+          .filter((s: any) => s.passages && (s.passages.subject === currentSubject || (s.passages.subject === null && currentSubject === "korean")))
           .forEach((s: any) => {
             if (!passageMap.has(s.passage_id)) {
               passageMap.set(s.passage_id, s.passages);
@@ -73,6 +93,17 @@ export default function MyCheckpointsPage() {
           }
         )
         .subscribe();
+
+      // 과목 변경 이벤트 리스너
+      const handleSubjectChanged = (event: CustomEvent) => {
+        const newSubject = event.detail.subject as "korean" | "english";
+        setSelectedSubject(newSubject);
+        fetchPassages(); // 과목 변경 시 다시 로드
+      };
+
+      if (typeof window !== 'undefined') {
+        window.addEventListener('subjectChanged', handleSubjectChanged as EventListener);
+      }
 
       // 페이지 포커스 시에도 데이터 다시 로드
       const handleFocus = () => {
@@ -138,7 +169,7 @@ export default function MyCheckpointsPage() {
 
         {myPassages.length === 0 ? (
           <div className="p-12 text-center rounded-xl shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-            <div className="text-6xl mb-4">📝</div>
+            <div className="text-6xl mb-4"></div>
             <p className="text-lg mb-2" style={{ color: '#CCD5DA' }}>아직 작성한 체크포인트가 없습니다.</p>
             <Link
               href="/student"

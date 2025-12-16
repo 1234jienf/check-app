@@ -12,6 +12,17 @@ export default function MyCheckpointsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
+
+  // 세션에서 선택한 과목 불러오기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSubject = sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null;
+      if (savedSubject) {
+        setSelectedSubject(savedSubject);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const loadMyCheckpoints = async () => {
@@ -21,6 +32,11 @@ export default function MyCheckpointsPage() {
 
         setCurrentUserId(user.id);
 
+        // 세션에서 선택한 과목 확인
+        const savedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : 'korean';
+        const subject = (savedSubject || 'korean') as "korean" | "english";
+        setSelectedSubject(subject);
+        
         // 본인이 작성한 체크포인트가 있는 지문들 가져오기
         // teacher_id 컬럼이 없거나 NULL인 경우도 포함 (기존 체크포인트는 모두 표시)
         const { data: checkpoints, error } = await supabase
@@ -32,13 +48,11 @@ export default function MyCheckpointsPage() {
             text,
             order_num,
             teacher_id,
-            passages(id, title, category, year, source)
+            passages!inner(id, title, category, year, source, subject)
           `)
           .or(`teacher_id.eq.${user.id},teacher_id.is.null`);
 
         if (error) {
-          console.error(" 로드 오류:", error);
-          // 컬럼이 없으면 빈 배열로 설정
           if (error.code === "42703") {
             setMyCheckpoints([]);
             setLoading(false);
@@ -49,9 +63,21 @@ export default function MyCheckpointsPage() {
         }
 
         if (checkpoints && checkpoints.length > 0) {
+          // 선택한 과목으로 필터링
+          // 국어 선택 시: subject가 'korean'이거나 NULL인 경우 모두 포함
+          // 영어 선택 시: subject가 'english'인 경우만 포함
+          const filteredCheckpoints = checkpoints.filter((cp: any) => {
+            if (!cp.passages) return false;
+            if (subject === "korean") {
+              return cp.passages.subject === "korean" || cp.passages.subject === null || cp.passages.subject === undefined;
+            } else {
+              return cp.passages.subject === "english";
+            }
+          });
+          
           // 지문별로 그룹화 (중복 제거)
           const passageMap = new Map();
-          checkpoints.forEach((cp: any) => {
+          filteredCheckpoints.forEach((cp: any) => {
             if (cp.passages && !passageMap.has(cp.passage_id)) {
               passageMap.set(cp.passage_id, {
                 ...cp.passages,
@@ -68,7 +94,6 @@ export default function MyCheckpointsPage() {
         }
         setLoading(false);
       } catch (err) {
-        console.error("체크포인트 로드 중 오류:", err);
         setMyCheckpoints([]);
         setLoading(false);
       }
@@ -247,7 +272,7 @@ export default function MyCheckpointsPage() {
 
         {myCheckpoints.length === 0 ? (
           <div className="p-12 text-center rounded-xl shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-            <div className="text-6xl mb-4">📝</div>
+            <div className="text-6xl mb-4"></div>
             <h2 className="text-2xl font-bold mb-2" style={{ color: '#13181B' }}>작성한 체크포인트가 없습니다</h2>
             <p className="mb-6" style={{ color: '#13181B', opacity: 0.8 }}>
               지문에 체크포인트를 추가하면 여기에 표시됩니다.
@@ -345,22 +370,36 @@ export default function MyCheckpointsPage() {
                   {passage.checkpoints
                     .sort((a: any, b: any) => (a.order_num || 0) - (b.order_num || 0))
                     .slice(0, 3)
-                    .map((cp: any) => (
-                      <div
-                        key={cp.id}
-                        className="p-3 rounded-lg"
-                        style={{ backgroundColor: '#FFFFFF' }}
-                      >
-                        {cp.paragraph && (
-                          <div className="mb-1">
-                            <span className="text-xs font-semibold" style={{ color: '#13181B' }}>
-                              [{cp.paragraph}문단]
-                            </span>
+                    .map((cp: any) => {
+                      const categoryBg = cp.category === "거시" ? '#E8F0F8' : cp.category === "미시" ? '#FFF5E8' : '#FFFFFF';
+                      return (
+                        <div
+                          key={cp.id}
+                          className="p-3 rounded-lg"
+                          style={{ 
+                            backgroundColor: categoryBg,
+                            borderLeft: `4px solid ${cp.category === "거시" ? '#13181B' : cp.category === "미시" ? '#13181B' : 'transparent'}`
+                          }}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            {cp.category && (
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ 
+                                backgroundColor: cp.category === "거시" ? '#D4E4F4' : '#FFE5CC',
+                                color: '#13181B'
+                              }}>
+                                {cp.category}
+                              </span>
+                            )}
+                            {cp.paragraph && (
+                              <span className="text-xs font-semibold" style={{ color: '#13181B' }}>
+                                [{cp.paragraph}문단]
+                              </span>
+                            )}
                           </div>
-                        )}
-                        <p className="text-xs line-clamp-2" style={{ color: '#13181B' }}>{cp.text}</p>
-                      </div>
-                    ))}
+                          <p className="text-xs line-clamp-2" style={{ color: '#13181B' }}>{cp.text}</p>
+                        </div>
+                      );
+                    })}
                   {passage.checkpoints.length > 3 && (
                     <div className="text-xs text-center py-1" style={{ color: '#13181B', opacity: 0.8 }}>
                       + {passage.checkpoints.length - 3}개 더 보기

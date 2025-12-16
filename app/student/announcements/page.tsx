@@ -31,15 +31,34 @@ export default function StudentAnnouncementsPage() {
         return;
       }
 
-      // 공지사항 목록 가져오기 (고정 공지 먼저, 그 다음 최신순)
+      // 현재 선택한 과목 가져오기 (경로에서 추론)
+      let currentSubject: "korean" | "english" = "korean";
+      if (typeof window !== 'undefined') {
+        const savedSubject = sessionStorage.getItem('selectedSubject') as "korean" | "english" | null;
+        if (savedSubject) {
+          currentSubject = savedSubject;
+        } else {
+          // 경로에서 추론
+          const path = window.location.pathname;
+          if (path.includes('/english') || path.includes('/student/materials') || path.includes('/daily-test')) {
+            currentSubject = "english";
+            sessionStorage.setItem('selectedSubject', 'english');
+          } else {
+            currentSubject = "korean";
+            sessionStorage.setItem('selectedSubject', 'korean');
+          }
+        }
+      }
+
+      // 공지사항 목록 가져오기 (현재 과목에 맞는 것만, 고정 공지 먼저, 그 다음 최신순)
       const { data: announcementsData, error } = await supabase
         .from("announcements")
         .select("*")
+        .eq("subject", currentSubject)
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("공지사항 로드 오류:", error);
       } else if (announcementsData) {
         // 작성자 이름 가져오기
         const authorIds = [...new Set(announcementsData.map((a: any) => a.author_id))];

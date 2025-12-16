@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +11,17 @@ export default function NewAnnouncementPage() {
   const [content, setContent] = useState("");
   const [isPinned, setIsPinned] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
+
+  // 세션에서 선택한 과목 불러오기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSubject = sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null;
+      if (savedSubject) {
+        setSelectedSubject(savedSubject);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,17 +45,34 @@ export default function NewAnnouncementPage() {
       return;
     }
 
+    // subject 컬럼이 있는지 확인하고 추가
+    let insertData: any = {
+      title: title.trim(),
+      content: content.trim(),
+      author_id: user.id,
+      is_pinned: isPinned,
+    };
+
+    // subject 컬럼이 있는지 확인
+    try {
+      const { data: testData, error: testError } = await supabase
+        .from("announcements")
+        .select("subject")
+        .limit(1)
+        .maybeSingle();
+
+      if (!testError && testData && testData.subject !== undefined) {
+        insertData.subject = selectedSubject;
+      }
+    } catch (testErr: any) {
+      // subject 컬럼이 없으면 무시
+    }
+
     const { error } = await supabase
       .from("announcements")
-      .insert({
-        title: title.trim(),
-        content: content.trim(),
-        author_id: user.id,
-        is_pinned: isPinned,
-      });
+      .insert(insertData);
 
     if (error) {
-      console.error("공지사항 작성 오류:", error);
       alert("공지사항 작성에 실패했습니다.");
       setLoading(false);
     } else {

@@ -34,7 +34,6 @@ export default function NewGichulPage() {
           parsedContent = parsed.content || "";
           sessionStorage.removeItem('parsedPassage');
         } catch (e) {
-          console.error('Failed to parse stored passage:', e);
         }
       }
     }
@@ -117,10 +116,9 @@ export default function NewGichulPage() {
       return;
     }
 
-    // subject 필드 생성 (호환성 유지)
-    const finalSubject = examType 
-      ? `${examType} - ${subCategory || "기타"} (${literaryType})`
-      : `${subCategory || "기타"} (${literaryType})`;
+    // 세션에서 선택한 과목 확인
+    const selectedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : 'korean';
+    const subject = selectedSubject || 'korean';
 
     const { data, error } = await supabase
       .from("passages")
@@ -134,7 +132,7 @@ export default function NewGichulPage() {
           source,
           title,
           content,
-          subject: finalSubject, // 호환성 유지
+          subject: subject,
         },
       ])
       .select();

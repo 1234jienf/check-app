@@ -21,6 +21,7 @@ export default function AdminPassageDetail() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [editingCheckpointId, setEditingCheckpointId] = useState<string | null>(null);
   const [editCheckpointText, setEditCheckpointText] = useState<string>("");
+  const [editCheckpointCategory, setEditCheckpointCategory] = useState<string>("미시");
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<any | null>(null);
 
   // 카테고리 키워드 체크 (영어로 변경)
@@ -45,9 +46,12 @@ export default function AdminPassageDetail() {
     const load = async () => {
       // 이미 위에서 카테고리 키워드 체크를 했으므로 여기서는 UUID만 처리
       if (!isValidUUID(id as string)) {
-        console.error("Invalid passage ID:", id);
         return;
       }
+
+      // 세션에서 선택한 과목 확인
+      const savedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : 'korean';
+      const selectedSubject = (savedSubject || 'korean') as "korean" | "english";
 
       const { data: p } = await supabase
         .from("passages")
@@ -56,7 +60,22 @@ export default function AdminPassageDetail() {
         .single();
 
       if (!p) {
-        console.error("Passage not found");
+        return;
+      }
+
+      // 과목 필터링: 선택한 과목과 일치하는 지문만 표시
+      // subject가 null이면 국어로 간주
+      const passageSubject = p.subject || 'korean';
+      if (selectedSubject === "english" && passageSubject !== "english") {
+        // 영어를 선택했는데 국어 지문이면 목록으로 리다이렉트
+        alert("이 지문은 국어 지문입니다. 영어 지문 목록으로 이동합니다.");
+        router.push("/admin/passages");
+        return;
+      }
+      if (selectedSubject === "korean" && passageSubject === "english") {
+        // 국어를 선택했는데 영어 지문이면 목록으로 리다이렉트
+        alert("이 지문은 영어 지문입니다. 국어 지문 목록으로 이동합니다.");
+        router.push("/admin/passages");
         return;
       }
 
@@ -72,6 +91,9 @@ export default function AdminPassageDetail() {
         .eq("passage_id", id)
         .order("order_num");
 
+      // 체크포인트도 과목 필터링 (paragraph를 참조하지만 지문의 과목과 일치해야 함)
+      // 이미 지문이 필터링되었으므로 체크포인트는 그대로 사용
+
       // 학생 제출 데이터 가져오기 - 먼저 모든 데이터를 가져온 후 users 조인
       // 1단계: 현재 지문에 대한 모든 제출 데이터 가져오기
       // RLS 정책을 우회하기 위해 service_role 키를 사용할 수 없으므로,
@@ -82,7 +104,6 @@ export default function AdminPassageDetail() {
         .eq("passage_id", id);
       
       if (checkpointsError) {
-        console.error("학생 제출 조회 오류:", checkpointsError);
         setStudentSubmissions([]);
       } else if (checkpointsData && checkpointsData.length > 0) {
         // 2단계: 고유한 user_id 추출
@@ -97,7 +118,6 @@ export default function AdminPassageDetail() {
             .in("id", userIds);
           
           if (usersError) {
-            console.error("사용자 정보 조회 오류:", usersError);
           } else if (usersData) {
             usersMap = new Map(usersData.map((u: any) => [u.id, u]));
           }
@@ -138,19 +158,23 @@ export default function AdminPassageDetail() {
             setComments(commentsMap);
           }
 
-          // 학생 피드백 로드
-          const { data: feedbackData } = await supabase
-            .from("student_feedback")
-            .select("*")
-            .in("student_submission_id", submissionIds)
-            .order("created_at", { ascending: false });
+          // 학생 피드백 로드 (에러 무시)
+          try {
+            const { data: feedbackData, error: feedbackError } = await supabase
+              .from("student_feedback")
+              .select("*")
+              .in("student_submission_id", submissionIds)
+              .order("created_at", { ascending: false });
 
-          if (feedbackData) {
-            const feedbackMap: Record<string, any> = {};
-            feedbackData.forEach((feedback: any) => {
-              feedbackMap[feedback.student_submission_id] = feedback;
-            });
-            setStudentFeedbacks(feedbackMap);
+            if (!feedbackError && feedbackData) {
+              const feedbackMap: Record<string, any> = {};
+              feedbackData.forEach((feedback: any) => {
+                feedbackMap[feedback.student_submission_id] = feedback;
+              });
+              setStudentFeedbacks(feedbackMap);
+            }
+          } catch (feedbackErr: any) {
+            // student_feedback 테이블이 없거나 접근 권한이 없으면 무시
           }
         }
       } else {
@@ -470,12 +494,14 @@ export default function AdminPassageDetail() {
               {checkpoints.map((cp: any) => {
                 const isMyCheckpoint = currentUserId && cp.teacher_id === currentUserId;
                 const isEditing = editingCheckpointId === cp.id;
+                const categoryBg = cp.category === "거시" ? '#E8F0F8' : cp.category === "미시" ? '#FFF5E8' : '#FFFFFF';
                 
                 return (
                   <div 
                     className="p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow"
                     style={{
-                      backgroundColor: isMyCheckpoint ? '#FFFBE6' : '#FFFFFF'
+                      backgroundColor: categoryBg,
+                      borderLeft: `4px solid ${cp.category === "거시" ? '#13181B' : cp.category === "미시" ? '#13181B' : 'transparent'}`
                     }}
                     key={cp.id}
                   >
@@ -483,18 +509,46 @@ export default function AdminPassageDetail() {
                       <div className="flex-1">
                         {isEditing ? (
                           <div className="space-y-2">
+                            <div className="flex gap-2 mb-2">
+                              <button
+                                onClick={() => setEditCheckpointCategory("거시")}
+                                className="flex-1 px-3 py-2 text-xs rounded transition-colors font-semibold"
+                                style={{ 
+                                  backgroundColor: editCheckpointCategory === "거시" ? '#E8F0F8' : '#F0EEEB',
+                                  border: `2px solid ${editCheckpointCategory === "거시" ? '#13181B' : '#CCD5DA'}`,
+                                  color: '#13181B'
+                                }}
+                              >
+                                거시
+                              </button>
+                              <button
+                                onClick={() => setEditCheckpointCategory("미시")}
+                                className="flex-1 px-3 py-2 text-xs rounded transition-colors font-semibold"
+                                style={{ 
+                                  backgroundColor: editCheckpointCategory === "미시" ? '#FFF5E8' : '#F0EEEB',
+                                  border: `2px solid ${editCheckpointCategory === "미시" ? '#13181B' : '#CCD5DA'}`,
+                                  color: '#13181B'
+                                }}
+                              >
+                                미시
+                              </button>
+                            </div>
                             <textarea
                               value={editCheckpointText}
                               onChange={(e) => setEditCheckpointText(e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                               rows={3}
+                              style={{ backgroundColor: '#FFFFFF', color: '#13181B' }}
                             />
                             <div className="flex gap-2">
                               <button
                                 onClick={async () => {
                                   const { error } = await supabase
                                     .from("checkpoints")
-                                    .update({ text: editCheckpointText })
+                                    .update({ 
+                                      text: editCheckpointText,
+                                      category: editCheckpointCategory
+                                    })
                                     .eq("id", cp.id);
                                   
                                   if (error) {
@@ -503,12 +557,13 @@ export default function AdminPassageDetail() {
                                     alert("수정되었습니다.");
                                     setEditingCheckpointId(null);
                                     setEditCheckpointText("");
+                                    setEditCheckpointCategory("미시");
                                     // 페이지 새로고침 또는 상태 업데이트
                                     window.location.reload();
                                   }
                                 }}
-                                className="px-3 py-1 text-white text-xs rounded transition-colors"
-                                style={{ backgroundColor: categoryColor }}
+                                className="px-3 py-1 text-xs rounded transition-colors"
+                                style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
                                 onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
                                 onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                               >
@@ -518,6 +573,7 @@ export default function AdminPassageDetail() {
                                 onClick={() => {
                                   setEditingCheckpointId(null);
                                   setEditCheckpointText("");
+                                  setEditCheckpointCategory("미시");
                                 }}
                                 className="px-3 py-1 text-xs rounded transition-colors"
                                 style={{ color: '#13181B' }}
@@ -530,13 +586,21 @@ export default function AdminPassageDetail() {
                           </div>
                         ) : (
                           <div>
-                            {cp.paragraph && (
-                              <div className="mb-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              {cp.category && (
+                                <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                                  backgroundColor: cp.category === "거시" ? '#D4E4F4' : '#FFE5CC',
+                                  color: '#13181B'
+                                }}>
+                                  {cp.category}
+                                </span>
+                              )}
+                              {cp.paragraph && (
                                 <span className="text-xs font-semibold" style={{ color: '#13181B' }}>
                                   [{cp.paragraph}문단]
                                 </span>
-                              </div>
-                            )}
+                              )}
+                            </div>
                             <span style={{ color: '#13181B' }}>{cp.text}</span>
                           </div>
                         )}
@@ -548,6 +612,7 @@ export default function AdminPassageDetail() {
                               onClick={() => {
                                 setEditingCheckpointId(cp.id);
                                 setEditCheckpointText(cp.text);
+                                setEditCheckpointCategory(cp.category || "미시");
                               }}
                               className="p-1.5 rounded transition-colors"
                               style={{ color: '#13181B' }}
@@ -684,7 +749,6 @@ export default function AdminPassageDetail() {
                             .eq("user_id", userId);
                           
                           if (error) {
-                            console.error("삭제 오류:", error);
                             alert("삭제에 실패했습니다: " + error.message);
                           } else {
                             alert("해당 학생의 이 지문에 작성한 모든 체크포인트가 삭제되었습니다.");
@@ -1070,17 +1134,24 @@ function ParagraphWithHighlights({
     // 하이라이트된 텍스트
     const highlightedText = paragraph.substring(start, end);
     if (highlightedText) {
+      const categoryBg = cp.category === "거시" ? '#E8F0F8' : cp.category === "미시" ? '#FFF5E8' : '#FFFBE6';
+      const categoryHoverBg = cp.category === "거시" ? '#D4E4F4' : cp.category === "미시" ? '#FFE5CC' : '#FFF9D6';
       elements.push(
         <span
           key={`highlight-${idx}`}
           className="rounded text-sm font-medium cursor-pointer"
-          style={{ backgroundColor: '#FFFBE6', color: '#13181B', padding: '2px 4px' }}
+          style={{ 
+            backgroundColor: categoryBg, 
+            color: '#13181B', 
+            padding: '2px 4px',
+            borderBottom: `2px solid ${cp.category === "거시" ? '#D4E4F4' : cp.category === "미시" ? '#FFE5CC' : 'transparent'}`
+          }}
           onClick={() => onHighlightClick?.(cp)}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#FFF9D6';
+            e.currentTarget.style.backgroundColor = categoryHoverBg;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#FFFBE6';
+            e.currentTarget.style.backgroundColor = categoryBg;
           }}
         >
           {highlightedText}

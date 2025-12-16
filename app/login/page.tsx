@@ -38,8 +38,7 @@ export default function LoginPage() {
       password: password.trim(),
     });
 
-    if (error) {
-      console.error("로그인 오류:", error);
+    if (error) {    
       // 더 친절한 에러 메시지
       if (error.message.includes("Invalid login credentials")) {
         setErrorMsg("이메일 또는 비밀번호가 올바르지 않습니다.");
@@ -67,7 +66,6 @@ export default function LoginPage() {
       .single();
 
     if (profileErr) {
-      console.error("프로필 조회 오류:", profileErr);
       profileError = profileErr;
       
       // 406 에러인 경우 RLS 정책 문제일 수 있음
@@ -102,7 +100,6 @@ export default function LoginPage() {
     }
 
     if (!profile) {
-      console.error("프로필 조회 최종 실패:", profileError);
       setErrorMsg(
         `사용자 정보를 불러올 수 없습니다. (${profileError?.code || "알 수 없는 오류"})\n` +
         `RLS 정책을 확인해주세요. users 테이블에서 자신의 정보를 조회할 수 있는 권한이 필요합니다.`
@@ -121,7 +118,8 @@ export default function LoginPage() {
     if (profile.role === "teacher") {
       router.push("/admin");
     } else {
-      router.push("/student");
+      // 학생인 경우 과목 선택 페이지로 이동
+      router.push("/select-subject");
     }
   };
 

@@ -24,7 +24,6 @@ export default function EditAnnouncementPage() {
         .single();
 
       if (error) {
-        console.error("공지사항 로드 오류:", error);
         alert("공지사항을 불러올 수 없습니다.");
         router.push("/admin/announcements");
         return;
@@ -69,7 +68,6 @@ export default function EditAnnouncementPage() {
       .eq("id", id);
 
     if (error) {
-      console.error("공지사항 수정 오류:", error);
       alert("공지사항 수정에 실패했습니다.");
       setSaving(false);
     } else {

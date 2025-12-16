@@ -17,14 +17,40 @@ export default function GichulPassageList() {
   // 토글 상태 (년도별, 타입별)
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
+  const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
+
+  // 세션에서 선택한 과목 불러오기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSubject = sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null;
+      if (savedSubject) {
+        setSelectedSubject(savedSubject);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const { data } = await supabase
+      // 세션에서 선택한 과목 확인
+      const savedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : 'korean';
+      const subject = (savedSubject || 'korean') as "korean" | "english";
+      setSelectedSubject(subject);
+      
+      // 국어 선택 시: subject가 'korean'이거나 NULL인 경우 모두 포함
+      // 영어 선택 시: subject가 'english'인 경우만 포함
+      let query = supabase
         .from("passages")
         .select("*")
-        .eq("category", "기출")
+        .eq("category", "기출");
+      
+      if (subject === "korean") {
+        query = query.or("subject.eq.korean,subject.is.null");
+      } else {
+        query = query.eq("subject", "english");
+      }
+      
+      const { data } = await query
         .order("year", { ascending: false })
         .order("exam_type", { ascending: true })
         .order("created_at", { ascending: false });
@@ -44,7 +70,7 @@ export default function GichulPassageList() {
       setLoading(false);
     };
     load();
-  }, []);
+  }, [selectedSubject]);
 
   // 필터링 및 검색 로직
   useEffect(() => {

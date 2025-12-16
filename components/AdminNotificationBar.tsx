@@ -67,7 +67,6 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
       .eq("teacher_id", teacherId);
 
     if (readError) {
-      console.error("읽은 알림 로드 오류:", readError);
     }
 
     // 데이터베이스에서 읽은 알림만 사용 (항상 최신 상태)
@@ -93,11 +92,6 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
       });
     }
     
-    console.log("읽은 알림 로드:", { 
-      dbCount: readData?.length || 0, 
-      readKeys: Array.from(currentReadSet) 
-    });
-    
     // 상태 업데이트 (데이터베이스와 동기화)
     setReadNotifications(currentReadSet);
     
@@ -107,39 +101,8 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       
-      const { data: todaySchedules, error: scheduleError } = await supabase
-        .from("teacher_schedule")
-        .select("*")
-        .eq("teacher_id", teacherId)
-        .eq("schedule_date", todayStr)
-        .order("start_time", { ascending: true });
-
-      if (scheduleError) {
-        console.error("스케줄 조회 오류:", scheduleError);
-      }
-
-      if (todaySchedules && todaySchedules.length > 0) {
-        // 각 스케줄마다 개별 알림 생성
-        todaySchedules.forEach((schedule: any) => {
-          const readKey = `schedule_${schedule.id}`;
-          if (!currentReadSet.has(readKey)) {
-            const timeStr = schedule.start_time 
-              ? `${schedule.start_time}${schedule.end_time ? ` - ${schedule.end_time}` : ''}`
-              : '';
-            notifs.push({
-              id: schedule.id,
-              type: "schedule",
-              message: timeStr 
-                ? `${schedule.title} (${timeStr})`
-                : schedule.title,
-              link: "/admin/schedule",
-              scheduleId: schedule.id,
-              scheduleTitle: schedule.title,
-              scheduleTime: timeStr,
-            });
-          }
-        });
-      }
+      // Daily 숙제 알림은 제거 (선생님이 내주는 숙제이므로 알림 불필요)
+      // 필요시 나중에 추가 가능
 
       // 2. 승인 대기 학생 확인
       const { data: pendingStudents } = await supabase
@@ -286,11 +249,6 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
         });
       }
 
-    console.log("알림 목록 생성:", { 
-      total: notifs.length, 
-      notifications: notifs.map(n => ({ type: n.type, id: n.id }))
-    });
-
       setNotifications(notifs);
   }, [teacherId]);
 
@@ -318,11 +276,8 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
     e.stopPropagation();
 
     if (!teacherId) {
-      console.error("teacherId가 없습니다.");
       return;
     }
-
-    console.log("알림 삭제 시도:", { type: notif.type, id: notif.id, teacherId });
 
     // 즉시 UI에서 알림 제거 (낙관적 업데이트)
     setNotifications((prev) => {
@@ -333,7 +288,6 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
         }
         return true;
       });
-      console.log("UI 업데이트:", { before: prev.length, after: filtered.length });
       return filtered;
     });
 
@@ -359,12 +313,9 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
       readKey = `${notif.type}_${notif.id}`;
     }
     
-    console.log("readKey 생성:", { type: notif.type, id: notif.id, readKey });
-    
     setReadNotifications((prev) => {
       const newSet = new Set(prev);
       newSet.add(readKey);
-      console.log("읽은 알림 추가:", readKey, Array.from(newSet));
       return newSet;
     });
 
@@ -381,28 +332,19 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
           onConflict: "teacher_id,notification_type,notification_id"
         });
       
-      console.log("DB 저장 시도:", { 
-        teacher_id: teacherId, 
-        notification_type: notif.type, 
-        notification_id: notif.id,
-        readKey: readKey 
-        });
 
       if (error) {
-        console.error("알림 읽음 처리 오류:", error);
         // 에러 발생 시 다시 로드하여 상태 복구
         loadNotifications();
         alert("알림 삭제에 실패했습니다: " + error.message);
         return;
       }
 
-      console.log("데이터베이스 저장 성공:", data);
       
       // 성공적으로 저장되었으므로 낙관적 업데이트 유지
       // loadNotifications를 호출하지 않음 (낙관적 업데이트로 이미 UI가 업데이트됨)
       // 주기적 업데이트(30초)나 알림 창을 다시 열 때 자동으로 동기화됨
     } catch (err) {
-      console.error("알림 읽음 처리 중 오류:", err);
       // 에러 발생 시 다시 로드하여 상태 복구
       loadNotifications();
       alert("알림 삭제 중 오류가 발생했습니다.");

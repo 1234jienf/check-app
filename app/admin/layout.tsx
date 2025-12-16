@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import AdminNotificationBar from "@/components/AdminNotificationBar";
+
 
 export default function AdminLayout({
   children,
@@ -16,6 +17,52 @@ export default function AdminLayout({
   const [isTeacher, setIsTeacher] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
+  const subjectDropdownRef = useRef<HTMLDivElement>(null);
+
+  // 세션에서 선택한 과목 불러오기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSubject = sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null;
+      if (savedSubject) {
+        setSelectedSubject(savedSubject);
+      }
+    }
+  }, []);
+
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (subjectDropdownRef.current && !subjectDropdownRef.current.contains(event.target as Node)) {
+        setShowSubjectDropdown(false);
+      }
+    };
+
+    if (showSubjectDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSubjectDropdown]);
+
+  // 과목 변경 핸들러
+  const handleSubjectChange = (subject: "korean" | "english") => {
+    setSelectedSubject(subject);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('adminSelectedSubject', subject);
+      // 페이지 새로고침하여 필터링 적용
+      // 학생 관리 페이지는 새로고침하지 않고 상태만 업데이트
+      if (pathname === '/admin') {
+        // 학생 관리 페이지는 이벤트를 통해 업데이트
+        window.dispatchEvent(new CustomEvent('subjectChanged', { detail: { subject } }));
+      } else {
+        window.location.reload();
+      }
+    }
+  };
 
   useEffect(() => {
     const checkRole = async () => {
@@ -77,11 +124,14 @@ export default function AdminLayout({
     );
   }
 
-  const menuItems = [
+  const menuItems: Array<{ href: string; label: string; icon: { black: string; white: string }; description: string; color?: string }> = [
     { href: "/admin", label: "학생 관리", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "학생 승인 및 관리", color: '#13181B' },
-    { href: "/admin/passages", label: "국어 지문", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "수능 국어 지문 관리" },
+    { href: "/admin/passages", label: selectedSubject === "korean" ? "국어 지문" : "영어 지문", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: selectedSubject === "korean" ? "수능 국어 지문 관리" : "수능 영어 지문 관리" },
+    ...(selectedSubject === "english" ? [{ href: "/admin/materials", label: "자료실", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "영어 단어장/문장/지문 해체 관리" }] : []),
     { href: "/admin/my-checkpoints", label: "내 체크포인트", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "내가 작성한 체크포인트" },
-    { href: "/admin/schedule", label: "스케줄 관리", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "일정 관리 및 스케줄" },
+    { href: "/admin/daily-homework", label: "일별 숙제 체크", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "학생별 일별 숙제 확인" },
+    { href: "/admin/schedule", label: "Daily 숙제 관리", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "학생들에게 내줄 공통 일별 숙제" },
+    ...(selectedSubject === "english" ? [{ href: "/admin/daily-test-grading", label: "Daily 시험 채점", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "구문/지문 해석 시험 채점" }] : []),
     { href: "/admin/announcements", label: "공지사항", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "공지사항 작성 및 관리" },
   ];
 
@@ -106,6 +156,20 @@ export default function AdminLayout({
     // /admin/my-checkpoints는 정확히 일치할 때만
     if (href === "/admin/my-checkpoints") {
       return pathname === "/admin/my-checkpoints";
+    }
+    
+    // /admin/daily-homework는 정확히 일치할 때만
+    if (href === "/admin/daily-homework") {
+      return pathname === "/admin/daily-homework";
+    }
+    
+    // /admin/materials는 정확히 일치하거나 하위 경로
+    if (href === "/admin/materials") {
+      return pathname === "/admin/materials" || pathname.startsWith("/admin/materials/");
+    }
+    // /admin/daily-test-grading는 정확히 일치
+    if (href === "/admin/daily-test-grading") {
+      return pathname === "/admin/daily-test-grading";
     }
     
     // /admin은 정확히 일치할 때만
@@ -181,18 +245,20 @@ export default function AdminLayout({
       <aside className={`fixed inset-y-0 left-0 z-[60] w-72 flex flex-col transform transition-transform duration-300 ease-in-out shadow-lg ${
         mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`} style={{ backgroundColor: '#F0EEEB', boxShadow: '2px 0 12px rgba(19, 24, 27, 0.1)' }}>
-        <div className="rounded-b-xl shadow-sm" style={{ backgroundColor: '#13181B' }}>
+        <div className="rounded-b-xl shadow-sm" style={{ backgroundColor: selectedSubject === "korean" ? '#13181B' : '#FFFFFF' }}>
           <div className="flex flex-col items-center gap-2 p-6">
             <div className="flex items-center justify-center gap-3 w-full">
-              <div className="text-sm font-bold" style={{ color: '#F0EEEB' }}>CHECK</div>
+              <div className="text-sm font-bold" style={{ color: selectedSubject === "korean" ? '#F0EEEB' : '#13181B' }}>CHECK</div>
               <img 
-                src="/bishop-logo.png" 
+                src={selectedSubject === "korean" ? "/bishop-logo.png" : "/bishop-logo-black.png"} 
                 alt="Bishop" 
                 className="h-20 w-auto"
               />
-              <div className="text-sm font-bold" style={{ color: '#F0EEEB' }}>MATE</div>
+              <div className="text-sm font-bold" style={{ color: selectedSubject === "korean" ? '#F0EEEB' : '#13181B' }}>MATE</div>
             </div>
-            <p className="text-xs text-center" style={{ color: '#F0EEEB', opacity: 0.9 }}>백지훈 국어</p>
+            <p className="text-xs text-center" style={{ color: selectedSubject === "korean" ? '#F0EEEB' : '#13181B', opacity: 0.9 }}>
+              백지훈 {selectedSubject === "korean" ? "국어" : "영어"}
+            </p>
           </div>
         </div>
 
@@ -275,14 +341,116 @@ export default function AdminLayout({
         </nav>
 
         <div className="p-6 space-y-4">
-          <div className="flex items-center gap-2 text-xs" style={{ color: '#13181B', opacity: 0.8 }}>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
-              <span className="text-sm font-bold" style={{ color: '#13181B' }}>N</span>
+          {/* 과목 선택 (N 로고 클릭 시 나타남) */}
+          <div className="relative" ref={subjectDropdownRef}>
+            <div 
+              className="flex items-center gap-2 text-xs cursor-pointer transition-all rounded-lg p-2"
+              style={{ color: '#13181B', opacity: 0.8 }}
+              onClick={() => setShowSubjectDropdown(!showSubjectDropdown)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#CCD5DA';
+                e.currentTarget.style.opacity = '1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.opacity = '0.8';
+              }}
+            >
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
+                <span className="text-sm font-bold" style={{ color: '#13181B' }}>N</span>
+              </div>
+              <div className="flex-1">
+                <div className="font-medium" style={{ color: '#13181B' }}>
+                  수능 {selectedSubject === "korean" ? "국어" : "영어"}
+                </div>
+                <div style={{ color: '#13181B', opacity: 0.8 }}>관리 시스템</div>
+              </div>
+              <svg 
+                className={`w-4 h-4 transition-transform ${showSubjectDropdown ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+                style={{ color: '#13181B' }}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
-            <div>
-              <div className="font-medium" style={{ color: '#13181B' }}>수능 국어</div>
-              <div style={{ color: '#13181B', opacity: 0.8 }}>관리 시스템</div>
-            </div>
+            
+            {/* 드롭다운 메뉴 */}
+            {showSubjectDropdown && (
+              <div 
+                className="mt-2 rounded-lg shadow-xl border-2 overflow-hidden"
+                style={{ 
+                  backgroundColor: '#FFFFFF', 
+                  borderColor: '#CCD5DA',
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: 0,
+                  right: 0,
+                  zIndex: 1000,
+                  marginBottom: '8px'
+                }}
+              >
+                <button
+                  onClick={() => {
+                    handleSubjectChange("korean");
+                    setShowSubjectDropdown(false);
+                  }}
+                  className={`w-full px-4 py-2.5 text-sm font-semibold text-left transition-all ${
+                    selectedSubject === "korean" ? "" : ""
+                  }`}
+                  style={selectedSubject === "korean" ? {
+                    backgroundColor: '#13181B',
+                    color: '#F0EEEB'
+                  } : {
+                    backgroundColor: '#FFFFFF',
+                    color: '#13181B'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedSubject !== "korean") {
+                      e.currentTarget.style.backgroundColor = '#CCD5DA';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedSubject !== "korean") {
+                      e.currentTarget.style.backgroundColor = '#FFFFFF';
+                    }
+                  }}
+                >
+                  국어
+                </button>
+                <button
+                  onClick={() => {
+                    handleSubjectChange("english");
+                    setShowSubjectDropdown(false);
+                  }}
+                  className={`w-full px-4 py-2.5 text-sm font-semibold text-left transition-all border-t ${
+                    selectedSubject === "english" ? "" : ""
+                  }`}
+                  style={selectedSubject === "english" ? {
+                    backgroundColor: '#13181B',
+                    color: '#F0EEEB',
+                    borderColor: '#13181B'
+                  } : {
+                    backgroundColor: '#FFFFFF',
+                    color: '#13181B',
+                    borderColor: '#CCD5DA'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedSubject !== "english") {
+                      e.currentTarget.style.backgroundColor = '#CCD5DA';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedSubject !== "english") {
+                      e.currentTarget.style.backgroundColor = '#FFFFFF';
+                    }
+                  }}
+                >
+                  영어
+                </button>
+              </div>
+            )}
           </div>
           
           <button
@@ -332,6 +500,7 @@ export default function AdminLayout({
         <div className="hidden lg:block">
           <AdminNotificationBar isMobile={false} />
         </div>
+        
         {children}
       </main>
     </div>

@@ -13,10 +13,12 @@ export default function StudentLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null); // 학생 이름
+  const [teacherName, setTeacherName] = useState<string | null>(null); // 선생님 이름
   const [myPassages, setMyPassages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -29,15 +31,39 @@ export default function StudentLayout({
 
       setUserId(user.id);
       
-      // 사용자 이름 가져오기
+      // 사용자 이름 및 과목 가져오기
       const { data: userData } = await supabase
         .from("users")
-        .select("name, email")
+        .select("name, email, subjects")
         .eq("id", user.id)
         .single();
       
+      // 선생님 이름 가져오기 (role이 teacher인 사용자)
+      const { data: teacherData } = await supabase
+        .from("users")
+        .select("name")
+        .eq("role", "teacher")
+        .limit(1)
+        .maybeSingle();
+      
       if (userData) {
+        // 학생 이름 저장
         setUserName(userData.name || userData.email || "학생");
+        // 선생님 이름 저장 (Teacher인 경우 백지훈으로 변경)
+        const teacherNameFromDB = teacherData?.name;
+        setTeacherName(teacherNameFromDB && teacherNameFromDB !== "Teacher" ? teacherNameFromDB : "백지훈");
+        
+        // 세션에서 선택한 과목 불러오기, 없으면 사용자의 첫 번째 과목
+        if (typeof window !== 'undefined') {
+          const savedSubject = sessionStorage.getItem('selectedSubject') as "korean" | "english" | null;
+          if (savedSubject) {
+            setSelectedSubject(savedSubject);
+          } else if (userData.subjects && Array.isArray(userData.subjects) && userData.subjects.length > 0) {
+            const firstSubject = userData.subjects[0] as "korean" | "english";
+            setSelectedSubject(firstSubject);
+            sessionStorage.setItem('selectedSubject', firstSubject);
+          }
+        }
       }
       
       // 내가 체크포인트를 작성한 지문들 가져오기
@@ -62,6 +88,21 @@ export default function StudentLayout({
 
     checkAuth();
   }, [router]);
+
+  // 과목 변경 이벤트 리스너
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleSubjectChanged = (event: CustomEvent) => {
+        const newSubject = event.detail.subject as "korean" | "english";
+        setSelectedSubject(newSubject);
+      };
+
+      window.addEventListener('subjectChanged', handleSubjectChanged as EventListener);
+      return () => {
+        window.removeEventListener('subjectChanged', handleSubjectChanged as EventListener);
+      };
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -96,8 +137,10 @@ export default function StudentLayout({
   }
 
   const menuItems = [
-    { href: "/student", label: "자료 선택", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "지문 카테고리 선택" },
+    { href: selectedSubject === "english" ? "/student/english" : "/student/korean", label: "자료 선택", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "지문 카테고리 선택" },
+    ...(selectedSubject === "english" ? [{ href: "/student/materials", label: "자료실", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "영어 단어장/문장/지문 해체" }] : []),
     { href: "/student/my-checkpoints", label: "내 체크포인트", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "작성한 체크포인트 확인" },
+    { href: "/student/daily-homework", label: "일별 숙제 체크", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "일별 학습 계획 및 체크" },
     { href: "/student/announcements", label: "공지사항", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "공지사항 확인" },
   ];
 
@@ -107,9 +150,9 @@ export default function StudentLayout({
     // 정확히 일치하는 경우
     if (pathname === href) return true;
     
-    // /student는 정확히 일치하거나 /student/passages 하위 경로일 때만 활성화
-    if (href === "/student") {
-      return pathname === "/student" || pathname.startsWith("/student/passages");
+    // /student/korean 또는 /student/english는 정확히 일치하거나 /student/passages 하위 경로일 때만 활성화
+    if (href === "/student/korean" || href === "/student/english") {
+      return pathname === href || pathname.startsWith("/student/passages") || pathname === "/student";
     }
     
     // /student/my-checkpoints는 정확히 일치할 때만
@@ -117,9 +160,19 @@ export default function StudentLayout({
       return pathname === "/student/my-checkpoints";
     }
     
+    // /student/daily-homework는 정확히 일치할 때만
+    if (href === "/student/daily-homework") {
+      return pathname === "/student/daily-homework";
+    }
+    
     // /student/announcements는 정확히 일치하거나 하위 경로일 때만
     if (href === "/student/announcements") {
       return pathname.startsWith("/student/announcements");
+    }
+    
+    // /student/materials는 정확히 일치하거나 하위 경로일 때만
+    if (href === "/student/materials") {
+      return pathname === "/student/materials" || pathname.startsWith("/student/materials/");
     }
     
     // 나머지는 startsWith로 체크
@@ -145,7 +198,7 @@ export default function StudentLayout({
   };
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: '#F0EEEB' }}>
+    <div className="flex min-h-screen" style={{ backgroundColor: selectedSubject === 'english' ? '#FFFFFF' : '#F0EEEB' }}>
       {/* 모바일 헤더 */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 shadow-sm" style={{ backgroundColor: '#F0EEEB', color: '#13181B' }}>
         <div className="flex items-center justify-between p-4">
@@ -205,18 +258,20 @@ export default function StudentLayout({
       <aside className={`fixed inset-y-0 left-0 z-[60] w-72 flex flex-col transform transition-transform duration-300 ease-in-out shadow-lg ${
         mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`} style={{ backgroundColor: '#F0EEEB', boxShadow: '2px 0 12px rgba(19, 24, 27, 0.1)' }}>
-        <div className="rounded-b-xl shadow-sm" style={{ backgroundColor: '#13181B' }}>
+        <div className="rounded-b-xl shadow-sm" style={{ backgroundColor: selectedSubject === "korean" ? '#13181B' : '#FFFFFF' }}>
           <div className="flex flex-col items-center gap-2 p-6">
             <div className="flex items-center justify-center gap-3 w-full">
-              <div className="text-sm font-bold" style={{ color: '#F0EEEB' }}>CHECK</div>
+              <div className="text-sm font-bold" style={{ color: selectedSubject === "korean" ? '#F0EEEB' : '#13181B' }}>CHECK</div>
               <img 
-                src="/bishop-logo.png" 
+                src={selectedSubject === "english" ? "/bishop-logo-black.png" : "/bishop-logo.png"}
                 alt="Bishop" 
                 className="h-20 w-auto"
               />
-              <div className="text-sm font-bold" style={{ color: '#F0EEEB' }}>MATE</div>
+              <div className="text-sm font-bold" style={{ color: selectedSubject === "korean" ? '#F0EEEB' : '#13181B' }}>MATE</div>
             </div>
-            <p className="text-xs text-center" style={{ color: '#CCD5DA' }}>백지훈 국어</p>
+            <p className="text-xs text-center" style={{ color: selectedSubject === "korean" ? '#CCD5DA' : '#13181B' }}>
+              {teacherName || "백지훈"} {selectedSubject === "korean" ? "국어" : "영어"}
+            </p>
           </div>
         </div>
 
@@ -299,7 +354,9 @@ export default function StudentLayout({
               <div className="font-medium" style={{ color: '#13181B' }}>
                 {userName || "학생 모드"}
               </div>
-              <div style={{ color: '#CCD5DA' }}>수능 국어 학습</div>
+              <div style={{ color: '#CCD5DA' }}>
+                {selectedSubject === "korean" ? "수능 국어 학습" : "수능 영어 학습"}
+              </div>
             </div>
           </div>
           

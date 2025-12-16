@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "백지훈 수능 - 국어 강의 학습",
+  title: "백지훈 수능 - check mate",
   description: "수능 국어 강의 학습 및 관리 시스템",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "백지훈 수능",
+    title: "check mate",
   },
   icons: {
     icon: [
