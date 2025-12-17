@@ -369,7 +369,18 @@ export default function StudentDetail() {
                 {checkpoint ? (
                   <div className="space-y-3 mt-4">
                     <div className="p-4 rounded-xl border-2" style={{ backgroundColor: '#CCD5DA', borderColor: categoryColor }}>
-                      <div className="text-sm font-semibold mb-2" style={{ color: categoryColor }}>학생이 작성한 체크포인트:</div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="text-sm font-semibold" style={{ color: categoryColor }}>학생이 작성한 체크포인트:</div>
+                        {/* 거시/미시 카테고리 표시 (국어 지문만) */}
+                        {checkpoint.category && (
+                          <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                            backgroundColor: checkpoint.category === "거시" ? '#D4E4F4' : '#FFE5CC',
+                            color: '#13181B'
+                          }}>
+                            {checkpoint.category} 체크
+                          </span>
+                        )}
+                      </div>
                       <div className="whitespace-pre-wrap" style={{ color: '#13181B' }}>{checkpoint.checkpoint_text || "(작성하지 않음)"}</div>
                     </div>
                     {/* reason이 있으면 모름으로 선택한 것 */}

@@ -143,8 +143,9 @@ function VocabularyTest({ vocabularyId, vocabulary, studentId }: any) {
     // 단어 목록 파싱 (줄바꿈으로 구분)
     const wordLines = vocabulary.words.split('\n').filter((line: string) => line.trim());
     const parsedWords = wordLines.map((line: string) => {
-      // "word - meaning" 또는 "word meaning" 형식 파싱
-      const parts = line.trim().split(/\s*-\s*|\s{2,}/);
+      // 다양한 구분자 지원: "-", "―", "—", ":", " : " 또는 공백 2개 이상
+      // 정규식: \s*[-―—:]\s*|\s{2,}
+      const parts = line.trim().split(/\s*[-―—:]\s*|\s{2,}/);
       if (parts.length >= 2) {
         return { word: parts[0].trim(), meaning: parts.slice(1).join(' ').trim() };
       }
@@ -169,10 +170,19 @@ function VocabularyTest({ vocabularyId, vocabulary, studentId }: any) {
         : testMode;
       
       const studentAnswer = answers[word.word]?.trim().toLowerCase() || '';
-      const correctAnswer = (currentMode === "word-to-meaning" ? word.meaning : word.word).trim().toLowerCase();
+      const correctAnswerRaw = (currentMode === "word-to-meaning" ? word.meaning : word.word).trim();
       
-      // 정확히 일치하거나 공백 차이만 있는 경우 정답으로 처리
-      if (studentAnswer === correctAnswer || studentAnswer.replace(/\s+/g, ' ') === correctAnswer.replace(/\s+/g, ' ')) {
+      // 여러 정답이 쉼표로 구분된 경우 처리
+      const correctAnswers = correctAnswerRaw.split(',').map(ans => ans.trim().toLowerCase());
+      
+      // 학생 답안이 여러 정답 중 하나라도 일치하면 정답으로 처리
+      const isCorrect = correctAnswers.some(correctAns => {
+        const normalizedStudent = studentAnswer.replace(/\s+/g, ' ');
+        const normalizedCorrect = correctAns.replace(/\s+/g, ' ');
+        return normalizedStudent === normalizedCorrect || studentAnswer === correctAns;
+      });
+      
+      if (isCorrect) {
         correctCount++;
       }
     });
@@ -191,8 +201,17 @@ function VocabularyTest({ vocabularyId, vocabulary, studentId }: any) {
         ? (idx % 2 === 0 ? "word-to-meaning" : "meaning-to-word")
         : results.testMode;
       const studentAnswer = results.answers[word.word]?.trim().toLowerCase() || '';
-      const correctAnswer = (currentMode === "word-to-meaning" ? word.meaning : word.word).trim().toLowerCase();
-      return studentAnswer !== correctAnswer && studentAnswer.replace(/\s+/g, ' ') !== correctAnswer.replace(/\s+/g, ' ');
+      const correctAnswerRaw = (currentMode === "word-to-meaning" ? word.meaning : word.word).trim();
+      
+      // 여러 정답이 쉼표로 구분된 경우 처리
+      const correctAnswers = correctAnswerRaw.split(',').map(ans => ans.trim().toLowerCase());
+      
+      // 학생 답안이 여러 정답 중 하나라도 일치하지 않으면 오답
+      return !correctAnswers.some(correctAns => {
+        const normalizedStudent = studentAnswer.replace(/\s+/g, ' ');
+        const normalizedCorrect = correctAns.replace(/\s+/g, ' ');
+        return normalizedStudent === normalizedCorrect || studentAnswer === correctAns;
+      });
     });
 
     return (
@@ -218,7 +237,7 @@ function VocabularyTest({ vocabularyId, vocabulary, studentId }: any) {
                   ? (idx % 2 === 0 ? "word-to-meaning" : "meaning-to-word")
                   : results.testMode;
                 const studentAnswer = results.answers[word.word] || "(미입력)";
-                const correctAnswer = currentMode === "word-to-meaning" ? word.meaning : word.word;
+                const correctAnswerRaw = currentMode === "word-to-meaning" ? word.meaning : word.word;
                 const question = currentMode === "word-to-meaning" ? word.word : word.meaning;
 
                 return (
@@ -230,7 +249,7 @@ function VocabularyTest({ vocabularyId, vocabulary, studentId }: any) {
                       내 답: {studentAnswer}
                     </p>
                     <p className="text-sm font-semibold" style={{ color: '#13181B' }}>
-                      정답: {correctAnswer}
+                      정답: {correctAnswerRaw}
                     </p>
                   </div>
                 );
@@ -351,6 +370,7 @@ function VocabularyTest({ vocabularyId, vocabulary, studentId }: any) {
     </div>
   );
 }
+
 
 
 

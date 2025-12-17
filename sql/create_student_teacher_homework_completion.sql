@@ -1,0 +1,5 @@
+-- 기존 daily_homework_teacher_checks 테이블을 수정하여 사용합니다.
+-- 이 파일은 더 이상 사용하지 않습니다. modify_daily_homework_teacher_checks.sql을 사용하세요.
+--
+-- 기존 테이블 구조를 유지하면서 필요한 컬럼(teacher_homework_id, task_type, student_id, is_completed)을
+-- 추가하여 사용하는 것이 더 효율적입니다.

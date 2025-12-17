@@ -211,6 +211,23 @@ export default function AdminHomeworkCalendar() {
       
       // 선생님이 내준 Daily 숙제를 각 학생의 할 일에 추가
       if (teacherHomeworkList) {
+        // 모든 학생의 선생님 숙제 체크 상태 불러오기
+        // daily_homework_teacher_checks 테이블 사용 (수정된 구조)
+        const { data: completionData } = await supabase
+          .from("daily_homework_teacher_checks")
+          .select("*")
+          .in("teacher_homework_id", teacherHomeworkList.map((h: any) => h.id))
+          .in("student_id", filteredStudentIds.length > 0 ? filteredStudentIds : [])
+          .not("teacher_homework_id", "is", null);
+
+        const completionMap = new Map();
+        if (completionData) {
+          completionData.forEach((c: any) => {
+            const key = `${c.student_id}-${c.teacher_homework_id}-${c.task_type}`;
+            completionMap.set(key, c.is_completed);
+          });
+        }
+
         for (const teacherHomework of teacherHomeworkList) {
           const dateStr = teacherHomework.homework_date;
           if (!homeworkMap[dateStr]) {
@@ -224,7 +241,7 @@ export default function AdminHomeworkCalendar() {
             teacherTasks.push({
               id: `teacher-${teacherHomework.id}-korean`,
               task_text: `[daily] ${teacherHomework.content}`,
-              is_completed: false,
+              is_completed: false, // 기본값, 각 학생별로 설정됨
             });
           } else if (teacherHomework.subject === "english") {
             // 영어 자료 정보 가져오기
@@ -238,7 +255,7 @@ export default function AdminHomeworkCalendar() {
                 teacherTasks.push({
                   id: `teacher-${teacherHomework.id}-vocab`,
                   task_text: `[daily] [단어장] ${vocab.title} (${vocab.word_count}개)`,
-                  is_completed: false,
+                  is_completed: false, // 기본값, 각 학생별로 설정됨
                 });
               }
             }
@@ -252,7 +269,7 @@ export default function AdminHomeworkCalendar() {
                 teacherTasks.push({
                   id: `teacher-${teacherHomework.id}-sentence`,
                   task_text: `[daily] [구문 해석] ${sentence.title} (${sentence.sentence_count}개)`,
-                  is_completed: false,
+                  is_completed: false, // 기본값, 각 학생별로 설정됨
                 });
               }
             }
@@ -266,7 +283,7 @@ export default function AdminHomeworkCalendar() {
                 teacherTasks.push({
                   id: `teacher-${teacherHomework.id}-passage`,
                   task_text: `[daily] [지문 해석] ${passage.title}`,
-                  is_completed: false,
+                  is_completed: false, // 기본값, 각 학생별로 설정됨
                 });
               }
             }
@@ -281,10 +298,21 @@ export default function AdminHomeworkCalendar() {
 
           // 각 학생의 할 일에 선생님 숙제 추가
           for (const studentId of targetStudentIds) {
+            // 각 학생별로 체크 상태 설정
+            const studentTasks = teacherTasks.map(task => {
+              const taskType = task.id.split('-').slice(-1)[0]; // korean, vocab, sentence, passage
+              const completionKey = `${studentId}-${teacherHomework.id}-${taskType}`;
+              const isCompleted = completionMap.get(completionKey) || false;
+              return {
+                ...task,
+                is_completed: isCompleted,
+              };
+            });
+
             const existingHomework = homeworkMap[dateStr].find(h => h.student_id === studentId);
             if (existingHomework) {
               // 기존 할 일에 선생님 숙제 추가
-              existingHomework.tasks = [...existingHomework.tasks, ...teacherTasks];
+              existingHomework.tasks = [...studentTasks, ...existingHomework.tasks];
             } else {
               // 해당 학생의 할 일이 없으면 새로 생성
               const student = studentMap.get(studentId);
@@ -293,7 +321,7 @@ export default function AdminHomeworkCalendar() {
                   student_id: studentId,
                   student_name: student?.name || student?.email || "학생",
                   homework_date: dateStr,
-                  tasks: teacherTasks,
+                  tasks: studentTasks,
                   notes: "",
                 });
               }
@@ -357,9 +385,9 @@ export default function AdminHomeworkCalendar() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-2 sm:px-4">
       {/* 달력 헤더 */}
-      <div className="flex items-center justify-between mb-4" style={{ maxWidth: '600px', margin: '0 auto' }}>
+      <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => {
             const newDate = new Date(currentDate);
@@ -396,16 +424,16 @@ export default function AdminHomeworkCalendar() {
       </div>
 
       {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 gap-0.5 mb-2" style={{ maxWidth: '600px', margin: '0 auto' }}>
+      <div className="grid grid-cols-7 gap-0.5 mb-2">
         {weekDays.map((day) => (
-          <div key={day} className="text-center text-xs font-semibold py-1" style={{ color: '#13181B' }}>
+          <div key={day} className="text-center text-xs font-medium py-2" style={{ color: '#13181B', opacity: 0.8 }}>
             {day}
           </div>
         ))}
       </div>
 
       {/* 달력 그리드 */}
-      <div className="grid grid-cols-7 gap-0.5 mb-6" style={{ maxWidth: '600px', margin: '0 auto 1.5rem auto' }}>
+      <div className="grid grid-cols-7 gap-0.5 mb-6">
         {days.map((date, idx) => {
           const dateStr = formatDate(date);
           const homeworks = homeworkData[dateStr] || [];
@@ -418,8 +446,7 @@ export default function AdminHomeworkCalendar() {
               key={idx}
               onClick={() => handleDateClick(date)}
               className="relative aspect-square flex flex-col items-center justify-center text-xs rounded-lg transition-all border-2 p-1"
-              style={{ minHeight: '60px', 
-              ...(!isCurrentMonth(date) ? {
+              style={!isCurrentMonth(date) ? {
                 color: '#13181B',
                 opacity: 0.4,
                 borderColor: 'transparent',
@@ -440,8 +467,7 @@ export default function AdminHomeworkCalendar() {
                 color: '#13181B',
                 borderColor: 'transparent',
                 backgroundColor: '#FFFFFF'
-              }),
-            }}
+              }}
               onMouseEnter={(e) => {
                 if (isCurrentMonth(date)) {
                   e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.1)';
@@ -467,7 +493,7 @@ export default function AdminHomeworkCalendar() {
 
       {/* 선택된 날짜의 학생별 할 일 목록 */}
       {selectedDate && (
-        <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+        <div className="rounded-xl p-4 sm:p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
           <h3 className="text-lg font-bold mb-4" style={{ color: '#13181B' }}>
             {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 학생 할 일
           </h3>
@@ -502,43 +528,76 @@ export default function AdminHomeworkCalendar() {
 
                     {homework.tasks.length > 0 ? (
                       <div className="space-y-2 mb-3">
-                        {homework.tasks.map((task) => (
-                          <div
-                            key={task.id}
-                            className="flex items-start gap-2 p-2 rounded-lg"
-                            style={{ 
-                              backgroundColor: task.is_completed ? '#F0EEEB' : '#FFFFFF',
-                              border: `1px solid ${task.is_completed ? '#13181B' : '#CCD5DA'}`
-                            }}
-                          >
-                            <div className="flex-shrink-0 mt-1">
+                        {(() => {
+                          // daily 태그가 있는 항목을 맨 위로 정렬
+                          const sortedTasks = [...homework.tasks].sort((a, b) => {
+                            const aHasDaily = a.task_text.includes('[daily]');
+                            const bHasDaily = b.task_text.includes('[daily]');
+                            if (aHasDaily && !bHasDaily) return -1;
+                            if (!aHasDaily && bHasDaily) return 1;
+                            return 0;
+                          });
+                          
+                          return sortedTasks.map((task) => {
+                            const hasDaily = task.task_text.includes('[daily]');
+                            // [daily] 태그를 노란색 하이라이트로 표시
+                            const parts = task.task_text.split(/(\[daily\])/);
+                            
+                            return (
                               <div
-                                className="w-4 h-4 rounded border-2 flex items-center justify-center"
-                                style={{
-                                  backgroundColor: task.is_completed ? '#13181B' : 'transparent',
-                                  borderColor: '#13181B'
-                                }}
-                              >
-                                {task.is_completed && (
-                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#F0EEEB' }}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex-1">
-                              <div 
-                                className={`text-sm ${task.is_completed ? 'line-through' : ''}`}
+                                key={task.id}
+                                className="flex items-start gap-2 p-2 rounded-lg"
                                 style={{ 
-                                  color: '#13181B',
-                                  opacity: task.is_completed ? 0.6 : 1
+                                  backgroundColor: task.is_completed ? '#F0EEEB' : '#FFFFFF',
+                                  border: `1px solid ${task.is_completed ? '#13181B' : '#CCD5DA'}`
                                 }}
                               >
-                                {task.task_text}
+                                <div className="flex-shrink-0 mt-1">
+                                  <div
+                                    className="w-4 h-4 rounded border-2 flex items-center justify-center"
+                                    style={{
+                                      backgroundColor: task.is_completed ? '#13181B' : 'transparent',
+                                      borderColor: '#13181B'
+                                    }}
+                                  >
+                                    {task.is_completed && (
+                                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#F0EEEB' }}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex-1">
+                                  <div 
+                                    className={`text-sm ${task.is_completed ? 'line-through' : ''}`}
+                                    style={{ 
+                                      color: '#13181B',
+                                      opacity: task.is_completed ? 0.6 : 1
+                                    }}
+                                  >
+                                    {parts.map((part, idx) => 
+                                      part === '[daily]' ? (
+                                        <span 
+                                          key={idx}
+                                          style={{
+                                            backgroundColor: '#FFEB3B',
+                                            padding: '2px 4px',
+                                            borderRadius: '3px',
+                                            fontWeight: '600'
+                                          }}
+                                        >
+                                          {part}
+                                        </span>
+                                      ) : (
+                                        <span key={idx}>{part}</span>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        ))}
+                            );
+                          });
+                        })()}
                       </div>
                     ) : (
                       <p className="text-sm mb-3" style={{ color: '#13181B', opacity: 0.6 }}>

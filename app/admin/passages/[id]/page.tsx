@@ -915,8 +915,21 @@ function ParagraphSubmissions({
                                     {/* 체크포인트 */}
               <div className="mb-2">
                                       {submission?.checkpoint_text && submission.checkpoint_text.trim() ? (
-                  <div className="text-xs p-3 rounded" style={{ color: '#13181B' }}>
-                                          {submission.checkpoint_text}
+                  <div>
+                                          {/* 거시/미시 카테고리 표시 (국어 지문만) */}
+                                          {submission.category && (
+                                            <div className="mb-2">
+                                              <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                                                backgroundColor: submission.category === "거시" ? '#D4E4F4' : '#FFE5CC',
+                                                color: '#13181B'
+                                              }}>
+                                                {submission.category} 체크
+                                              </span>
+                                            </div>
+                                          )}
+                                          <div className="text-xs p-3 rounded" style={{ color: '#13181B' }}>
+                                            {submission.checkpoint_text}
+                                          </div>
                                         </div>
                                       ) : (
                   <span className="text-xs italic" style={{ color: '#13181B', opacity: 0.6 }}>체크포인트 없음</span>

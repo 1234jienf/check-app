@@ -659,23 +659,13 @@ export default function StudentCheckpointPage() {
                       {expandedTeacherCheckpoints[paragraphNum] && (
                         <div className="mt-3 space-y-3">
                           {teacherCheckpoints[paragraphNum].map((cp: any, idx: number) => {
-                            const categoryBg = cp.category === "거시" ? '#E8F0F8' : cp.category === "미시" ? '#FFF5E8' : '#F0EEEB';
+                            // 영어는 거시/미시 없이 하이라이트만 표시
                             return (
                               <div key={cp.id} className="p-3 border-2 rounded-lg" style={{ 
-                                backgroundColor: categoryBg, 
+                                backgroundColor: '#F0EEEB', 
                                 borderColor: '#CCD5DA',
-                                borderLeft: `4px solid ${cp.category === "거시" ? '#13181B' : cp.category === "미시" ? '#13181B' : 'transparent'}`
+                                borderLeft: '4px solid transparent'
                               }}>
-                                <div className="flex items-center gap-2 mb-2">
-                                  {cp.category && (
-                                    <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
-                                      backgroundColor: cp.category === "거시" ? '#D4E4F4' : '#FFE5CC',
-                                      color: '#13181B'
-                                    }}>
-                                      {cp.category}
-                                    </span>
-                                  )}
-                                </div>
                                 {cp.highlighted_text && (
                                   <div className="mb-2 p-2 rounded text-xs" style={{ backgroundColor: '#FFFFFF', color: '#13181B', opacity: 0.9 }}>
                                     <span className="font-semibold">하이라이트:</span> {cp.highlighted_text}
@@ -1125,16 +1115,15 @@ function ParagraphWithHighlights({
     // 하이라이트된 텍스트
     const highlightedText = normalizedParagraph.substring(start, end);
     if (highlightedText) {
-      const categoryBg = cp.category === "거시" ? '#E8F0F8' : cp.category === "미시" ? '#FFF5E8' : '#FFFBE6';
-      const categoryBorder = cp.category === "거시" ? '#D4E4F4' : cp.category === "미시" ? '#FFE5CC' : '#FFFBE6';
+      // 영어는 거시/미시 없이 단순 하이라이트만
       elements.push(
         <span
           key={`highlight-${idx}`}
           className="cursor-pointer transition-colors px-0.5 rounded text-sm"
           style={{ 
-            backgroundColor: categoryBg, 
+            backgroundColor: '#FFFBE6', 
             color: '#13181B',
-            borderBottom: `2px solid ${categoryBorder}`
+            borderBottom: '2px solid #FFFBE6'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.opacity = '0.9';
@@ -1145,7 +1134,7 @@ function ParagraphWithHighlights({
             e.currentTarget.style.boxShadow = 'none';
           }}
           onClick={() => onCheckpointClick(cp)}
-          title={`${cp.category || ''} 체크포인트 - 클릭하여 보기`}
+          title="체크포인트 - 클릭하여 보기"
         >
           {highlightedText}
         </span>

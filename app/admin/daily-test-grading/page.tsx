@@ -8,12 +8,14 @@ import Link from "next/link";
 export default function DailyTestGradingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"sentence" | "passage">("sentence");
+  const [activeTab, setActiveTab] = useState<"vocabulary" | "sentence" | "passage">("vocabulary");
+  const [vocabularyTests, setVocabularyTests] = useState<any[]>([]);
   const [sentenceTests, setSentenceTests] = useState<any[]>([]);
   const [passageTests, setPassageTests] = useState<any[]>([]);
   const [selectedTest, setSelectedTest] = useState<any>(null);
   const [score, setScore] = useState<number>(0);
   const [feedback, setFeedback] = useState<string>("");
+  const [editingAnswers, setEditingAnswers] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadTests();
@@ -22,7 +24,20 @@ export default function DailyTestGradingPage() {
   const loadTests = async () => {
     setLoading(true);
     try {
-      if (activeTab === "sentence") {
+      if (activeTab === "vocabulary") {
+        const { data, error } = await supabase
+          .from("daily_vocabulary_test")
+          .select(`
+            *,
+            users(id, name, email),
+            teacher_homework(id, homework_date),
+            english_vocabulary(id, title, words)
+          `)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        setVocabularyTests(data || []);
+      } else if (activeTab === "sentence") {
         const { data, error } = await supabase
           .from("daily_sentence_test")
           .select(`
@@ -61,22 +76,91 @@ export default function DailyTestGradingPage() {
     if (!selectedTest) return;
 
     try {
-      const tableName = activeTab === "sentence" ? "daily_sentence_test" : "daily_passage_test";
-      const { error } = await supabase
-        .from(tableName)
-        .update({
-          teacher_score: score,
-          teacher_feedback: feedback.trim() || null,
-          graded_at: new Date().toISOString(),
-        })
-        .eq("id", selectedTest.id);
+      if (activeTab === "vocabulary") {
+        // 단어장 시험: 답안 수정 및 점수 재계산
+        const updatedAnswers = Object.keys(editingAnswers).length > 0 
+          ? { ...selectedTest.answers, ...editingAnswers }
+          : selectedTest.answers;
+        
+        // 단어장 정보 가져오기
+        const { data: vocab } = await supabase
+          .from("english_vocabulary")
+          .select("words")
+          .eq("id", selectedTest.vocabulary_id)
+          .single();
+        
+        if (vocab) {
+          // 단어 파싱
+          const wordLines = vocab.words.split('\n').filter((line: string) => line.trim());
+          const parsedWords = wordLines.map((line: string) => {
+            const parts = line.trim().split(/\s*[-―—:]\s*|\s{2,}/);
+            if (parts.length >= 2) {
+              return { word: parts[0].trim(), meaning: parts.slice(1).join(' ').trim() };
+            }
+            return { word: line.trim(), meaning: '' };
+          }).filter((w: any) => w.word && w.meaning);
+          
+          // 재채점 (testMode에 따라)
+          const testMode = selectedTest.test_mode || "word-to-meaning";
+          let correctCount = 0;
+          parsedWords.forEach((word: any, idx: number) => {
+            const currentMode = testMode === "mixed" 
+              ? (idx % 2 === 0 ? "word-to-meaning" : "meaning-to-word")
+              : testMode;
+            
+            const studentAnswer = (updatedAnswers[word.word] || '').trim();
+            const correctAnswerRaw = (currentMode === "word-to-meaning" ? word.meaning : word.word).trim();
+            const correctAnswers = correctAnswerRaw.split(',').map((ans: string) => ans.trim());
+            
+            // 학생 답안이 여러 정답 중 하나라도 일치하면 정답으로 처리
+            const studentAnswerLower = studentAnswer.toLowerCase().trim();
+            const isCorrect = correctAnswers.some((correctAns: string) => {
+              const correctAnsLower = correctAns.toLowerCase().trim();
+              const normalizedStudent = studentAnswerLower.replace(/\s+/g, ' ');
+              const normalizedCorrect = correctAnsLower.replace(/\s+/g, ' ');
+              // 정확히 일치하거나 공백 정규화 후 일치
+              return normalizedStudent === normalizedCorrect || 
+                     studentAnswerLower === correctAnsLower ||
+                     studentAnswer.trim() === correctAns.trim();
+            });
+            
+            if (isCorrect) correctCount++;
+          });
+          
+          const newScore = parsedWords.length > 0 ? Math.round((correctCount / parsedWords.length) * 100) : 0;
+          
+          const { error } = await supabase
+            .from("daily_vocabulary_test")
+            .update({
+              answers: updatedAnswers,
+              correct_count: correctCount,
+              total_count: parsedWords.length,
+              score: newScore,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", selectedTest.id);
+          
+          if (error) throw error;
+        }
+      } else {
+        const tableName = activeTab === "sentence" ? "daily_sentence_test" : "daily_passage_test";
+        const { error } = await supabase
+          .from(tableName)
+          .update({
+            teacher_score: score,
+            teacher_feedback: feedback.trim() || null,
+            graded_at: new Date().toISOString(),
+          })
+          .eq("id", selectedTest.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
       alert("채점이 완료되었습니다.");
       setSelectedTest(null);
       setScore(0);
       setFeedback("");
+      setEditingAnswers({});
       loadTests();
     } catch (err) {
       alert("채점 저장에 실패했습니다.");
@@ -91,7 +175,7 @@ export default function DailyTestGradingPage() {
     );
   }
 
-  const tests = activeTab === "sentence" ? sentenceTests : passageTests;
+  const tests = activeTab === "vocabulary" ? vocabularyTests : activeTab === "sentence" ? sentenceTests : passageTests;
 
   return (
     <div className="min-h-screen p-6 md:p-10" style={{ backgroundColor: '#F0EEEB' }}>
@@ -104,12 +188,24 @@ export default function DailyTestGradingPage() {
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
             </h1>
           </div>
-          <p className="text-sm md:text-base" style={{ color: '#13181B', opacity: 0.8 }}>학생들이 제출한 구문 해석 및 지문 해석을 채점하세요.</p>
+          <p className="text-sm md:text-base" style={{ color: '#13181B', opacity: 0.8 }}>학생들이 제출한 단어장, 구문 해석 및 지문 해석을 채점하세요.</p>
         </div>
 
         <div className="rounded-xl p-4 md:p-6 lg:p-8 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
           {/* 탭 */}
           <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => {
+                setActiveTab("vocabulary");
+                setSelectedTest(null);
+              }}
+              className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                activeTab === "vocabulary" ? 'text-white' : ''
+              }`}
+              style={activeTab === "vocabulary" ? { backgroundColor: '#13181B' } : { backgroundColor: '#CCD5DA', color: '#13181B' }}
+            >
+              단어장 ({vocabularyTests.length})
+            </button>
             <button
               onClick={() => {
                 setActiveTab("sentence");
@@ -152,6 +248,7 @@ export default function DailyTestGradingPage() {
                     setSelectedTest(null);
                     setScore(0);
                     setFeedback("");
+                    setEditingAnswers({});
                   }}
                   className="px-4 py-2 rounded-lg font-semibold transition-all"
                   style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}
@@ -159,6 +256,120 @@ export default function DailyTestGradingPage() {
                   목록으로
                 </button>
               </div>
+
+              {activeTab === "vocabulary" && (() => {
+                // 단어장 파싱
+                const vocabWords = selectedTest.english_vocabulary?.words || '';
+                const wordLines = vocabWords.split('\n').filter((line: string) => line.trim());
+                const parsedWords = wordLines.map((line: string) => {
+                  const parts = line.trim().split(/\s*[-―—:]\s*|\s{2,}/);
+                  if (parts.length >= 2) {
+                    return { word: parts[0].trim(), meaning: parts.slice(1).join(' ').trim() };
+                  }
+                  return { word: line.trim(), meaning: '' };
+                }).filter((w: any) => w.word && w.meaning);
+                
+                // testMode 가져오기 (기본값: word-to-meaning)
+                const testMode = selectedTest.test_mode || "word-to-meaning";
+                
+                // 각 문제별로 정답 여부 확인
+                const getQuestionData = (wordObj: any, idx: number) => {
+                  const currentMode = testMode === "mixed" 
+                    ? (idx % 2 === 0 ? "word-to-meaning" : "meaning-to-word")
+                    : testMode;
+                  
+                  const question = currentMode === "word-to-meaning" ? wordObj.word : wordObj.meaning;
+                  const correctAnswerRaw = currentMode === "word-to-meaning" ? wordObj.meaning : wordObj.word;
+                  const studentAnswer = (selectedTest.answers[wordObj.word] || '').trim();
+                  
+                  // 여러 정답이 쉼표로 구분된 경우 처리
+                  const correctAnswers = correctAnswerRaw.split(',').map((ans: string) => ans.trim());
+                  
+                  // 학생 답안이 여러 정답 중 하나라도 일치하면 정답으로 처리
+                  const studentAnswerLower = studentAnswer.toLowerCase().trim();
+                  const isCorrect = correctAnswers.some((correctAns: string) => {
+                    const correctAnsLower = correctAns.toLowerCase().trim();
+                    const normalizedStudent = studentAnswerLower.replace(/\s+/g, ' ');
+                    const normalizedCorrect = correctAnsLower.replace(/\s+/g, ' ');
+                    // 정확히 일치하거나 공백 정규화 후 일치
+                    return normalizedStudent === normalizedCorrect || 
+                           studentAnswerLower === correctAnsLower ||
+                           studentAnswer.trim() === correctAns.trim();
+                  });
+                  
+                  return {
+                    question,
+                    correctAnswer: correctAnswerRaw,
+                    studentAnswer: selectedTest.answers[wordObj.word] || '',
+                    isCorrect,
+                    wordKey: wordObj.word,
+                  };
+                };
+                
+                return (
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-2" style={{ color: '#13181B' }}>
+                        {selectedTest.english_vocabulary?.title}
+                      </h3>
+                      <div className="p-4 rounded-lg" style={{ backgroundColor: '#F0EEEB' }}>
+                        <h4 className="font-semibold mb-2" style={{ color: '#13181B' }}>단어장 정보</h4>
+                        <p className="text-sm" style={{ color: '#13181B', opacity: 0.9 }}>
+                          단어 개수: {selectedTest.total_count}개 | 시험 모드: {
+                            testMode === "word-to-meaning" ? "영어 → 한글" :
+                            testMode === "meaning-to-word" ? "한글 → 영어" : "혼합형"
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  <div>
+                    <h4 className="font-semibold mb-2" style={{ color: '#13181B' }}>학생 답안 (수정 가능)</h4>
+                    <div className="p-4 rounded-lg border-2 space-y-3" style={{ borderColor: '#CCD5DA', backgroundColor: '#FFFFFF' }}>
+                      {parsedWords.map((wordObj: any, idx: number) => {
+                        const questionData = getQuestionData(wordObj, idx);
+                        return (
+                          <div key={wordObj.word} className="flex items-start gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-semibold text-sm" style={{ color: '#13181B' }}>
+                                  {idx + 1}. 문제: {questionData.question}
+                                </p>
+                                {questionData.isCorrect && (
+                                  <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: '#3B82F6' }}>
+                                    <span className="text-white text-xs font-bold">✓</span>
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-xs mb-2" style={{ color: '#13181B', opacity: 0.7 }}>
+                                정답: {questionData.correctAnswer}
+                              </p>
+                              <input
+                                type="text"
+                                value={editingAnswers[questionData.wordKey] !== undefined ? editingAnswers[questionData.wordKey] : questionData.studentAnswer || ""}
+                                onChange={(e) => setEditingAnswers({ ...editingAnswers, [questionData.wordKey]: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border-2 text-sm"
+                                style={{ 
+                                  borderColor: questionData.isCorrect ? '#3B82F6' : '#CCD5DA', 
+                                  color: '#13181B',
+                                  borderWidth: questionData.isCorrect ? '2px' : '2px'
+                                }}
+                                onFocus={(e) => {
+                                  e.currentTarget.style.borderColor = '#13181B';
+                                  e.currentTarget.style.outline = 'none';
+                                }}
+                                onBlur={(e) => {
+                                  e.currentTarget.style.borderColor = questionData.isCorrect ? '#3B82F6' : '#CCD5DA';
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  </div>
+                );
+              })()}
 
               {activeTab === "sentence" && (
                 <div className="space-y-4">
@@ -214,27 +425,39 @@ export default function DailyTestGradingPage() {
               )}
 
               <div className="space-y-4">
-                <div>
-                  <label className="block font-semibold mb-2" style={{ color: '#13181B' }}>
-                    점수 (0-100)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={score}
-                    onChange={(e) => setScore(parseInt(e.target.value) || 0)}
-                    className="w-full px-4 py-2 rounded-lg border-2"
-                    style={{ borderColor: '#CCD5DA', color: '#13181B' }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = '#13181B';
-                      e.currentTarget.style.outline = 'none';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = '#CCD5DA';
-                    }}
-                  />
-                </div>
+                {activeTab === "vocabulary" && (
+                  <div className="p-4 rounded-lg border-2" style={{ borderColor: '#CCD5DA', backgroundColor: '#F0EEEB' }}>
+                    <p className="text-sm font-semibold mb-2" style={{ color: '#13181B' }}>
+                      점수: {selectedTest.score}점 ({selectedTest.correct_count} / {selectedTest.total_count})
+                    </p>
+                    <p className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
+                      답안을 수정하면 자동으로 재채점됩니다.
+                    </p>
+                  </div>
+                )}
+                {activeTab !== "vocabulary" && (
+                  <div>
+                    <label className="block font-semibold mb-2" style={{ color: '#13181B' }}>
+                      점수 (0-100)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={score}
+                      onChange={(e) => setScore(parseInt(e.target.value) || 0)}
+                      className="w-full px-4 py-2 rounded-lg border-2"
+                      style={{ borderColor: '#CCD5DA', color: '#13181B' }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#13181B';
+                        e.currentTarget.style.outline = 'none';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = '#CCD5DA';
+                      }}
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block font-semibold mb-2" style={{ color: '#13181B' }}>
                     피드백 (선택사항)
@@ -281,7 +504,16 @@ export default function DailyTestGradingPage() {
                     key={test.id}
                     className="p-4 rounded-xl border-2 cursor-pointer transition-all"
                     style={{ borderColor: '#CCD5DA', backgroundColor: '#FFFFFF' }}
-                    onClick={() => setSelectedTest(test)}
+                    onClick={() => {
+                      setSelectedTest(test);
+                      if (activeTab === "vocabulary" && test.answers) {
+                        setEditingAnswers(test.answers);
+                      }
+                      if (activeTab !== "vocabulary") {
+                        setScore(test.teacher_score || 0);
+                        setFeedback(test.teacher_feedback || "");
+                      }
+                    }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = '#13181B';
                       e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.1)';

@@ -12,7 +12,7 @@ export default function StudentCheckpointPage() {
   const [paragraphs, setParagraphs] = useState<string[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [studentCheckpoints, setStudentCheckpoints] = useState<
-    Record<number, { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string }>
+    Record<number, { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string; category: string }>
   >({});
   const [teacherCheckpoints, setTeacherCheckpoints] = useState<Record<number, any[]>>({});
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<any | null>(null);
@@ -160,7 +160,7 @@ export default function StudentCheckpointPage() {
           // 선택된 attempt_number에 해당하는 체크포인트만 로드
           const checkpointMap: Record<
             number,
-            { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string }
+            { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string; category: string }
           > = {};
           existingCheckpointsData
             .filter((cp: any) => (cp.attempt_number || 1) === selectedAttempt)
@@ -172,6 +172,7 @@ export default function StudentCheckpointPage() {
                 hasCheckpoint: hasCheckpoint,
                 dontKnow: cp.reason ? true : false,
                 reason: cp.reason || "",
+                category: cp.category || "미시",
               };
             });
           setStudentCheckpoints(checkpointMap);
@@ -237,23 +238,28 @@ export default function StudentCheckpointPage() {
   // 3) 입력값 저장 (로컬 상태)
   const updateField = (
     paragraph: number,
-    field: "checkpoint" | "hasCheckpoint" | "dontKnow" | "reason",
+    field: "checkpoint" | "hasCheckpoint" | "dontKnow" | "reason" | "category",
     value: string | boolean
   ) => {
-    setStudentCheckpoints((prev) => ({
-      ...prev,
-      [paragraph]: {
-        ...prev[paragraph] || {
-          checkpoint: "",
-          hasCheckpoint: true,
-          dontKnow: false,
-          reason: "",
+    setStudentCheckpoints((prev) => {
+      const defaultCheckpoint: { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string; category: string } = {
+        checkpoint: "",
+        hasCheckpoint: true,
+        dontKnow: false,
+        reason: "",
+        category: "미시",
+      };
+      
+      return {
+        ...prev,
+        [paragraph]: {
+          ...(prev[paragraph] || defaultCheckpoint),
+          [field]: value,
+          // 체크포인트 없음으로 변경하면 모름과 이유 초기화
+          ...(field === "hasCheckpoint" && value === false ? { dontKnow: false, reason: "" } : {}),
         },
-        [field]: value,
-        // 체크포인트 없음으로 변경하면 모름과 이유 초기화
-        ...(field === "hasCheckpoint" && value === false ? { dontKnow: false, reason: "" } : {}),
-      },
-    }));
+      };
+    });
   };
 
   // 4) 제출 버튼 → student_checkpoints 테이블에 저장
@@ -278,6 +284,7 @@ export default function StudentCheckpointPage() {
         hasCheckpoint: true,
         dontKnow: false,
         reason: "",
+        category: "미시",
       };
 
       // attempt_number 확인 및 검증
@@ -302,6 +309,7 @@ export default function StudentCheckpointPage() {
           paragraph: paragraph,
           attempt_number: selectedAttempt,
           checkpoint_text: "", // 빈 값
+          category: null,
         };
         
         const { error } = await supabase.from("student_checkpoint_record").upsert(
@@ -333,6 +341,7 @@ export default function StudentCheckpointPage() {
           attempt_number: selectedAttempt,
           checkpoint_text: data.checkpoint.trim() || "", // 체크포인트가 비어있어도 저장
           reason: data.reason.trim(),
+          category: data.category || null,
         };
 
         const { error } = await supabase.from("student_checkpoint_record").upsert(
@@ -352,12 +361,15 @@ export default function StudentCheckpointPage() {
       if (!data.checkpoint.trim()) continue;
 
       // 일반 체크포인트 저장 (모름이 아닌 경우)
+      // 국어 지문일 때만 category 저장, 영어는 null
+      const isKorean = !passage?.subject || passage.subject === "korean" || passage.subject === null;
       const upsertData: any = {
         passage_id: passageId,
         user_id: userId,
         paragraph: paragraph,
         attempt_number: selectedAttempt,
         checkpoint_text: data.checkpoint,
+        category: isKorean ? (data.category || "미시") : null,
       };
 
       const { error } = await supabase.from("student_checkpoint_record").upsert(
@@ -488,24 +500,42 @@ export default function StudentCheckpointPage() {
                   attempts.includes(attempt)
                 );
                 const isSelected = selectedAttempt === attempt;
-                const canSelect = attempt === 1 || 
-                  Object.values(attemptStatus).some((attempts) => 
-                    attempts.includes(attempt - 1)
+                
+                // 순차적으로만 선택 가능: 1차는 항상 가능, 2차는 1차 완료 후, 3차는 2차 완료 후
+                let canSelect = false;
+                if (attempt === 1) {
+                  canSelect = true; // 1차는 항상 선택 가능
+                } else if (attempt === 2) {
+                  // 2차는 1차가 완료되었을 때만 선택 가능
+                  const hasCompleted1 = Object.values(attemptStatus).some((attempts) => 
+                    attempts.includes(1)
                   );
+                  canSelect = hasCompleted1;
+                } else if (attempt === 3) {
+                  // 3차는 2차가 완료되었을 때만 선택 가능
+                  const hasCompleted2 = Object.values(attemptStatus).some((attempts) => 
+                    attempts.includes(2)
+                  );
+                  canSelect = hasCompleted2;
+                }
                 
                 return (
                   <button
                     key={attempt}
                     onClick={() => {
-                      if (!canSelect && attempt > 1) {
-                        alert(`${attempt - 1}차를 먼저 제출해주세요.`);
+                      if (!canSelect) {
+                        if (attempt === 2) {
+                          alert("1차를 먼저 완료해주세요.");
+                        } else if (attempt === 3) {
+                          alert("2차를 먼저 완료해주세요.");
+                        }
                         return;
                       }
                       setSelectedAttempt(attempt);
                       // 선택된 attempt에 맞는 체크포인트 로드
                       const checkpointMap: Record<
                         number,
-                        { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string }
+                        { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string; category: string }
                       > = {};
                       existingCheckpoints
                         .filter((cp: any) => (cp.attempt_number || 1) === attempt)
@@ -517,6 +547,7 @@ export default function StudentCheckpointPage() {
                             hasCheckpoint: hasCheckpoint,
                             dontKnow: cp.reason ? true : false,
                             reason: cp.reason || "",
+                            category: cp.category || "미시",
                           };
                         });
                       setStudentCheckpoints(checkpointMap);
@@ -538,7 +569,7 @@ export default function StudentCheckpointPage() {
                       opacity: 0.4,
                       cursor: 'not-allowed'
                     }}
-                    disabled={!canSelect && attempt > 1}
+                    disabled={!canSelect}
                   >
                     {attempt}차 {isCompleted && !isSelected && "✓"}
                   </button>
@@ -569,7 +600,11 @@ export default function StudentCheckpointPage() {
                 hasCheckpoint: true,
                 dontKnow: false,
                 reason: "",
+                category: "미시",
               };
+              
+              // 국어 지문인지 확인 (영어는 거시/미시 없음)
+              const isKorean = passage ? (!passage.subject || passage.subject === "korean" || passage.subject === null) : true;
 
               const submission = userId ? existingCheckpoints?.find((c: any) => {
                 const paraNum = c.paragraph || c.paragraph_index;
@@ -857,6 +892,61 @@ export default function StudentCheckpointPage() {
                               }
                             `}</style>
                           </div>
+
+                          {/* 거시/미시 선택 (국어 지문만) */}
+                          {isKorean && (
+                            <div>
+                              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>
+                                카테고리 선택
+                              </label>
+                              <div className="flex gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => updateField(paragraphNum, "category", "거시")}
+                                  className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all"
+                                  style={{
+                                    backgroundColor: (checkpointData.category || "미시") === "거시" ? '#E8F0F8' : '#F0EEEB',
+                                    border: '2px solid #CCD5DA',
+                                    color: '#13181B'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if ((checkpointData.category || "미시") !== "거시") {
+                                      e.currentTarget.style.backgroundColor = '#E8F0F8';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if ((checkpointData.category || "미시") !== "거시") {
+                                      e.currentTarget.style.backgroundColor = '#F0EEEB';
+                                    }
+                                  }}
+                                >
+                                  거시
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => updateField(paragraphNum, "category", "미시")}
+                                  className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all"
+                                  style={{
+                                    backgroundColor: (checkpointData.category || "미시") === "미시" ? '#FFF5E8' : '#F0EEEB',
+                                    border: '2px solid #CCD5DA',
+                                    color: '#13181B'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if ((checkpointData.category || "미시") !== "미시") {
+                                      e.currentTarget.style.backgroundColor = '#FFF5E8';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if ((checkpointData.category || "미시") !== "미시") {
+                                      e.currentTarget.style.backgroundColor = '#F0EEEB';
+                                    }
+                                  }}
+                                >
+                                  미시
+                                </button>
+                              </div>
+                            </div>
+                          )}
 
                           {/* 모름 체크박스 */}
                           <div className="flex items-center gap-2">

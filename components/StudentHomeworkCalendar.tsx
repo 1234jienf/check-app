@@ -14,6 +14,7 @@ interface DailyHomework {
     is_completed: boolean;
     is_from_teacher?: boolean; // 선생님이 내준 Daily 숙제인지
     order_num?: number;
+    hasTestResult?: boolean; // 시험 결과가 있는지
   }>;
 }
 
@@ -172,6 +173,23 @@ export default function StudentHomeworkCalendar() {
 
       // 선생님이 내준 Daily 숙제 처리
       if (teacherHomeworkList) {
+        // 학생이 체크한 선생님 숙제 상태 불러오기
+        // daily_homework_teacher_checks 테이블 사용 (수정된 구조)
+        const { data: completionData } = await supabase
+          .from("daily_homework_teacher_checks")
+          .select("*")
+          .eq("student_id", studentId)
+          .in("teacher_homework_id", teacherHomeworkList.map((h: any) => h.id))
+          .not("teacher_homework_id", "is", null);
+
+        const completionMap = new Map();
+        if (completionData) {
+          completionData.forEach((c: any) => {
+            const key = `${c.teacher_homework_id}-${c.task_type}`;
+            completionMap.set(key, c.is_completed);
+          });
+        }
+
         for (const teacherHomework of teacherHomeworkList) {
           // student_ids가 null이면 전체 학생, 배열이면 해당 학생만
           const isForThisStudent = teacherHomework.student_ids === null || 
@@ -182,17 +200,19 @@ export default function StudentHomeworkCalendar() {
           const dateStr = teacherHomework.homework_date;
           
           // 선생님 숙제를 task로 변환
-          const teacherTasks: Array<{ id: string; task_text: string; is_completed: boolean; is_from_teacher: boolean }> = [];
+          const teacherTasks: Array<{ id: string; task_text: string; is_completed: boolean; is_from_teacher: boolean; hasTestResult?: boolean }> = [];
 
           // 과목이 현재 선택한 과목과 일치하는지 다시 확인
           if (teacherHomework.subject !== subjectToUse) continue;
 
           // 국어는 시험 보기 버튼이 없으므로 task에 표시하지 않음 (content만 표시)
           if (teacherHomework.subject === "korean" && teacherHomework.content) {
+            const completionKey = `${teacherHomework.id}-korean`;
+            const isCompleted = completionMap.get(completionKey) || false;
             teacherTasks.push({
               id: `teacher-${teacherHomework.id}-korean`,
               task_text: teacherHomework.content,
-              is_completed: false,
+              is_completed: isCompleted,
               is_from_teacher: true,
             });
           } else if (teacherHomework.subject === "english") {
@@ -204,12 +224,26 @@ export default function StudentHomeworkCalendar() {
                 .eq("id", teacherHomework.vocabulary_id)
                 .single();
               if (vocab) {
-                teacherTasks.push({
+                const completionKey = `${teacherHomework.id}-vocab`;
+                const isCompleted = completionMap.get(completionKey) || false;
+                
+                // 시험 결과 확인
+                const { data: testResult } = await supabase
+                  .from("daily_vocabulary_test")
+                  .select("id")
+                  .eq("student_id", studentId)
+                  .eq("teacher_homework_id", teacherHomework.id)
+                  .eq("vocabulary_id", teacherHomework.vocabulary_id)
+                  .maybeSingle();
+                
+                const vocabTask: { id: string; task_text: string; is_completed: boolean; is_from_teacher: boolean; hasTestResult?: boolean } = {
                   id: `teacher-${teacherHomework.id}-vocab`,
                   task_text: `[단어장] ${vocab.title} (${vocab.word_count}개)`,
-                  is_completed: false,
+                  is_completed: isCompleted,
                   is_from_teacher: true,
-                });
+                  hasTestResult: !!testResult,
+                };
+                teacherTasks.push(vocabTask);
               }
             }
             if (teacherHomework.sentence_example_id) {
@@ -219,10 +253,12 @@ export default function StudentHomeworkCalendar() {
                 .eq("id", teacherHomework.sentence_example_id)
                 .single();
               if (sentence) {
+                const completionKey = `${teacherHomework.id}-sentence`;
+                const isCompleted = completionMap.get(completionKey) || false;
                 teacherTasks.push({
                   id: `teacher-${teacherHomework.id}-sentence`,
                   task_text: `[문장 예제] ${sentence.title} (${sentence.pattern}) - ${sentence.sentence_count}개`,
-                  is_completed: false,
+                  is_completed: isCompleted,
                   is_from_teacher: true,
                 });
               }
@@ -234,10 +270,12 @@ export default function StudentHomeworkCalendar() {
                 .eq("id", teacherHomework.passage_analysis_id)
                 .single();
               if (passage) {
+                const completionKey = `${teacherHomework.id}-passage`;
+                const isCompleted = completionMap.get(completionKey) || false;
                 teacherTasks.push({
                   id: `teacher-${teacherHomework.id}-passage`,
                   task_text: `[지문 해체] ${passage.title}`,
-                  is_completed: false,
+                  is_completed: isCompleted,
                   is_from_teacher: true,
                 });
               }
@@ -399,15 +437,41 @@ export default function StudentHomeworkCalendar() {
 
     const task = homework.tasks.find(t => t.id === taskId);
     if (task) {
-      // 선생님이 내준 숙제는 체크만 로컬에서 처리 (DB 업데이트 안 함)
+      // 선생님이 내준 숙제는 DB에 저장
       if (task.is_from_teacher) {
-        const updatedTasks = homework.tasks.map(t => 
-          t.id === taskId ? { ...t, is_completed: !t.is_completed } : t
-        );
-        setHomeworkData({
-          ...homeworkData,
-          [dateStr]: { ...homework, tasks: updatedTasks }
-        });
+        const homeworkId = getTeacherHomeworkId(taskId);
+        if (homeworkId) {
+          // task.id에서 타입 추출: "teacher-{homeworkId}-{type}"
+          const taskType = taskId.split('-').slice(-1)[0]; // 마지막 부분이 타입 (korean, vocab, sentence, passage)
+          
+          const newCompletedState = !task.is_completed;
+          
+          // DB에 저장 (upsert) - daily_homework_teacher_checks 테이블 사용
+          const { error } = await supabase
+            .from("daily_homework_teacher_checks")
+            .upsert({
+              student_id: studentId,
+              teacher_homework_id: homeworkId,
+              task_type: taskType,
+              is_completed: newCompletedState,
+            }, {
+              onConflict: "student_id,teacher_homework_id,task_type"
+            });
+
+          if (error) {
+            alert("체크 상태 저장에 실패했습니다: " + error.message);
+            return;
+          }
+
+          // 로컬 상태 업데이트
+          const updatedTasks = homework.tasks.map(t => 
+            t.id === taskId ? { ...t, is_completed: newCompletedState } : t
+          );
+          setHomeworkData({
+            ...homeworkData,
+            [dateStr]: { ...homework, tasks: updatedTasks }
+          });
+        }
       } else {
         // 학생 개인 숙제는 DB 업데이트
         await supabase
@@ -702,7 +766,17 @@ export default function StudentHomeworkCalendar() {
                       return currentSubjectForButton === "english";
                     })() && (
                       <button
-                        onClick={() => handleTakeTest(task.id)}
+                        onClick={() => {
+                          if (task.hasTestResult) {
+                            // 시험 결과 보기 페이지로 이동
+                            const homeworkId = getTeacherHomeworkId(task.id);
+                            if (homeworkId) {
+                              router.push(`/student/daily-test/${homeworkId}`);
+                            }
+                          } else {
+                            handleTakeTest(task.id);
+                          }
+                        }}
                         className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
                         style={{ 
                           backgroundColor: '#13181B',
@@ -717,7 +791,7 @@ export default function StudentHomeworkCalendar() {
                           e.currentTarget.style.boxShadow = 'none';
                         }}
                       >
-                        시험 보기
+                        {task.hasTestResult ? "시험 결과 보기" : "시험 보기"}
                       </button>
                     )}
                     {!task.is_from_teacher && (

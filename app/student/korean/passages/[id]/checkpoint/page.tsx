@@ -18,7 +18,7 @@ export default function StudentCheckpointPage() {
   const [paragraphs, setParagraphs] = useState<string[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [studentCheckpoints, setStudentCheckpoints] = useState<
-    Record<number, { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string }>
+    Record<number, { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string; category: string }>
   >({});
   const [teacherCheckpoints, setTeacherCheckpoints] = useState<Record<number, any[]>>({});
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<any | null>(null);
@@ -174,7 +174,7 @@ export default function StudentCheckpointPage() {
           // 선택된 attempt_number에 해당하는 체크포인트만 로드
           const checkpointMap: Record<
             number,
-            { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string }
+            { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string; category: string }
           > = {};
           existingCheckpointsData
             .filter((cp: any) => (cp.attempt_number || 1) === selectedAttempt)
@@ -186,6 +186,7 @@ export default function StudentCheckpointPage() {
                 hasCheckpoint: hasCheckpoint,
                 dontKnow: cp.reason ? true : false,
                 reason: cp.reason || "",
+                category: cp.category || "미시",
               };
             });
           setStudentCheckpoints(checkpointMap);
@@ -251,7 +252,7 @@ export default function StudentCheckpointPage() {
   // 3) 입력값 저장 (로컬 상태)
   const updateField = (
     paragraph: number,
-    field: "checkpoint" | "hasCheckpoint" | "dontKnow" | "reason",
+    field: "checkpoint" | "hasCheckpoint" | "dontKnow" | "reason" | "category",
     value: string | boolean
   ) => {
     setStudentCheckpoints((prev) => ({
@@ -262,6 +263,7 @@ export default function StudentCheckpointPage() {
           hasCheckpoint: true,
           dontKnow: false,
           reason: "",
+          category: "미시",
         },
         [field]: value,
         // 체크포인트 없음으로 변경하면 모름과 이유 초기화
@@ -292,6 +294,7 @@ export default function StudentCheckpointPage() {
         hasCheckpoint: true,
         dontKnow: false,
         reason: "",
+        category: "미시",
       };
 
       // attempt_number 확인 및 검증
@@ -316,6 +319,7 @@ export default function StudentCheckpointPage() {
           paragraph: paragraph,
           attempt_number: selectedAttempt,
           checkpoint_text: "", // 빈 값
+          category: null,
         };
         
         const { error } = await supabase.from("student_checkpoint_record").upsert(
@@ -347,6 +351,7 @@ export default function StudentCheckpointPage() {
           attempt_number: selectedAttempt,
           checkpoint_text: data.checkpoint.trim() || "", // 체크포인트가 비어있어도 저장
           reason: data.reason.trim(),
+          category: data.category || null,
         };
 
         const { error } = await supabase.from("student_checkpoint_record").upsert(
@@ -372,6 +377,7 @@ export default function StudentCheckpointPage() {
         paragraph: paragraph,
         attempt_number: selectedAttempt,
         checkpoint_text: data.checkpoint,
+        category: data.category || "미시",
       };
 
       const { error } = await supabase.from("student_checkpoint_record").upsert(
@@ -502,24 +508,42 @@ export default function StudentCheckpointPage() {
                   attempts.includes(attempt)
                 );
                 const isSelected = selectedAttempt === attempt;
-                const canSelect = attempt === 1 || 
-                  Object.values(attemptStatus).some((attempts) => 
-                    attempts.includes(attempt - 1)
+                
+                // 순차적으로만 선택 가능: 1차는 항상 가능, 2차는 1차 완료 후, 3차는 2차 완료 후
+                let canSelect = false;
+                if (attempt === 1) {
+                  canSelect = true; // 1차는 항상 선택 가능
+                } else if (attempt === 2) {
+                  // 2차는 1차가 완료되었을 때만 선택 가능
+                  const hasCompleted1 = Object.values(attemptStatus).some((attempts) => 
+                    attempts.includes(1)
                   );
+                  canSelect = hasCompleted1;
+                } else if (attempt === 3) {
+                  // 3차는 2차가 완료되었을 때만 선택 가능
+                  const hasCompleted2 = Object.values(attemptStatus).some((attempts) => 
+                    attempts.includes(2)
+                  );
+                  canSelect = hasCompleted2;
+                }
                 
                 return (
                   <button
                     key={attempt}
                     onClick={() => {
-                      if (!canSelect && attempt > 1) {
-                        alert(`${attempt - 1}차를 먼저 제출해주세요.`);
+                      if (!canSelect) {
+                        if (attempt === 2) {
+                          alert("1차를 먼저 완료해주세요.");
+                        } else if (attempt === 3) {
+                          alert("2차를 먼저 완료해주세요.");
+                        }
                         return;
                       }
                       setSelectedAttempt(attempt);
                       // 선택된 attempt에 맞는 체크포인트 로드
                       const checkpointMap: Record<
                         number,
-                        { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string }
+                        { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string; category: string }
                       > = {};
                       existingCheckpoints
                         .filter((cp: any) => (cp.attempt_number || 1) === attempt)
@@ -531,6 +555,7 @@ export default function StudentCheckpointPage() {
                             hasCheckpoint: hasCheckpoint,
                             dontKnow: cp.reason ? true : false,
                             reason: cp.reason || "",
+                            category: cp.category || "미시",
                           };
                         });
                       setStudentCheckpoints(checkpointMap);
@@ -552,7 +577,7 @@ export default function StudentCheckpointPage() {
                       opacity: 0.4,
                       cursor: 'not-allowed'
                     }}
-                    disabled={!canSelect && attempt > 1}
+                    disabled={!canSelect}
                   >
                     {attempt}차 {isCompleted && !isSelected && "✓"}
                   </button>
@@ -583,6 +608,7 @@ export default function StudentCheckpointPage() {
                 hasCheckpoint: true,
                 dontKnow: false,
                 reason: "",
+                category: "미시",
               };
 
               const submission = userId ? existingCheckpoints?.find((c: any) => {
@@ -872,6 +898,59 @@ export default function StudentCheckpointPage() {
                             `}</style>
                           </div>
 
+                          {/* 거시/미시 선택 */}
+                          <div>
+                            <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>
+                              카테고리 선택
+                            </label>
+                            <div className="flex gap-3">
+                              <button
+                                type="button"
+                                onClick={() => updateField(paragraphNum, "category", "거시")}
+                                className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all"
+                                style={{
+                                  backgroundColor: (checkpointData.category || "미시") === "거시" ? '#E8F0F8' : '#F0EEEB',
+                                  border: '2px solid #CCD5DA',
+                                  color: '#13181B'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if ((checkpointData.category || "미시") !== "거시") {
+                                    e.currentTarget.style.backgroundColor = '#E8F0F8';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if ((checkpointData.category || "미시") !== "거시") {
+                                    e.currentTarget.style.backgroundColor = '#F0EEEB';
+                                  }
+                                }}
+                              >
+                                거시
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateField(paragraphNum, "category", "미시")}
+                                className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all"
+                                style={{
+                                  backgroundColor: (checkpointData.category || "미시") === "미시" ? '#FFF5E8' : '#F0EEEB',
+                                  border: '2px solid #CCD5DA',
+                                  color: '#13181B'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if ((checkpointData.category || "미시") !== "미시") {
+                                    e.currentTarget.style.backgroundColor = '#FFF5E8';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if ((checkpointData.category || "미시") !== "미시") {
+                                    e.currentTarget.style.backgroundColor = '#F0EEEB';
+                                  }
+                                }}
+                              >
+                                미시
+                              </button>
+                            </div>
+                          </div>
+
                           {/* 모름 체크박스 */}
                           <div className="flex items-center gap-2">
                             <input
@@ -924,6 +1003,16 @@ export default function StudentCheckpointPage() {
                   ) : (
                     <div className="p-4 border-2 rounded-xl" style={{ backgroundColor: '#CCD5DA', borderColor: '#CCD5DA' }}>
                       <div className="text-sm font-semibold mb-2" style={{ color: '#13181B' }}>내가 작성한 체크포인트:</div>
+                      {checkpointData.category && (
+                        <div className="mb-2">
+                          <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                            backgroundColor: checkpointData.category === "거시" ? '#D4E4F4' : '#FFE5CC',
+                            color: '#13181B'
+                          }}>
+                            {checkpointData.category}
+                          </span>
+                        </div>
+                      )}
                       <div className="whitespace-pre-wrap p-3 border-2 rounded-lg" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}>
                         {checkpointData.checkpoint || checkpointData.reason || "(체크포인트 없음)"}
                       </div>

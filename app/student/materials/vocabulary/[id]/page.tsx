@@ -75,23 +75,10 @@ export default function StudentVocabularyDetailPage() {
         </Link>
 
         <div className="rounded-xl p-6 md:p-8 shadow-xl border-2" style={{ borderColor: '#CCD5DA', backgroundColor: '#FFFFFF' }}>
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4">
             <h1 className="text-3xl md:text-4xl font-bold" style={{ color: '#13181B' }}>
               {vocabulary.title}
             </h1>
-            <Link
-              href={`/student/daily-test/vocab/${params.id}`}
-              className="px-6 py-3 rounded-xl font-semibold transition-all shadow-sm"
-              style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
-              }}
-            >
-              시험 보기
-            </Link>
           </div>
           <p className="text-sm mb-6" style={{ color: '#13181B', opacity: 0.7 }}>
             단어 {vocabulary.word_count}개

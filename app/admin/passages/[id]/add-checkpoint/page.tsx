@@ -73,6 +73,10 @@ function AddCheckpointContent() {
 
     const nextOrder = existing && existing.length > 0 ? existing[0].order_num + 1 : 1;
 
+    // 영어 지문일 때는 category를 null로 설정
+    const isEnglish = passage?.subject === "english";
+    const checkpointCategory = isEnglish ? null : category;
+
     const { error } = await supabase.from("checkpoints").insert({
       passage_id: passageId,
       paragraph: paragraphNum,
@@ -82,7 +86,7 @@ function AddCheckpointContent() {
       highlight_start: highlightStart,
       highlight_end: highlightEnd,
       teacher_id: user.id,
-      category: category,
+      category: checkpointCategory,
     });
 
     if (error) {
@@ -177,53 +181,58 @@ function AddCheckpointContent() {
         )}
 
         <div className="rounded-xl p-6 shadow-sm mb-6" style={{ backgroundColor: '#FFFFFF' }}>
-          <label className="block text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
-            카테고리 선택
-          </label>
-          <div className="flex gap-3 mb-4">
-            <button
-              onClick={() => setCategory("거시")}
-              className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all"
-              style={{
-                backgroundColor: category === "거시" ? '#E8F0F8' : '#F0EEEB',
-                border: `2px solid ${category === "거시" ? '#13181B' : '#CCD5DA'}`,
-                color: '#13181B'
-              }}
-              onMouseEnter={(e) => {
-                if (category !== "거시") {
-                  e.currentTarget.style.backgroundColor = '#E8F0F8';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (category !== "거시") {
-                  e.currentTarget.style.backgroundColor = '#F0EEEB';
-                }
-              }}
-            >
-              거시
-            </button>
-            <button
-              onClick={() => setCategory("미시")}
-              className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all"
-              style={{
-                backgroundColor: category === "미시" ? '#FFF5E8' : '#F0EEEB',
-                border: `2px solid ${category === "미시" ? '#13181B' : '#CCD5DA'}`,
-                color: '#13181B'
-              }}
-              onMouseEnter={(e) => {
-                if (category !== "미시") {
-                  e.currentTarget.style.backgroundColor = '#FFF5E8';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (category !== "미시") {
-                  e.currentTarget.style.backgroundColor = '#F0EEEB';
-                }
-              }}
-            >
-              미시
-            </button>
-          </div>
+          {/* 영어 지문이 아닐 때만 카테고리 선택 표시 */}
+          {passage?.subject !== "english" && (
+            <>
+              <label className="block text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
+                카테고리 선택
+              </label>
+              <div className="flex gap-3 mb-4">
+                <button
+                  onClick={() => setCategory("거시")}
+                  className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all"
+                  style={{
+                    backgroundColor: category === "거시" ? '#E8F0F8' : '#F0EEEB',
+                    border: `2px solid ${category === "거시" ? '#13181B' : '#CCD5DA'}`,
+                    color: '#13181B'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (category !== "거시") {
+                      e.currentTarget.style.backgroundColor = '#E8F0F8';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (category !== "거시") {
+                      e.currentTarget.style.backgroundColor = '#F0EEEB';
+                    }
+                  }}
+                >
+                  거시
+                </button>
+                <button
+                  onClick={() => setCategory("미시")}
+                  className="flex-1 px-4 py-3 rounded-xl font-semibold transition-all"
+                  style={{
+                    backgroundColor: category === "미시" ? '#FFF5E8' : '#F0EEEB',
+                    border: `2px solid ${category === "미시" ? '#13181B' : '#CCD5DA'}`,
+                    color: '#13181B'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (category !== "미시") {
+                      e.currentTarget.style.backgroundColor = '#FFF5E8';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (category !== "미시") {
+                      e.currentTarget.style.backgroundColor = '#F0EEEB';
+                    }
+                  }}
+                >
+                  미시
+                </button>
+              </div>
+            </>
+          )}
           <label className="block text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
             체크포인트 내용
           </label>

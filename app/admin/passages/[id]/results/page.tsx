@@ -291,8 +291,21 @@ export default function PassageResults() {
                             {/* 체크포인트 */}
                             <div className="mb-2">
                               {checkpoint?.checkpoint_text && checkpoint.checkpoint_text.trim() ? (
-                                          <div className="text-sm p-3 rounded" style={{ color: '#13181B' }}>
-                                  {checkpoint.checkpoint_text}
+                                          <div>
+                                  {/* 거시/미시 카테고리 표시 (국어 지문만) */}
+                                  {checkpoint.category && (
+                                    <div className="mb-2">
+                                      <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                                        backgroundColor: checkpoint.category === "거시" ? '#D4E4F4' : '#FFE5CC',
+                                        color: '#13181B'
+                                      }}>
+                                        {checkpoint.category} 체크
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="text-sm p-3 rounded" style={{ color: '#13181B' }}>
+                                    {checkpoint.checkpoint_text}
+                                  </div>
                                 </div>
                               ) : (
                                           <span className="text-sm italic" style={{ color: '#13181B', opacity: 0.6 }}>체크포인트 없음</span>
