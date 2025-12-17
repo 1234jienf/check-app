@@ -264,15 +264,46 @@ export default function TeacherHomeworkCalendar() {
           handleCancelEdit();
         }
       } else {
-        // 추가
-        const { error } = await supabase
+        // 추가 (기존 숙제가 있으면 업데이트)
+        // 먼저 기존 숙제 확인
+        const { data: existingHomework } = await supabase
           .from("teacher_homework")
-          .insert(homeworkData);
+          .select("id")
+          .eq("teacher_id", teacherId)
+          .eq("homework_date", formatDate(selectedDate))
+          .eq("subject", formData.subject)
+          .maybeSingle();
+
+        let error = null;
+        
+        if (existingHomework) {
+          // 기존 숙제가 있으면 업데이트
+          const { error: updateError } = await supabase
+            .from("teacher_homework")
+            .update(homeworkData)
+            .eq("id", existingHomework.id);
+          
+          error = updateError;
+          
+          if (!error) {
+            alert("숙제가 수정되었습니다. (기존 숙제를 업데이트했습니다.)");
+          }
+        } else {
+          // 기존 숙제가 없으면 새로 추가
+          const { error: insertError } = await supabase
+            .from("teacher_homework")
+            .insert(homeworkData);
+          
+          error = insertError;
+          
+          if (!error) {
+            alert("숙제가 추가되었습니다.");
+          }
+        }
 
         if (error) {
-          alert("숙제 추가에 실패했습니다: " + error.message);
+          alert("숙제 저장에 실패했습니다: " + error.message);
         } else {
-          alert("숙제가 추가되었습니다.");
           await reloadHomeworks();
           setFormData({
             subject: selectedSubject,
