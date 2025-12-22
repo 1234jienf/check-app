@@ -22,7 +22,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="border p-4 rounded">
-            <h3 className="font-semibold text-green-600 mb-2">평가원 기출</h3>
+            <h3 className="font-semibold text-green-600 mb-2">기출</h3>
             <ul className="text-sm text-gray-600 space-y-1 ml-4">
               <li>• 연도별 관리</li>
               <li>• 출처 정보 입력</li>

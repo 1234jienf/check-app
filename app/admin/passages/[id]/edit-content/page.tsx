@@ -77,7 +77,7 @@ export default function EditPassageContent() {
 
   const getCategoryColor = (cat: string) => {
     if (cat === "EBS") return '#003A6C';
-    if (cat === "기출" || cat === "평가원") return '#FFBF65';
+    if (cat === "기출") return '#FFBF65';
     if (cat === "LEET") return '#FD8973';
     return '#13181B';
   };

@@ -110,7 +110,7 @@ export default function MyCheckpointsPage() {
     if (selectedCategory !== "all") {
       filtered = filtered.filter((p: any) => {
         if (selectedCategory === "기출") {
-          return p.category === "기출" || p.category === "평가원";
+          return p.category === "기출";
         }
         return p.category === selectedCategory;
       });
@@ -135,7 +135,7 @@ export default function MyCheckpointsPage() {
 
   const getCategoryPath = (category: string) => {
     if (category === "EBS") return "/admin/passages/ebs";
-    if (category === "기출" || category === "평가원") return "/admin/passages/gichul";
+    if (category === "기출") return "/admin/passages/gichul";
     if (category === "LEET") return "/admin/passages/leet";
     if (category === "기타") return "/admin/passages/other";
     return "/admin/passages";
@@ -340,7 +340,7 @@ export default function MyCheckpointsPage() {
                   <div className="flex items-center gap-2 flex-wrap mb-2">
                     <span className="px-3 py-1.5 text-xs font-semibold rounded-full" style={{ 
                       backgroundColor: passage.category === "EBS" ? '#E8F0F8' : 
-                                       passage.category === "기출" || passage.category === "평가원" ? '#FFF5E8' :
+                                       passage.category === "기출" ? '#FFF5E8' :
                                        passage.category === "LEET" ? '#FFF0ED' : '#E8E9EA', 
                       color: '#13181B' 
                     }}>
@@ -353,7 +353,7 @@ export default function MyCheckpointsPage() {
                     )}
                     <span className="px-3 py-1.5 text-xs font-semibold rounded-full" style={{ 
                       backgroundColor: passage.category === "EBS" ? '#E8F0F8' : 
-                                       passage.category === "기출" || passage.category === "평가원" ? '#FFF5E8' :
+                                       passage.category === "기출" ? '#FFF5E8' :
                                        passage.category === "LEET" ? '#FFF0ED' : '#E8E9EA', 
                       color: '#13181B' 
                     }}>

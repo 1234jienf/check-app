@@ -16,7 +16,7 @@ interface Announcement {
   author_name?: string;
 }
 
-export default function AnnouncementDetailPage() {
+export default function StudentAnnouncementDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
@@ -32,7 +32,7 @@ export default function AnnouncementDetailPage() {
 
       if (error) {
         alert("공지사항을 불러올 수 없습니다.");
-        router.push("/admin/announcements");
+        router.push("/student/announcements");
         return;
       }
 
@@ -66,7 +66,31 @@ export default function AnnouncementDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen" style={{ backgroundColor: '#F0EEEB' }}>
-        <p style={{ color: '#13181B' }}>로딩 중...</p>
+        <div className="text-center">
+          <div className="mx-auto mb-4" style={{ 
+            animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
+            width: '80px',
+            height: '80px'
+          }}>
+            <img 
+              src="/bishop-logo.png" 
+              alt="Loading" 
+              className="w-full h-full"
+              style={{ filter: 'grayscale(100%) brightness(0.8)' }}
+            />
+          </div>
+          <p style={{ color: '#13181B' }}>로딩 중...</p>
+          <style jsx>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+            @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.6; }
+            }
+          `}</style>
+        </div>
       </div>
     );
   }
@@ -79,7 +103,7 @@ export default function AnnouncementDetailPage() {
     <div className="min-h-screen p-6 md:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-4xl mx-auto">
         <Link
-          href="/admin/announcements"
+          href="/student/announcements"
           className="inline-flex items-center mb-6 transition-colors"
           style={{ color: '#13181B' }}
           onMouseEnter={(e) => {
@@ -175,9 +199,6 @@ export default function AnnouncementDetailPage() {
             .quill-content img {
               max-width: 100%;
               height: auto;
-              display: block !important;
-              margin: 1em auto;
-              object-fit: contain;
             }
             .ql-editor hr,
             .quill-content hr {

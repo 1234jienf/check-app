@@ -212,7 +212,7 @@ export default function MyCheckpointsPage() {
                         backgroundColor: '#CCD5DA', 
                         color: '#13181B' 
                       }}>
-                        {passage.category === "기출" || passage.category === "평가원" ? "평가원 기출" : passage.category || "기타"}
+                        {passage.category || "기타"}
                       </span>
                       {passage.source && (
                         <span className="px-3 py-1.5 text-xs font-medium rounded-full truncate max-w-[200px]" style={{ 

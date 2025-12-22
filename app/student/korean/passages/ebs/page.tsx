@@ -414,6 +414,11 @@ export default function StudentEBSPassageList() {
                                             {p.sub_category.split(",").join(", ")}
                                           </span>
                                         )}
+                                        {p.difficulty && (
+                                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
+                                            {p.difficulty}
+                                          </span>
+                                        )}
                                       </div>
                                       
                                       <div className="space-y-1.5 text-xs">

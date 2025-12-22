@@ -16,6 +16,8 @@ export default function AdminPage() {
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [editingStudentSubjects, setEditingStudentSubjects] = useState<string[]>([]);
   const [allApprovedStudents, setAllApprovedStudents] = useState<any[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [isLoadingPassages, setIsLoadingPassages] = useState<boolean>(true);
 
   // 세션에서 선택한 과목 불러오기
   useEffect(() => {
@@ -24,6 +26,21 @@ export default function AdminPage() {
       if (savedSubject) {
         setSelectedSubject(savedSubject);
       }
+    }
+  }, []);
+
+  // 과목 변경 이벤트 리스너 (layout에서 과목 변경 시 동기화)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleSubjectChanged = (event: CustomEvent) => {
+        const newSubject = event.detail.subject as "korean" | "english";
+        setSelectedSubject(newSubject);
+      };
+
+      window.addEventListener('subjectChanged', handleSubjectChanged as EventListener);
+      return () => {
+        window.removeEventListener('subjectChanged', handleSubjectChanged as EventListener);
+      };
     }
   }, []);
 
@@ -116,7 +133,146 @@ export default function AdminPage() {
   }, [selectedSubject]); // selectedSubject가 변경되면 다시 실행되지만, 함수 내부에서는 세션 스토리지의 최신 값을 사용
 
   // 학생별 작성한 지문 불러오기
+  // 모든 학생의 체크포인트 가져오기
+  const fetchAllStudentPassages = async () => {
+    setIsLoadingPassages(true);
+    
+    // 세션 스토리지에서 최신 과목 값 가져오기 (상태 동기화 보장)
+    const currentSubject = typeof window !== 'undefined' 
+      ? (sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null) || "korean"
+      : selectedSubject;
+    
+    const { data: studentsData } = await supabase
+      .from("users")
+      .select("id, name")
+      .eq("role", "student")
+      .eq("approved", true);
+
+    if (!studentsData || studentsData.length === 0) {
+      setStudentPassages({});
+      setStudentCheckpoints({});
+      setIsLoadingPassages(false);
+      return;
+    }
+
+    const studentIds = studentsData.map(s => s.id);
+    if (studentIds.length === 0) {
+      setStudentPassages({});
+      setStudentCheckpoints({});
+      setIsLoadingPassages(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("student_checkpoint_record")
+      .select(`
+        user_id,
+        passage_id,
+        checkpoint_text,
+        paragraph,
+        attempt_number,
+        created_at,
+        reason
+      `)
+      .in("user_id", studentIds)
+      .order("created_at", { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching student checkpoint records:", error);
+      setStudentPassages({});
+      setStudentCheckpoints({});
+      setIsLoadingPassages(false);
+      return;
+    }
+
+    // 데이터가 없어도 빈 객체로 초기화
+    const allStudentPassages: Record<string, Record<string, any[]>> = {};
+    const allStudentCheckpoints: Record<string, Record<string, any[]>> = {};
+
+    if (data && data.length > 0) {
+      // passage_id 목록 추출
+      const passageIds = [...new Set(data.map((d: any) => d.passage_id).filter(Boolean))];
+      
+      // passages 정보 별도로 조회 (passageIds가 있을 때만)
+      let passagesMap = new Map();
+      if (passageIds.length > 0) {
+        const { data: passagesData } = await supabase
+          .from("passages")
+          .select("id, title, category, year, source, subject")
+          .in("id", passageIds);
+        
+        // passages 맵 생성
+        passagesMap = new Map((passagesData || []).map((p: any) => [p.id, p]));
+      }
+      
+      // 데이터 결합
+      const dataWithPassages = data.map((d: any) => ({
+        ...d,
+        passages: passagesMap.get(d.passage_id) || null
+      }));
+      
+      // 선택한 과목으로 필터링 (NULL도 국어로 간주)
+      const filteredData = dataWithPassages.filter((d: any) => {
+        if (!d.passages) return false;
+        if (currentSubject === "korean") {
+          return d.passages.subject === "korean" || d.passages.subject === null || d.passages.subject === undefined;
+        } else {
+          // 영어 페이지에서는 영어 체크포인트만 표시
+          return d.passages.subject === "english";
+        }
+      });
+
+      // 학생별로 그룹화
+      studentsData.forEach((student: any) => {
+        const studentData = filteredData.filter((d: any) => d.user_id === student.id);
+        
+        if (studentData.length > 0) {
+          // 중복 제거 및 카테고리별 그룹화
+          const uniquePassages = Array.from(
+            new Map(
+              studentData
+                .filter((d: any) => d.passages)
+                .map((d: any) => [d.passage_id, d.passages])
+            ).values()
+          );
+
+          // 카테고리별로 그룹화
+          const grouped: Record<string, any[]> = {};
+          uniquePassages.forEach((passage: any) => {
+            const category = passage.category || "기타";
+            if (!grouped[category]) {
+              grouped[category] = [];
+            }
+            grouped[category].push(passage);
+          });
+
+          allStudentPassages[student.id] = grouped;
+
+          // 지문별 체크포인트 그룹화
+          const checkpointsByPassage: Record<string, any[]> = {};
+          studentData.forEach((record: any) => {
+            if (!checkpointsByPassage[record.passage_id]) {
+              checkpointsByPassage[record.passage_id] = [];
+            }
+            checkpointsByPassage[record.passage_id].push(record);
+          });
+
+          allStudentCheckpoints[student.id] = checkpointsByPassage;
+        }
+      });
+    }
+
+    setStudentPassages(allStudentPassages);
+    setStudentCheckpoints(allStudentCheckpoints);
+    setIsLoadingPassages(false);
+  };
+
   const fetchStudentPassages = async (studentId: string) => {
+    // 세션 스토리지에서 최신 과목 값 가져오기 (상태 동기화 보장)
+    const currentSubject = typeof window !== 'undefined' 
+      ? (sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null) || "korean"
+      : selectedSubject;
+    
     const { data, error } = await supabase
       .from("student_checkpoint_record")
       .select(`
@@ -125,19 +281,42 @@ export default function AdminPage() {
         paragraph,
         attempt_number,
         created_at,
-        reason,
-        passages!inner(id, title, category, year, source, subject)
+        reason
       `)
       .eq("user_id", studentId)
       .order("created_at", { ascending: false });
 
-    if (!error && data) {
+    if (error) {
+      console.error("Error fetching student checkpoint records:", error);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      // passage_id 목록 추출
+      const passageIds = [...new Set(data.map((d: any) => d.passage_id).filter(Boolean))];
+      
+      // passages 정보 별도로 조회
+      const { data: passagesData } = await supabase
+        .from("passages")
+        .select("id, title, category, year, source, subject")
+        .in("id", passageIds);
+      
+      // passages 맵 생성
+      const passagesMap = new Map((passagesData || []).map((p: any) => [p.id, p]));
+      
+      // 데이터 결합
+      const dataWithPassages = data.map((d: any) => ({
+        ...d,
+        passages: passagesMap.get(d.passage_id) || null
+      }));
+      
       // 선택한 과목으로 필터링 (NULL도 국어로 간주)
-      const filteredData = data.filter((d: any) => {
+      const filteredData = dataWithPassages.filter((d: any) => {
         if (!d.passages) return false;
-        if (selectedSubject === "korean") {
+        if (currentSubject === "korean") {
           return d.passages.subject === "korean" || d.passages.subject === null || d.passages.subject === undefined;
         } else {
+          // 영어 페이지에서는 영어 체크포인트만 표시
           return d.passages.subject === "english";
         }
       });
@@ -161,7 +340,7 @@ export default function AdminPage() {
         grouped[category].push(passage);
       });
 
-      setStudentPassages({ [studentId]: grouped });
+      setStudentPassages((prev) => ({ ...prev, [studentId]: grouped }));
 
       // 지문별 체크포인트 그룹화
       const checkpointsByPassage: Record<string, any[]> = {};
@@ -172,7 +351,11 @@ export default function AdminPage() {
         checkpointsByPassage[record.passage_id].push(record);
       });
 
-      setStudentCheckpoints({ [studentId]: checkpointsByPassage });
+      setStudentCheckpoints((prev) => ({ ...prev, [studentId]: checkpointsByPassage }));
+    } else {
+      // 데이터가 없어도 빈 객체로 설정
+      setStudentPassages((prev) => ({ ...prev, [studentId]: {} }));
+      setStudentCheckpoints((prev) => ({ ...prev, [studentId]: {} }));
     }
   };
 
@@ -359,16 +542,21 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubject]);
 
+  // 초기 로드 시 모든 학생의 체크포인트 가져오기
   useEffect(() => {
-    if (selectedStudentId) {
+    fetchAllStudentPassages();
+  }, [selectedSubject]);
+
+  // 학생 선택 시 해당 학생의 체크포인트만 가져오기 (이미 있으면 스킵)
+  useEffect(() => {
+    if (selectedStudentId && (!studentPassages[selectedStudentId] || Object.keys(studentPassages[selectedStudentId]).length === 0)) {
       fetchStudentPassages(selectedStudentId);
     }
   }, [selectedStudentId, selectedSubject]);
 
   const categoryLabels: Record<string, string> = {
     "EBS": "EBS",
-    "기출": "평가원 기출",
-    "평가원": "평가원 기출",
+    "기출": "기출",
     "LEET": "LEET",
     "기타": "기타",
   };
@@ -764,8 +952,7 @@ export default function AdminPage() {
         {/* 학생별 지문 관리 탭 */}
         {activeTab === "students" && (
           <div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* 왼쪽: 학생 목록 */}
             <div className="lg:col-span-1">
               <div 
@@ -820,21 +1007,64 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* 오른쪽: 선택한 학생의 지문 목록 */}
+            {/* 오른쪽: 선택한 학생의 지문 목록 또는 모든 학생의 지문 목록 */}
             <div className="lg:col-span-2">
               {selectedStudentId ? (
-                <div>
-                  {studentPassages[selectedStudentId] ? (
-                    <div className="space-y-6">
-                      {Object.entries(studentPassages[selectedStudentId]).map(([category, passages]: [string, any[]]) => {
+                studentPassages[selectedStudentId] === undefined ? (
+                  <div className="rounded-xl p-8 text-center shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
+                    <div className="mx-auto mb-4" style={{ 
+                      animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
+                      width: '60px',
+                      height: '60px',
+                      display: 'inline-block'
+                    }}>
+                      <img 
+                        src="/bishop-logo.png" 
+                        alt="Loading" 
+                        className="w-full h-full"
+                        style={{ filter: 'grayscale(100%) brightness(0.8)' }}
+                      />
+                    </div>
+                    <p style={{ color: '#13181B', opacity: 0.8 }}>로딩 중...</p>
+                    <style>{`
+                      @keyframes spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                      }
+                      @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.6; }
+                      }
+                    `}</style>
+                  </div>
+                ) : Object.keys(studentPassages[selectedStudentId] || {}).length > 0 ? (
+                  <div className="space-y-6">
+                    {Object.entries(studentPassages[selectedStudentId]).map(([category, passages]: [string, any[]]) => {
                         const categoryColor = category === "EBS" ? '#E8F0F8' : 
-                                            category === "기출" || category === "평가원" ? '#FFF5E8' :
+                                            category === "기출" ? '#FFF5E8' :
                                             category === "LEET" ? '#FFF0ED' : '#E8E9EA';
+                        const isExpanded = expandedCategories[category] !== false; // 기본값은 true (펼쳐짐)
                         return (
                         <div key={category} className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-                          <h3 className="text-xl font-bold mb-4 pb-3 border-b" style={{ color: '#13181B', borderBottomColor: '#CCD5DA' }}>
-                            {categoryLabels[category] || category} ({passages.length}개)
-                          </h3>
+                          <div 
+                            className="flex items-center justify-between mb-4 pb-3 border-b cursor-pointer"
+                            style={{ borderBottomColor: '#CCD5DA' }}
+                            onClick={() => setExpandedCategories({ ...expandedCategories, [category]: !isExpanded })}
+                          >
+                            <h3 className="text-xl font-bold" style={{ color: '#13181B' }}>
+                              {categoryLabels[category] || category} ({passages.length}개)
+                            </h3>
+                            <svg
+                              className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              style={{ color: '#13181B' }}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                          {isExpanded && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {passages.map((passage: any) => {
                               const checkpoints = studentCheckpoints[selectedStudentId]?.[passage.id] || [];
@@ -842,7 +1072,7 @@ export default function AdminPage() {
                               // 각 문단별로 마지막 차수(최고 attempt_number) 찾기
                               const lastAttemptByParagraph: Record<number, any> = {};
                               checkpoints.forEach((cp: any) => {
-                                const paraNum = cp.paragraph || cp.paragraph_index;
+                                const paraNum = cp.paragraph;
                                 const attemptNum = cp.attempt_number || 1;
                                 if (!lastAttemptByParagraph[paraNum] || 
                                     (lastAttemptByParagraph[paraNum].attempt_number || 1) < attemptNum) {
@@ -891,106 +1121,220 @@ export default function AdminPage() {
                                     </div>
                                   )}
                                   {sortedParagraphs.length > 0 && (
-                                    <div className="mt-3 pt-3 space-y-2">
-                                      {sortedParagraphs.map((cp: any) => {
-                                        const paraNum = cp.paragraph || cp.paragraph_index;
-                                        const isDontKnow = cp.reason && cp.reason.trim().length > 0;
-                                        const maxAttempt = Math.max(...checkpoints
-                                          .filter((c: any) => (c.paragraph || c.paragraph_index) === paraNum)
-                                          .map((c: any) => c.attempt_number || 1));
-                                        
-                                        return (
-                                          <div
-                                            key={paraNum}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              window.location.href = `/admin/passages/${passage.id}?student=${selectedStudentId}`;
-                                            }}
-                                            className="group/checkpoint flex items-center justify-between p-2 rounded-lg transition-all cursor-pointer"
-                                            style={{ backgroundColor: '#FFFFFF' }}
-                                            onMouseEnter={(e) => {
-                                              e.currentTarget.style.backgroundColor = '#FFFFFF';
-                                              e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.1)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                              e.currentTarget.style.backgroundColor = '#FFFFFF';
-                                              e.currentTarget.style.boxShadow = 'none';
-                                            }}
+                                    <div className="mt-3 pt-3">
+                                      <div
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          window.location.href = `/admin/passages/${passage.id}?student=${selectedStudentId}`;
+                                        }}
+                                        className="block p-3 rounded-lg transition-all cursor-pointer"
+                                        style={{ backgroundColor: '#F0EEEB' }}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.backgroundColor = '#CCD5DA';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.backgroundColor = '#F0EEEB';
+                                        }}
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm font-semibold" style={{ color: '#13181B' }}>
+                                            {sortedParagraphs.length}개 문단 체크포인트 확인
+                                          </span>
+                                          <svg 
+                                            className="w-4 h-4 flex-shrink-0 ml-2" 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            viewBox="0 0 24 24"
+                                            style={{ color: '#13181B' }}
                                           >
-                                            <div className="flex-1 text-sm">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-xs font-semibold" style={{ color: '#13181B' }}>
-                                                {maxAttempt}차
-                                              </span>
-                                                <span className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
-                                                {paraNum}문단
-                                              </span>
-                                            </div>
-                                            {isDontKnow ? (
-                                                <div className="text-xs italic" style={{ color: '#13181B', opacity: 0.6 }}>
-                                                모름
-                                              </div>
-                                            ) : cp.checkpoint_text ? (
-                                                <div className="text-xs line-clamp-1" style={{ color: '#13181B', opacity: 0.8 }}>
-                                                {cp.checkpoint_text}
-                                              </div>
-                                            ) : null}
-                                            </div>
-                                            <svg 
-                                              className="w-4 h-4 flex-shrink-0 ml-2 transition-transform group-hover/checkpoint:translate-x-1" 
-                                              fill="none" 
-                                              stroke="currentColor" 
-                                              viewBox="0 0 24 24"
-                                              style={{ color: '#13181B', filter: 'brightness(0) saturate(100%)' }}
-                                            >
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                            </svg>
-                                          </div>
-                                        );
-                                      })}
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                          </svg>
+                                        </div>
+                                      </div>
                                     </div>
                                   )}
                                 </Link>
                               );
                             })}
                           </div>
+                          )}
                         </div>
-                        )
+                      );
                       })}
                     </div>
                   ) : (
-                    <div className="rounded-xl p-8 text-center shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
-                      <div className="mx-auto mb-4" style={{ 
-                        animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
-                        width: '60px',
-                        height: '60px',
-                        display: 'inline-block'
-                      }}>
-                        <img 
-                          src="/bishop-logo.png" 
-                          alt="Loading" 
-                          className="w-full h-full"
-                          style={{ filter: 'grayscale(100%) brightness(0.8)' }}
-                        />
-                      </div>
-                      <p style={{ color: '#13181B', opacity: 0.8 }}>로딩 중...</p>
-                      <style>{`
-                        @keyframes spin {
-                          from { transform: rotate(0deg); }
-                          to { transform: rotate(360deg); }
-                        }
-                        @keyframes pulse {
-                          0%, 100% { opacity: 1; }
-                          50% { opacity: 0.6; }
-                        }
-                      `}</style>
+                    <div className="rounded-xl p-8 text-center shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+                      <p className="text-lg" style={{ color: '#13181B', opacity: 0.8 }}>체크포인트가 없습니다.</p>
                     </div>
-                  )}
-                </div>
+                  )
               ) : (
-                <div className="rounded-xl p-8 text-center shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-                  <p className="text-lg" style={{ color: '#13181B', opacity: 0.8 }}>학생을 선택하세요.</p>
-                </div>
+                // 모든 학생의 체크포인트 표시
+                isLoadingPassages ? (
+                  <div className="rounded-xl p-8 text-center shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
+                    <div className="mx-auto mb-4" style={{ 
+                      animation: 'spin 2s linear infinite, pulse 2s ease-in-out infinite',
+                      width: '60px',
+                      height: '60px',
+                      display: 'inline-block'
+                    }}>
+                      <img 
+                        src="/bishop-logo.png" 
+                        alt="Loading" 
+                        className="w-full h-full"
+                        style={{ filter: 'grayscale(100%) brightness(0.8)' }}
+                      />
+                    </div>
+                    <p style={{ color: '#13181B', opacity: 0.8 }}>로딩 중...</p>
+                    <style>{`
+                      @keyframes spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                      }
+                      @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.6; }
+                      }
+                    `}</style>
+                  </div>
+                ) : Object.keys(studentPassages).length > 0 ? (
+                  <div className="space-y-6">
+                    {approvedStudents.map((student: any) => {
+                      const studentPassageData = studentPassages[student.id];
+                      if (!studentPassageData || Object.keys(studentPassageData).length === 0) return null;
+
+                      return (
+                        <div key={student.id} className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+                          <h2 className="text-2xl font-bold mb-4 pb-3 border-b" style={{ color: '#13181B', borderBottomColor: '#CCD5DA' }}>
+                            {student.name}
+                          </h2>
+                          <div className="space-y-6">
+                            {Object.entries(studentPassageData).map(([category, passages]: [string, any[]]) => {
+                              const isExpanded = expandedCategories[`${student.id}-${category}`] !== false;
+                              return (
+                                <div key={category} className="rounded-xl p-4 shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
+                                  <div 
+                                    className="flex items-center justify-between mb-4 pb-2 border-b cursor-pointer"
+                                    style={{ borderBottomColor: '#CCD5DA' }}
+                                    onClick={() => setExpandedCategories({ ...expandedCategories, [`${student.id}-${category}`]: !isExpanded })}
+                                  >
+                                    <h3 className="text-lg font-bold" style={{ color: '#13181B' }}>
+                                      {categoryLabels[category] || category} ({passages.length}개)
+                                    </h3>
+                                    <svg
+                                      className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                      style={{ color: '#13181B' }}
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  </div>
+                                  {isExpanded && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      {passages.map((passage: any) => {
+                                        const checkpoints = studentCheckpoints[student.id]?.[passage.id] || [];
+                                        
+                                        const lastAttemptByParagraph: Record<number, any> = {};
+                                        checkpoints.forEach((cp: any) => {
+                                          const paraNum = cp.paragraph;
+                                          const attemptNum = cp.attempt_number || 1;
+                                          if (!lastAttemptByParagraph[paraNum] || 
+                                              (lastAttemptByParagraph[paraNum].attempt_number || 1) < attemptNum) {
+                                            lastAttemptByParagraph[paraNum] = cp;
+                                          }
+                                        });
+                                        
+                                        const sortedParagraphs = Object.keys(lastAttemptByParagraph)
+                                          .map(Number)
+                                          .sort((a, b) => a - b)
+                                          .map(paraNum => lastAttemptByParagraph[paraNum]);
+                                        
+                                        return (
+                                          <Link
+                                            key={passage.id}
+                                            href={`/admin/passages/${passage.id}?student=${student.id}`}
+                                            className="group p-4 rounded-xl shadow-sm transition-all"
+                                            style={{ backgroundColor: '#FFFFFF' }}
+                                            onMouseEnter={(e) => {
+                                              e.currentTarget.style.backgroundColor = '#FFFFFF';
+                                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              e.currentTarget.style.backgroundColor = '#FFFFFF';
+                                              e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                                            }}
+                                          >
+                                            <div className="flex items-start justify-between mb-2">
+                                              <div className="font-semibold transition-colors flex-1" style={{ color: '#13181B' }}>
+                                                {passage.title || "(제목 없음)"}
+                                              </div>
+                                              <svg 
+                                                className="w-5 h-5 flex-shrink-0 ml-2 transition-transform group-hover:translate-x-1" 
+                                                fill="none" 
+                                                stroke="currentColor" 
+                                                viewBox="0 0 24 24"
+                                                style={{ color: '#13181B', filter: 'brightness(0) saturate(100%)' }}
+                                              >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                              </svg>
+                                            </div>
+                                            {passage.year && (
+                                              <div className="text-xs mb-2" style={{ color: '#13181B', opacity: 0.7 }}>
+                                                {passage.year} {passage.source && `- ${passage.source}`}
+                                              </div>
+                                            )}
+                                            {sortedParagraphs.length > 0 && (
+                                              <div className="mt-3 pt-3">
+                                                <div
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.location.href = `/admin/passages/${passage.id}?student=${student.id}`;
+                                                  }}
+                                                  className="block p-3 rounded-lg transition-all cursor-pointer"
+                                                  style={{ backgroundColor: '#F0EEEB' }}
+                                                  onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor = '#CCD5DA';
+                                                  }}
+                                                  onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = '#F0EEEB';
+                                                  }}
+                                                >
+                                                  <div className="flex items-center justify-between">
+                                                    <span className="text-sm font-semibold" style={{ color: '#13181B' }}>
+                                                      {sortedParagraphs.length}개 문단 체크포인트 확인
+                                                    </span>
+                                                    <svg 
+                                                      className="w-4 h-4 flex-shrink-0 ml-2" 
+                                                      fill="none" 
+                                                      stroke="currentColor" 
+                                                      viewBox="0 0 24 24"
+                                                      style={{ color: '#13181B' }}
+                                                    >
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </Link>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-xl p-8 text-center shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+                    <p className="text-lg" style={{ color: '#13181B', opacity: 0.8 }}>체크포인트가 없습니다.</p>
+                  </div>
+                )
               )}
             </div>
             </div>

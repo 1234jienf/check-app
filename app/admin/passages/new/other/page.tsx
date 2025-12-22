@@ -12,6 +12,7 @@ export default function NewOtherPage() {
   const [source, setSource] = useState("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [difficulty, setDifficulty] = useState(""); // 상, 중, 하
   const [showPreview, setShowPreview] = useState(false);
   const router = useRouter();
 
@@ -101,6 +102,7 @@ export default function NewOtherPage() {
           title,
           content,
           subject: subject,
+          difficulty: difficulty || null,
         },
       ])
       .select();
@@ -233,7 +235,27 @@ export default function NewOtherPage() {
                   color: #13181B;
                   opacity: 0.7;
                 }
-              `}</style>
+              `}              </style>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>난이도</label>
+              <select
+                value={difficulty}
+                onChange={(e) => setDifficulty(e.target.value)}
+                className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = categoryColor;
+                  e.currentTarget.style.outline = 'none';
+                }}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+              >
+                <option value="">선택하세요</option>
+                <option value="상">상</option>
+                <option value="중">중</option>
+                <option value="하">하</option>
+              </select>
             </div>
 
             <div className="md:col-span-2">

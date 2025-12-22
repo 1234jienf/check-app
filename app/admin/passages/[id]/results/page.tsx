@@ -109,7 +109,7 @@ export default function PassageResults() {
 
   const getCategoryColor = (category: string) => {
     if (category === "EBS") return '#E8F0F8';
-    if (category === "기출" || category === "평가원") return '#FFF5E8';
+    if (category === "기출") return '#FFF5E8';
     if (category === "LEET") return '#FFF0ED';
     return '#E8E9EA';
   };
@@ -132,9 +132,9 @@ export default function PassageResults() {
     ? results.filter((r: any) => (r.user_id || r.student_id) === selectedStudentId)
     : [];
 
-  // paragraph_index 컬럼명 처리
+  // paragraph 컬럼명 처리
   const getParagraphNum = (submission: any) => {
-    return submission.paragraph_index || submission.paragraph || 0;
+    return submission.paragraph || 0;
   };
 
   // 지문을 문단별로 나누기
@@ -223,7 +223,7 @@ export default function PassageResults() {
                 const checkpointsByParagraph = paragraphs.reduce((acc: any, paragraph: string, idx: number) => {
                   const paragraphNum = idx + 1;
                   const paragraphCheckpoints = studentCheckpoints.filter((cp: any) => {
-                    const paraNum = cp.paragraph_index || cp.paragraph;
+                    const paraNum = cp.paragraph;
                     return paraNum === paragraphNum;
                   }).sort((a: any, b: any) => (a.attempt_number || 1) - (b.attempt_number || 1));
 

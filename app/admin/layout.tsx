@@ -132,6 +132,7 @@ export default function AdminLayout({
     { href: "/admin/daily-homework", label: "일별 숙제 체크", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "학생별 일별 숙제 확인" },
     { href: "/admin/schedule", label: "Daily 숙제 관리", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "학생들에게 내줄 공통 일별 숙제" },
     ...(selectedSubject === "english" ? [{ href: "/admin/daily-test-grading", label: "Daily 시험 채점", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "구문/지문 해석 시험 채점" }] : []),
+    { href: "/admin/questions", label: "질문 게시판", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: selectedSubject === "korean" ? "국어 질문 답변" : "영어 질문 답변" },
     { href: "/admin/announcements", label: "공지사항", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "공지사항 작성 및 관리" },
   ];
 

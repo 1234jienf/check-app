@@ -20,7 +20,6 @@ export default function StudentAnnouncementsPage() {
   const router = useRouter();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -31,7 +30,7 @@ export default function StudentAnnouncementsPage() {
         return;
       }
 
-      // 현재 선택한 과목 가져오기 (경로에서 추론)
+      // 현재 선택한 과목 가져오기
       let currentSubject: "korean" | "english" = "korean";
       if (typeof window !== 'undefined') {
         const savedSubject = sessionStorage.getItem('selectedSubject') as "korean" | "english" | null;
@@ -51,10 +50,31 @@ export default function StudentAnnouncementsPage() {
       }
 
       // 공지사항 목록 가져오기 (현재 과목에 맞는 것만, 고정 공지 먼저, 그 다음 최신순)
-      const { data: announcementsData, error } = await supabase
+      let query = supabase
         .from("announcements")
-        .select("*")
-        .eq("subject", currentSubject)
+        .select("*");
+
+      // subject 컬럼이 있는지 확인하고 필터링
+      try {
+        const { data: testData, error: testError } = await supabase
+          .from("announcements")
+          .select("subject")
+          .limit(1)
+          .maybeSingle();
+
+        if (!testError && testData && testData.subject !== undefined) {
+          // subject 컬럼이 있는 경우 필터링
+          if (currentSubject === "korean") {
+            query = query.or("subject.eq.korean,subject.is.null");
+          } else {
+            query = query.eq("subject", "english");
+          }
+        }
+      } catch (testErr: any) {
+        // subject 컬럼이 없으면 모든 공지사항 표시
+      }
+
+      const { data: announcementsData, error } = await query
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false });
 
@@ -129,85 +149,54 @@ export default function StudentAnnouncementsPage() {
         </div>
 
         {announcements.length === 0 ? (
-          <div className="text-center py-20 border-2 rounded-xl" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+          <div className="text-center py-20 rounded-xl shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
             <p style={{ color: '#13181B', opacity: 0.7 }}>등록된 공지사항이 없습니다.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* 공지 목록 */}
-            <div className="lg:col-span-1 space-y-4">
-              {announcements.map((announcement) => (
-                <div
-                  key={announcement.id}
-                  onClick={() => setSelectedAnnouncement(announcement)}
-                  className="border-2 rounded-xl p-4 cursor-pointer transition-all"
-                  style={{
-                    backgroundColor: selectedAnnouncement?.id === announcement.id ? '#CCD5DA' : '#F0EEEB',
-                    borderColor: announcement.is_pinned ? '#FFBF65' : '#13181B'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (selectedAnnouncement?.id !== announcement.id) {
-                      e.currentTarget.style.backgroundColor = '#CCD5DA';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedAnnouncement?.id !== announcement.id) {
-                      e.currentTarget.style.backgroundColor = '#F0EEEB';
-                    }
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    {announcement.is_pinned && (
-                      <span className="text-xs font-bold px-2 py-1 rounded" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
-                        고정
-                      </span>
-                    )}
-                    <h3 className="font-bold text-sm" style={{ color: '#13181B' }}>
-                      {announcement.title}
-                    </h3>
-                  </div>
-                  <div className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
-                    {new Date(announcement.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* 공지 상세 */}
-            <div className="lg:col-span-2">
-              {selectedAnnouncement ? (
-                <div className="border-2 rounded-xl p-6" style={{ backgroundColor: '#F0EEEB', borderColor: '#13181B' }}>
-                  <div className="flex items-center gap-3 mb-4">
-                    {selectedAnnouncement.is_pinned && (
-                      <span className="text-xs font-bold px-2 py-1 rounded" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
-                        고정
-                      </span>
-                    )}
-                    <h2 className="text-2xl font-bold" style={{ color: '#13181B' }}>
-                      {selectedAnnouncement.title}
-                    </h2>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm mb-6 pb-4 border-b-2" style={{ color: '#13181B', opacity: 0.7, borderBottomColor: '#CCD5DA' }}>
-                    <span>{selectedAnnouncement.author_name}</span>
-                    <span>{new Date(selectedAnnouncement.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                    {selectedAnnouncement.updated_at !== selectedAnnouncement.created_at && (
-                      <span>(수정됨)</span>
-                    )}
-                  </div>
-                  <div className="prose max-w-none">
-                    <p className="whitespace-pre-wrap" style={{ color: '#13181B', lineHeight: '1.8' }}>
-                      {selectedAnnouncement.content}
-                    </p>
+          <div className="space-y-4">
+            {announcements.map((announcement) => (
+              <div
+                key={announcement.id}
+                className="rounded-xl p-6 transition-all shadow-sm cursor-pointer"
+                style={{
+                  backgroundColor: announcement.is_pinned ? '#CCD5DA' : '#FFFFFF'
+                }}
+                onClick={() => router.push(`/student/announcements/${announcement.id}`)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      {announcement.is_pinned && (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B' }}>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
+                      )}
+                      <h2 className="text-xl font-bold" style={{ color: '#13181B' }}>
+                        {announcement.title}
+                      </h2>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm" style={{ color: '#13181B', opacity: 0.7 }}>
+                      <span>{announcement.author_name}</span>
+                      <span>{new Date(announcement.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      {announcement.updated_at !== announcement.created_at && (
+                        <span>(수정됨)</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <div className="border-2 rounded-xl p-20 text-center" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
-                  <p style={{ color: '#13181B', opacity: 0.7 }}>공지사항을 선택해주세요.</p>
-                </div>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
         )}
+
       </div>
     </div>
   );

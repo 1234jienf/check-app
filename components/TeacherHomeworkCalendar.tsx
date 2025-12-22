@@ -291,8 +291,8 @@ export default function TeacherHomeworkCalendar() {
         } else {
           // 기존 숙제가 없으면 새로 추가
           const { error: insertError } = await supabase
-            .from("teacher_homework")
-            .insert(homeworkData);
+          .from("teacher_homework")
+          .insert(homeworkData);
           
           error = insertError;
           

@@ -7,12 +7,13 @@ import Link from "next/link";
 
 export default function NewGichulPage() {
   const [year, setYear] = useState(2026);
-  const [examType, setExamType] = useState(""); // 6월, 9월, 수능
+  const [examType, setExamType] = useState(""); // 3월, 4월, 6월, 7월, 9월, 10월, 수능
   const [literaryType, setLiteraryType] = useState("비문학"); // 문학 or 비문학
   const [subCategory, setSubCategory] = useState(""); // 인문, 사회, 과학 등
   const [source, setSource] = useState(""); // 출처
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [difficulty, setDifficulty] = useState(""); // 상, 중, 하
   const [showPreview, setShowPreview] = useState(false);
   const router = useRouter();
 
@@ -133,6 +134,7 @@ export default function NewGichulPage() {
           title,
           content,
           subject: subject,
+          difficulty: difficulty || null,
         },
       ])
       .select();
@@ -172,11 +174,11 @@ export default function NewGichulPage() {
           </Link>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
-            평가원 기출 지문 등록
+            기출 지문 등록
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
           </h1>
           </div>
-          <p style={{ color: '#13181B', opacity: 0.8 }}>수능 기출 문제의 지문을 등록합니다.</p>
+          <p style={{ color: '#13181B', opacity: 0.8 }}>기출 문제의 지문을 등록합니다.</p>
         </div>
 
         <div className="rounded-xl p-8 space-y-6 shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
@@ -210,10 +212,34 @@ export default function NewGichulPage() {
                 }}
                 onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
               >
+              <option value="">선택하세요</option>
+              <option value="3월">3월 모의평가</option>
+              <option value="4월">4월 모의평가</option>
+              <option value="6월">6월 모의평가</option>
+              <option value="7월">7월 모의평가</option>
+              <option value="9월">9월 모의평가</option>
+              <option value="10월">10월 모의평가</option>
+              <option value="수능">수능</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>난이도</label>
+              <select
+                value={difficulty}
+                onChange={(e) => setDifficulty(e.target.value)}
+                className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = categoryColor;
+                  e.currentTarget.style.outline = 'none';
+                }}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+              >
                 <option value="">선택하세요</option>
-                <option value="6월">6월 모의평가</option>
-                <option value="9월">9월 모의평가</option>
-                <option value="수능">수능</option>
+                <option value="상">상</option>
+                <option value="중">중</option>
+                <option value="하">하</option>
               </select>
             </div>
 

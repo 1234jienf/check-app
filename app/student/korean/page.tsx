@@ -67,7 +67,7 @@ export default function KoreanStudentPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold mb-1 relative inline-block pb-1" style={{ color: '#13181B' }}>
-                  평가원 기출
+                  기출
                   <span className="absolute bottom-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
                 </h2>
                 <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>수능 기출 지문</p>

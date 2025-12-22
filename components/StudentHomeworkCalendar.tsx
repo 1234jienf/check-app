@@ -287,15 +287,38 @@ export default function StudentHomeworkCalendar() {
             homeworkMap[dateStr].tasks = [...teacherTasks, ...homeworkMap[dateStr].tasks];
           } else {
             // daily_homework 레코드가 없으면 생성
-            const { data: newHomework } = await supabase
+            // 먼저 기존 숙제가 있는지 확인
+            const { data: existingHomework } = await supabase
               .from("daily_homework")
-              .insert({
-                student_id: studentId,
-                homework_date: dateStr,
-                subject: subjectToUse,
-              })
-              .select()
-              .single();
+              .select("*")
+              .eq("student_id", studentId)
+              .eq("homework_date", dateStr)
+              .maybeSingle();
+
+            let newHomework;
+            if (existingHomework) {
+              // 기존 숙제가 있으면 사용
+              newHomework = existingHomework;
+            } else {
+              // 기존 숙제가 없으면 새로 생성
+              const { data: insertedHomework, error: insertError } = await supabase
+                .from("daily_homework")
+                .insert({
+                  student_id: studentId,
+                  homework_date: dateStr,
+                  subject: subjectToUse,
+                })
+                .select()
+                .single();
+
+              if (insertError) {
+                console.error("daily_homework 생성 오류:", insertError);
+                // 에러가 발생해도 계속 진행 (이미 존재하는 경우일 수 있음)
+                newHomework = null;
+              } else {
+                newHomework = insertedHomework;
+              }
+            }
 
             if (newHomework) {
               homeworkMap[dateStr] = {
@@ -376,24 +399,47 @@ export default function StudentHomeworkCalendar() {
     setSaving(true);
     const dateStr = formatDate(selectedDate);
 
-    // daily_homework가 없으면 먼저 생성
+    // daily_homework가 없으면 먼저 생성 (이미 존재하는지 확인 후 upsert)
     let homework = homeworkData[dateStr];
     if (!homework) {
-      const { data: newHomework } = await supabase
+      // 먼저 기존 숙제가 있는지 확인
+      const { data: existingHomework } = await supabase
         .from("daily_homework")
-        .insert({
-          student_id: studentId,
-          homework_date: dateStr,
-          subject: currentSubject,
-        })
-        .select()
-        .single();
+        .select("*")
+        .eq("student_id", studentId)
+        .eq("homework_date", dateStr)
+        .maybeSingle();
+
+      let newHomework;
+      if (existingHomework) {
+        // 기존 숙제가 있으면 사용
+        newHomework = existingHomework;
+      } else {
+        // 기존 숙제가 없으면 새로 생성
+        const { data: insertedHomework, error: insertError } = await supabase
+          .from("daily_homework")
+          .insert({
+            student_id: studentId,
+            homework_date: dateStr,
+            subject: currentSubject,
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error("daily_homework 생성 오류:", insertError);
+          alert("숙제 생성에 실패했습니다: " + insertError.message);
+          setSaving(false);
+          return;
+        }
+        newHomework = insertedHomework;
+      }
 
       if (newHomework) {
         homework = {
           id: newHomework.id,
           homework_date: dateStr,
-          notes: "",
+          notes: newHomework.notes || "",
           tasks: [],
         };
         setHomeworkData({ ...homeworkData, [dateStr]: homework });

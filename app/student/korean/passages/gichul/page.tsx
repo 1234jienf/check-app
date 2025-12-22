@@ -184,7 +184,7 @@ export default function StudentGichulPassageList() {
           <div className="flex items-center gap-3">
             <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
-            평가원 기출
+            기출
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
           </h1>
           </div>
@@ -412,6 +412,11 @@ export default function StudentGichulPassageList() {
                                         {p.sub_category && (
                                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
                                             {p.sub_category.split(",").join(", ")}
+                                          </span>
+                                        )}
+                                        {p.difficulty && (
+                                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
+                                            {p.difficulty}
                                           </span>
                                         )}
                                       </div>

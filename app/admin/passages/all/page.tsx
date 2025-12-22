@@ -135,7 +135,7 @@ export default function AllPassagesPage() {
       case "EBS":
         return "EBS";
       case "기출":
-        return "평가원 기출";
+        return "기출";
       case "LEET":
         return "LEET";
       default:
@@ -220,7 +220,7 @@ export default function AllPassagesPage() {
             >
               <option value="all">전체</option>
               <option value="EBS">EBS</option>
-              <option value="기출">평가원 기출</option>
+              <option value="기출">기출</option>
               <option value="LEET">LEET</option>
               <option value="기타">기타</option>
             </select>
@@ -294,6 +294,11 @@ export default function AllPassagesPage() {
                               {p.sub_category && (
                                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: categoryColor, color: '#13181B' }}>
                                   {p.sub_category.split(",").join(", ")}
+                                </span>
+                              )}
+                              {p.difficulty && (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
+                                  {p.difficulty}
                                 </span>
                               )}
                             </div>

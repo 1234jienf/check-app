@@ -141,6 +141,7 @@ export default function StudentLayout({
     ...(selectedSubject === "english" ? [{ href: "/student/materials", label: "자료실", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "영어 단어장/문장/지문 해체" }] : []),
     { href: "/student/my-checkpoints", label: "내 체크포인트", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "작성한 체크포인트 확인" },
     { href: "/student/daily-homework", label: "일별 숙제 체크", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "일별 학습 계획 및 체크" },
+    { href: "/student/questions", label: "질문 게시판", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "문제 질문 및 답변" },
     { href: "/student/announcements", label: "공지사항", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "공지사항 확인" },
   ];
 
@@ -168,6 +169,11 @@ export default function StudentLayout({
     // /student/announcements는 정확히 일치하거나 하위 경로일 때만
     if (href === "/student/announcements") {
       return pathname.startsWith("/student/announcements");
+    }
+    
+    // /student/questions는 정확히 일치하거나 하위 경로일 때만
+    if (href === "/student/questions") {
+      return pathname.startsWith("/student/questions");
     }
     
     // /student/materials는 정확히 일치하거나 하위 경로일 때만

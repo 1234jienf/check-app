@@ -131,8 +131,8 @@ export default function AdminPassageDetail() {
         
         // paragraph로 정렬
         allSubmissions.sort((a: any, b: any) => {
-          const aPara = a.paragraph || a.paragraph_index || 0;
-          const bPara = b.paragraph || b.paragraph_index || 0;
+          const aPara = a.paragraph || 0;
+          const bPara = b.paragraph || 0;
           return aPara - bPara;
         });
         
@@ -273,17 +273,37 @@ export default function AdminPassageDetail() {
 
   const getCategoryColor = (category: string) => {
     if (category === "EBS") return '#E8F0F8';
-    if (category === "기출" || category === "평가원") return '#FFF5E8';
+    if (category === "기출") return '#FFF5E8';
     if (category === "LEET") return '#FFF0ED';
     return '#E8E9EA';
   };
 
   const categoryColor = getCategoryColor(passage.category);
 
+  // 카테고리에 따른 목록 페이지 경로
+  const getCategoryListPath = (category: string) => {
+    if (category === "EBS") return "/admin/passages/ebs";
+    if (category === "기출") return "/admin/passages/gichul";
+    if (category === "LEET") return "/admin/passages/leet";
+    return "/admin/passages/other";
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-6 lg:p-10" style={{ backgroundColor: '#F0EEEB' }}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 md:mb-8">
+          <Link
+            href={getCategoryListPath(passage.category)}
+            className="inline-flex items-center mb-4 transition-colors"
+            style={{ color: '#13181B' }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            지문 내역 보기
+          </Link>
           <div className="flex items-center gap-3 mb-2">
             <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
@@ -291,6 +311,9 @@ export default function AdminPassageDetail() {
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: `linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)`, borderRadius: '2px' }}></span>
           </h1>
           </div>
+          {passage.difficulty && (
+            <p className="text-sm mb-2" style={{ color: '#13181B', opacity: 0.9 }}>난이도 : {passage.difficulty}</p>
+          )}
           {passage.source && (
             <p className="text-sm mb-3" style={{ color: '#13181B', opacity: 0.9 }}>출처: {passage.source}</p>
           )}
@@ -404,7 +427,7 @@ export default function AdminPassageDetail() {
                   const category = passage.category;
                   if (category === "EBS") {
                     router.push("/admin/passages/ebs");
-                  } else if (category === "기출" || category === "평가원") {
+                  } else if (category === "기출") {
                     router.push("/admin/passages/gichul");
                   } else if (category === "LEET") {
                     router.push("/admin/passages/leet");
@@ -772,7 +795,7 @@ export default function AdminPassageDetail() {
                         // 해당 문단의 모든 attempt_number 제출 찾기
                         const submissions = studentData.submissions.filter(
                           (s: any) => {
-                            const paraNum = s.paragraph || s.paragraph_index;
+                            const paraNum = s.paragraph;
                             return paraNum === paragraphNum;
                           }
                         ).sort((a: any, b: any) => (a.attempt_number || 1) - (b.attempt_number || 1));

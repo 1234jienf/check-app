@@ -12,7 +12,7 @@ function PassagesRedirect() {
   useEffect(() => {
     if (type === "EBS") {
       router.replace("/student/passages/ebs");
-    } else if (type === "기출" || type === "평가원") {
+    } else if (type === "기출") {
       router.replace("/student/passages/gichul");
     } else if (type === "LEET") {
       router.replace("/student/passages/leet");

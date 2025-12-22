@@ -19,6 +19,7 @@ export default function StudentDetail() {
   const [studentInfo, setStudentInfo] = useState<any>(null);
   const [studentSubjects, setStudentSubjects] = useState<string[]>([]);
   const [isEditingSubjects, setIsEditingSubjects] = useState(false);
+  const [expandedParagraphs, setExpandedParagraphs] = useState<Record<number, boolean>>({});
 
   // 학생 정보 및 과목 불러오기
   useEffect(() => {
@@ -181,7 +182,7 @@ export default function StudentDetail() {
 
   const getCategoryColor = (category: string) => {
     if (category === "EBS") return '#E8F0F8';
-    if (category === "기출" || category === "평가원") return '#FFF5E8';
+    if (category === "기출") return '#FFF5E8';
     if (category === "LEET") return '#FFF0ED';
     return '#E8E9EA';
   };
@@ -329,6 +330,9 @@ export default function StudentDetail() {
         {passage && (
           <div className="mb-4 md:mb-6">
             <h2 className="text-xl md:text-2xl font-semibold mb-2" style={{ color: '#13181B' }}>{passage.title}</h2>
+            {passage.difficulty && (
+              <p className="text-sm mb-1" style={{ color: '#13181B', opacity: 0.9 }}>난이도 : {passage.difficulty}</p>
+            )}
             {passage.source && (
               <p className="text-sm" style={{ color: '#13181B', opacity: 0.9 }}>출처: {passage.source}</p>
             )}
@@ -341,10 +345,13 @@ export default function StudentDetail() {
             const paragraphNum = idx + 1;
             const checkpoint = checkpoints.find(
               (cp: any) => {
-                const paraNum = cp.paragraph_index || cp.paragraph;
+                const paraNum = cp.paragraph;
                 return paraNum === paragraphNum;
               }
             );
+
+            const isExpanded = expandedParagraphs[paragraphNum] || false;
+            const passagePath = `/admin/passages/${passageId}`;
 
             return (
               <div key={idx} className="rounded-xl p-4 md:p-6 shadow-sm mb-4 md:mb-6 transition-all duration-300" style={{ backgroundColor: '#FFFFFF' }}
@@ -354,16 +361,53 @@ export default function StudentDetail() {
                    onMouseLeave={(e) => {
                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
                    }}>
-                <h3 className="text-lg font-bold mb-4 pb-3 border-b-2" style={{ color: '#13181B', borderBottomColor: '#CCD5DA' }}>
-                  {paragraphNum}문단
-                </h3>
-
-                {/* 문단 내용 */}
-                <div className="mb-4 p-4 rounded-xl shadow-sm" style={{ backgroundColor: '#CCD5DA' }}>
-                  <div className="whitespace-pre-wrap text-sm" style={{ color: '#13181B' }}>
-                    {paragraph.trim()}
-                  </div>
+                <div className="flex items-center justify-between mb-4 pb-3 border-b-2" style={{ borderBottomColor: '#CCD5DA' }}>
+                  <h3 className="text-lg font-bold" style={{ color: '#13181B' }}>
+                    {paragraphNum}문단
+                  </h3>
+                  <button
+                    onClick={() => setExpandedParagraphs({ ...expandedParagraphs, [paragraphNum]: !isExpanded })}
+                    className="p-1 rounded transition-all"
+                    style={{ color: '#13181B' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F0EEEB'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <svg
+                      className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
                 </div>
+
+                {/* 문단 내용 - 접기/펼치기 */}
+                {isExpanded && (
+                  <div className="mb-4">
+                    <Link
+                      href={passagePath}
+                      className="block p-4 rounded-xl shadow-sm mb-3 transition-all cursor-pointer"
+                      style={{ backgroundColor: '#F0EEEB' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#CCD5DA';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#F0EEEB';
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold" style={{ color: '#13181B' }}>
+                          지문으로 이동하여 문단 내용 확인
+                        </span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B' }}>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </div>
+                    </Link>
+                  </div>
+                )}
 
                 {/* 학생 체크포인트 */}
                 {checkpoint ? (

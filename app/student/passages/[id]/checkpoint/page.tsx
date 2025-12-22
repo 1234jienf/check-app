@@ -243,10 +243,10 @@ export default function StudentCheckpointPage() {
   ) => {
     setStudentCheckpoints((prev) => {
       const defaultCheckpoint: { checkpoint: string; hasCheckpoint: boolean; dontKnow: boolean; reason: string; category: string } = {
-        checkpoint: "",
-        hasCheckpoint: true,
-        dontKnow: false,
-        reason: "",
+          checkpoint: "",
+          hasCheckpoint: true,
+          dontKnow: false,
+          reason: "",
         category: "미시",
       };
       
@@ -254,10 +254,10 @@ export default function StudentCheckpointPage() {
         ...prev,
         [paragraph]: {
           ...(prev[paragraph] || defaultCheckpoint),
-          [field]: value,
-          // 체크포인트 없음으로 변경하면 모름과 이유 초기화
-          ...(field === "hasCheckpoint" && value === false ? { dontKnow: false, reason: "" } : {}),
-        },
+        [field]: value,
+        // 체크포인트 없음으로 변경하면 모름과 이유 초기화
+        ...(field === "hasCheckpoint" && value === false ? { dontKnow: false, reason: "" } : {}),
+      },
       };
     });
   };
@@ -453,7 +453,7 @@ export default function StudentCheckpointPage() {
   // 카테고리에 따라 올바른 목록 페이지로 이동
   const getCategoryPath = (category: string) => {
     if (category === "EBS") return "/student/passages/ebs";
-    if (category === "기출" || category === "평가원") return "/student/passages/gichul";
+    if (category === "기출") return "/student/passages/gichul";
     if (category === "LEET") return "/student/passages/leet";
     if (category === "기타") return "/student/passages/other";
     return "/student";
@@ -488,6 +488,9 @@ export default function StudentCheckpointPage() {
                   <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
           </h1>
               </div>
+              {passage.difficulty && (
+                <p className="text-sm mb-2" style={{ color: '#13181B', opacity: 0.9 }}>난이도 : {passage.difficulty}</p>
+              )}
         </div>
 
         {/* attempt_number 선택 UI */}
