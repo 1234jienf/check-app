@@ -803,6 +803,46 @@ export default function AdminPage() {
                           <div className="font-bold mb-1" style={{ color: '#13181B' }}>{s.name}</div>
                           <div className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>{s.email}</div>
                         </div>
+                        {!isEditing && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`${s.name} 학생을 탈퇴시키시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 다음 데이터가 모두 삭제됩니다:\n- 작성한 질문 및 댓글\n- 체크포인트 기록\n- 일별 숙제 기록\n- 시험 결과`)) {
+                                return;
+                              }
+                              
+                              if (!confirm(`정말로 ${s.name} 학생을 탈퇴시키시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+                                return;
+                              }
+                              
+                              try {
+                                // 학생 계정 삭제 (CASCADE로 관련 데이터 자동 삭제)
+                                const { error } = await supabase
+                                  .from("users")
+                                  .delete()
+                                  .eq("id", s.id)
+                                  .eq("role", "student");
+                                
+                                if (error) {
+                                  alert("학생 삭제 실패: " + error.message);
+                                } else {
+                                  alert(`${s.name} 학생이 탈퇴 처리되었습니다.`);
+                                  // 목록 새로고침
+                                  fetchApproved();
+                                  fetchAllApproved();
+                                }
+                              } catch (err: any) {
+                                alert("학생 삭제 중 오류가 발생했습니다: " + err.message);
+                              }
+                            }}
+                            className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
+                            style={{ backgroundColor: '#DC2626', color: '#FFFFFF' }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                            title="학생 탈퇴 (관련 데이터 모두 삭제)"
+                          >
+                            탈퇴
+                          </button>
+                        )}
                       </div>
                       
                       {isEditing ? (

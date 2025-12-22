@@ -624,7 +624,7 @@ export default function StudentHomeworkCalendar() {
       </div>
 
       {/* 달력 그리드 */}
-      <div className="grid grid-cols-7 gap-0.5 mb-6">
+      <div className="grid grid-cols-7 gap-0.5 mb-4 max-w-2xl mx-auto">
         {days.map((date, idx) => {
           const dateStr = formatDate(date);
           const homework = homeworkData[dateStr];
@@ -636,7 +636,7 @@ export default function StudentHomeworkCalendar() {
             <button
               key={idx}
               onClick={() => handleDateClick(date)}
-              className="relative aspect-square flex flex-col items-center justify-center text-xs rounded-lg transition-all border-2 p-1"
+              className="relative aspect-square flex flex-col items-center justify-center text-[10px] rounded transition-all border p-0.5"
               style={!isCurrentMonth(date) ? {
                 color: '#13181B',
                 opacity: 0.4,
@@ -668,20 +668,20 @@ export default function StudentHomeworkCalendar() {
                 e.currentTarget.style.boxShadow = 'none';
               }}
             >
-              <span className="text-xs font-medium">{date.getDate()}</span>
+              <span className="text-[10px] font-medium leading-tight">{date.getDate()}</span>
               {hasTasks && (
-                <div className="flex gap-0.5 mt-1">
+                <div className="flex gap-0.5 mt-0.5">
                   {homework.tasks.slice(0, 3).map((task, taskIdx) => (
                     <div
                       key={taskIdx}
-                      className="w-1 h-1 rounded-full"
+                      className="w-0.5 h-0.5 rounded-full"
                       style={{
                         backgroundColor: task.is_completed ? '#13181B' : '#CCD5DA'
                       }}
                     />
                   ))}
                   {homework.tasks.length > 3 && (
-                    <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#CCD5DA', opacity: 0.5 }} />
+                    <div className="w-0.5 h-0.5 rounded-full" style={{ backgroundColor: '#CCD5DA', opacity: 0.5 }} />
                   )}
                 </div>
               )}
@@ -692,8 +692,8 @@ export default function StudentHomeworkCalendar() {
 
       {/* 선택된 날짜의 할 일 목록 */}
       {selectedDate && (
-        <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-          <h3 className="text-lg font-bold mb-4" style={{ color: '#13181B' }}>
+        <div className="rounded-xl p-4 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+          <h3 className="text-base font-bold mb-3" style={{ color: '#13181B' }}>
             {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 할 일
           </h3>
 

@@ -433,7 +433,7 @@ export default function AdminHomeworkCalendar() {
       </div>
 
       {/* 달력 그리드 */}
-      <div className="grid grid-cols-7 gap-0.5 mb-6">
+      <div className="grid grid-cols-7 gap-0.5 mb-4 max-w-2xl mx-auto">
         {days.map((date, idx) => {
           const dateStr = formatDate(date);
           const homeworks = homeworkData[dateStr] || [];
@@ -445,7 +445,7 @@ export default function AdminHomeworkCalendar() {
             <button
               key={idx}
               onClick={() => handleDateClick(date)}
-              className="relative aspect-square flex flex-col items-center justify-center text-xs rounded-lg transition-all border-2 p-1"
+              className="relative aspect-square flex flex-col items-center justify-center text-[10px] rounded transition-all border p-0.5"
               style={!isCurrentMonth(date) ? {
                 color: '#13181B',
                 opacity: 0.4,
@@ -477,12 +477,12 @@ export default function AdminHomeworkCalendar() {
                 e.currentTarget.style.boxShadow = 'none';
               }}
             >
-              <span className="text-xs font-medium">{date.getDate()}</span>
+              <span className="text-[10px] font-medium leading-tight">{date.getDate()}</span>
               {hasHomework && (
-                <div className="mt-1 text-[10px]" style={{ color: '#13181B', opacity: 0.7 }}>
+                <div className="mt-0.5 text-[8px] leading-tight" style={{ color: '#13181B', opacity: 0.7 }}>
                   {homeworks.length}명
                   {completedCount > 0 && (
-                    <span className="ml-1" style={{ color: '#13181B' }}>✓{completedCount}</span>
+                    <span className="ml-0.5" style={{ color: '#13181B' }}>✓{completedCount}</span>
                   )}
                 </div>
               )}
@@ -493,8 +493,8 @@ export default function AdminHomeworkCalendar() {
 
       {/* 선택된 날짜의 학생별 할 일 목록 */}
       {selectedDate && (
-        <div className="rounded-xl p-4 sm:p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-          <h3 className="text-lg font-bold mb-4" style={{ color: '#13181B' }}>
+        <div className="rounded-xl p-4 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+          <h3 className="text-base font-bold mb-3" style={{ color: '#13181B' }}>
             {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 학생 할 일
           </h3>
 

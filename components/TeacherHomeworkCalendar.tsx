@@ -418,7 +418,7 @@ export default function TeacherHomeworkCalendar() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
       {/* 왼쪽: 달력 */}
       <div className="lg:col-span-1">
-        <div className="rounded-xl md:rounded-2xl p-3 md:p-5 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+        <div className="rounded-xl md:rounded-2xl p-3 md:p-4 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={prevMonth}
@@ -437,7 +437,7 @@ export default function TeacherHomeworkCalendar() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h3 className="text-base md:text-lg font-semibold" style={{ color: '#13181B' }}>
+            <h3 className="text-sm md:text-base font-semibold" style={{ color: '#13181B' }}>
               {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
             </h3>
             <button
@@ -459,15 +459,15 @@ export default function TeacherHomeworkCalendar() {
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 mb-2">
+          <div className="grid grid-cols-7 gap-0.5 mb-1">
             {weekDays.map((day) => (
-              <div key={day} className="text-center text-xs font-semibold py-1" style={{ color: '#13181B', opacity: 0.7 }}>
+              <div key={day} className="text-center text-[10px] font-semibold py-1" style={{ color: '#13181B', opacity: 0.7 }}>
                 {day}
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-0.5">
             {days.map((date, idx) => {
               const dateStr = formatDate(date);
               const hasHomework = homeworks[dateStr]?.some(h => h.subject === selectedSubject);
@@ -477,7 +477,7 @@ export default function TeacherHomeworkCalendar() {
                 <button
                   key={idx}
                   onClick={() => setSelectedDate(date)}
-                  className="relative aspect-square text-sm rounded-lg transition-all"
+                  className="relative aspect-square text-[10px] rounded transition-all p-0.5"
                   style={!isCurrentMonth(date) ? {
                     color: '#CCD5DA',
                     backgroundColor: 'transparent'
@@ -514,9 +514,9 @@ export default function TeacherHomeworkCalendar() {
                     }
                   }}
                 >
-                  <span>{date.getDate()}</span>
+                  <span className="text-[10px] leading-tight">{date.getDate()}</span>
                   {hasHomework && !isSelected && (
-                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#FFBF65' }}></div>
+                    <div className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full" style={{ backgroundColor: '#FFBF65' }}></div>
                   )}
                 </button>
               );
