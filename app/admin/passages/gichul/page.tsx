@@ -139,7 +139,7 @@ export default function GichulPassageList() {
     });
   };
 
-  const nonLiteraryCategories = ["인문", "사회", "과학", "기술", "예술", "복합", "독서"];
+  const nonLiteraryCategories = ["인문", "예술", "법", "경제", "과학", "기술", "복합", "국어", "독서"];
   const literaryCategories = ["현대시", "고전시가", "현대소설", "고전소설", "고전수필", "수필", "희곡"];
 
   const getSubCategoryOptions = () => {
