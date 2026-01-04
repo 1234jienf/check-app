@@ -15,10 +15,15 @@ export default function NewGichulPage() {
   const [content, setContent] = useState("");
   const [difficulty, setDifficulty] = useState(""); // 상, 중, 하
   const [showPreview, setShowPreview] = useState(false);
+  const [isEnglish, setIsEnglish] = useState(false);
   const router = useRouter();
 
   // URL 파라미터 또는 sessionStorage에서 파싱된 지문 정보 가져오기
   useEffect(() => {
+    // 영어 과목 확인
+    const selectedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : null;
+    setIsEnglish(selectedSubject === 'english');
+
     const urlParams = new URLSearchParams(window.location.search);
     let parsedTitle = urlParams.get("title");
     let parsedSource = urlParams.get("source");
@@ -127,8 +132,8 @@ export default function NewGichulPage() {
         {
           category: "기출",
           exam_type: examType || null,
-          literary_type: literaryType,
-          sub_category: subCategory || null,
+          literary_type: isEnglish ? null : literaryType,
+          sub_category: isEnglish ? null : (subCategory || null),
           year,
           source,
           title,
@@ -243,54 +248,58 @@ export default function NewGichulPage() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>문학/비문학 *</label>
-              <select
-                value={literaryType}
-                onChange={(e) => {
-                  setLiteraryType(e.target.value);
-                  setSubCategory("");
-                }}
-                className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
-                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = categoryColor;
-                  e.currentTarget.style.outline = 'none';
-                }}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-              >
-                <option value="비문학">비문학</option>
-                <option value="문학">문학</option>
-              </select>
-            </div>
+            {!isEnglish && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>문학/비문학 *</label>
+                  <select
+                    value={literaryType}
+                    onChange={(e) => {
+                      setLiteraryType(e.target.value);
+                      setSubCategory("");
+                    }}
+                    className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                    style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = categoryColor;
+                      e.currentTarget.style.outline = 'none';
+                    }}
+                    onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                  >
+                    <option value="비문학">비문학</option>
+                    <option value="문학">문학</option>
+                  </select>
+                </div>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>세부 카테고리 *</label>
-              <select
-                value={subCategory}
-                onChange={(e) => setSubCategory(e.target.value)}
-                className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
-                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = categoryColor;
-                  e.currentTarget.style.outline = 'none';
-                }}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-              >
-                <option value="">선택하세요</option>
-                {literaryType === "비문학"
-                  ? nonLiteraryCategories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))
-                  : literaryCategories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-              </select>
-            </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>세부 카테고리 *</label>
+                  <select
+                    value={subCategory}
+                    onChange={(e) => setSubCategory(e.target.value)}
+                    className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                    style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = categoryColor;
+                      e.currentTarget.style.outline = 'none';
+                    }}
+                    onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                  >
+                    <option value="">선택하세요</option>
+                    {literaryType === "비문학"
+                      ? nonLiteraryCategories.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))
+                      : literaryCategories.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                  </select>
+                </div>
+              </>
+            )}
 
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>출처 *</label>

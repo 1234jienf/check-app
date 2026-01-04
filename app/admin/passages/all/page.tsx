@@ -286,12 +286,12 @@ export default function AllPassagesPage() {
                             </h2>
                             
                             <div className="flex flex-wrap items-center gap-2 mb-3">
-                              {p.literary_type && (
+                              {selectedSubject !== "english" && p.literary_type && (
                                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
                                   {p.literary_type}
                                 </span>
                               )}
-                              {p.sub_category && (
+                              {selectedSubject !== "english" && p.sub_category && (
                                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: categoryColor, color: '#13181B' }}>
                                   {p.sub_category.split(",").join(", ")}
                                 </span>

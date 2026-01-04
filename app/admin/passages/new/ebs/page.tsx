@@ -16,10 +16,15 @@ export default function NewEBSPage() {
   const [content, setContent] = useState("");
   const [difficulty, setDifficulty] = useState(""); // 상, 중, 하
   const [showPreview, setShowPreview] = useState(false);
+  const [isEnglish, setIsEnglish] = useState(false);
   const router = useRouter();
 
   // URL 파라미터 또는 sessionStorage에서 파싱된 지문 정보 가져오기
   useEffect(() => {
+    // 영어 과목 확인
+    const selectedSubject = typeof window !== 'undefined' ? sessionStorage.getItem('adminSelectedSubject') : null;
+    setIsEnglish(selectedSubject === 'english');
+
     const urlParams = new URLSearchParams(window.location.search);
     let parsedTitle = urlParams.get("title");
     let parsedSource = urlParams.get("source");
@@ -188,8 +193,8 @@ export default function NewEBSPage() {
         {
           category: "EBS",
           ebs_type: ebsType,
-          literary_type: literaryType,
-          sub_category: subCategoryStr, // 비문학: 단일 값, 문학: 쉼표로 구분된 문자열 (예: "고전시가,고전수필")
+          literary_type: isEnglish ? null : literaryType,
+          sub_category: isEnglish ? null : subCategoryStr, // 비문학: 단일 값, 문학: 쉼표로 구분된 문자열 (예: "고전시가,고전수필")
           year,
           subject: subject, // korean 또는 english
           source,
@@ -261,82 +266,86 @@ export default function NewEBSPage() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>문학/비문학 *</label>
-              <select
-                value={literaryType}
-                onChange={(e) => {
-                  setLiteraryType(e.target.value);
-                  setSubCategory("");
-                  setSubCategories([]);
-                }}
-                className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
-                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#003A6C';
-                  e.currentTarget.style.outline = 'none';
-                }}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-              >
-                <option value="비문학">비문학</option>
-                <option value="문학">문학</option>
-              </select>
-            </div>
+            {!isEnglish && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>문학/비문학 *</label>
+                  <select
+                    value={literaryType}
+                    onChange={(e) => {
+                      setLiteraryType(e.target.value);
+                      setSubCategory("");
+                      setSubCategories([]);
+                    }}
+                    className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                    style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#003A6C';
+                      e.currentTarget.style.outline = 'none';
+                    }}
+                    onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                  >
+                    <option value="비문학">비문학</option>
+                    <option value="문학">문학</option>
+                  </select>
+                </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>
-                세부 카테고리 * {literaryType === "문학" && "(복수 선택 가능)"}
-              </label>
-              {literaryType === "비문학" ? (
-                <select
-                  value={subCategory}
-                  onChange={(e) => setSubCategory(e.target.value)}
-                  className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
-                  style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#003A6C';
-                    e.currentTarget.style.outline = 'none';
-                  }}
-                  onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-                >
-                  <option value="">선택하세요</option>
-                  {nonLiteraryCategories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <>
-                  <div className="border-2 rounded-xl p-4 max-h-48 overflow-y-auto" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
-                    {literaryCategories.map((cat) => (
-                      <label key={cat} className="flex items-center gap-2 py-2 cursor-pointer rounded px-2 transition-colors"
-                             style={{ color: '#13181B' }}
-                             onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)'}
-                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                        <input
-                          type="checkbox"
-                          checked={subCategories.includes(cat)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSubCategories([...subCategories, cat]);
-                            } else {
-                              setSubCategories(subCategories.filter((c) => c !== cat));
-                            }
-                          }}
-                          className="cursor-pointer w-4 h-4 rounded"
-                          style={{ accentColor: '#003A6C' }}
-                        />
-                        <span className="text-sm">{cat}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {subCategories.length > 0 && (
-                    <p className="text-xs mt-2" style={{ color: '#13181B', opacity: 0.7 }}>선택됨: {subCategories.join(", ")}</p>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>
+                    세부 카테고리 * {literaryType === "문학" && "(복수 선택 가능)"}
+                  </label>
+                  {literaryType === "비문학" ? (
+                    <select
+                      value={subCategory}
+                      onChange={(e) => setSubCategory(e.target.value)}
+                      className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                      style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#003A6C';
+                        e.currentTarget.style.outline = 'none';
+                      }}
+                      onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                    >
+                      <option value="">선택하세요</option>
+                      {nonLiteraryCategories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <>
+                      <div className="border-2 rounded-xl p-4 max-h-48 overflow-y-auto" style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA' }}>
+                        {literaryCategories.map((cat) => (
+                          <label key={cat} className="flex items-center gap-2 py-2 cursor-pointer rounded px-2 transition-colors"
+                                 style={{ color: '#13181B' }}
+                                 onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)'}
+                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                            <input
+                              type="checkbox"
+                              checked={subCategories.includes(cat)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSubCategories([...subCategories, cat]);
+                                } else {
+                                  setSubCategories(subCategories.filter((c) => c !== cat));
+                                }
+                              }}
+                              className="cursor-pointer w-4 h-4 rounded"
+                              style={{ accentColor: '#003A6C' }}
+                            />
+                            <span className="text-sm">{cat}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {subCategories.length > 0 && (
+                        <p className="text-xs mt-2" style={{ color: '#13181B', opacity: 0.7 }}>선택됨: {subCategories.join(", ")}</p>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
 
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>연도 *</label>

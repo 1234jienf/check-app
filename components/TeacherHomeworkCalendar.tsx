@@ -11,7 +11,6 @@ interface TeacherHomework {
   content?: string; // 국어용 줄글
   vocabulary_id?: string; // 영어용 단어장 ID
   sentence_example_id?: string; // 영어용 문장 예제 ID
-  passage_analysis_id?: string; // 영어용 지문 해체 ID
   student_ids?: string[]; // 지정 학생 ID 배열, null이면 전체
 }
 
@@ -25,7 +24,6 @@ export default function TeacherHomeworkCalendar() {
     content: "",
     vocabulary_id: null as string | null,
     sentence_example_id: null as string | null,
-    passage_analysis_id: null as string | null,
     student_ids: null as string[] | null, // null이면 전체, 배열이면 지정 학생
   });
   const [editingHomework, setEditingHomework] = useState<TeacherHomework | null>(null);
@@ -36,7 +34,6 @@ export default function TeacherHomeworkCalendar() {
   // 영어 자료 목록
   const [vocabularies, setVocabularies] = useState<any[]>([]);
   const [sentenceExamples, setSentenceExamples] = useState<any[]>([]);
-  const [passageAnalyses, setPassageAnalyses] = useState<any[]>([]);
 
   // 세션에서 선택한 과목 불러오기
   useEffect(() => {
@@ -123,10 +120,9 @@ export default function TeacherHomeworkCalendar() {
       if (!teacherId || selectedSubject !== "english") return;
 
       try {
-        const [vocabData, sentenceData, passageData] = await Promise.all([
+        const [vocabData, sentenceData] = await Promise.all([
           supabase.from("english_vocabulary").select("*").eq("teacher_id", teacherId).order("created_at", { ascending: false }),
           supabase.from("english_sentence_examples").select("*").eq("teacher_id", teacherId).order("created_at", { ascending: false }),
-          supabase.from("english_passage_analysis").select("*").eq("teacher_id", teacherId).order("created_at", { ascending: false }),
         ]);
 
         if (!vocabData.error && vocabData.data) {
@@ -134,9 +130,6 @@ export default function TeacherHomeworkCalendar() {
         }
         if (!sentenceData.error && sentenceData.data) {
           setSentenceExamples(sentenceData.data);
-        }
-        if (!passageData.error && passageData.data) {
-          setPassageAnalyses(passageData.data);
         }
       } catch (err) {
       }
@@ -228,8 +221,8 @@ export default function TeacherHomeworkCalendar() {
     }
 
     if (formData.subject === "english") {
-      if (!formData.vocabulary_id && !formData.sentence_example_id && !formData.passage_analysis_id) {
-        alert("영어 숙제는 단어장, 문장 예제, 지문 해체 중 하나 이상을 선택해주세요.");
+      if (!formData.vocabulary_id && !formData.sentence_example_id) {
+        alert("영어 숙제는 단어장 또는 문장 예제 중 하나 이상을 선택해주세요.");
         return;
       }
     }
@@ -245,7 +238,6 @@ export default function TeacherHomeworkCalendar() {
         content: formData.subject === "korean" ? formData.content.trim() : null,
         vocabulary_id: formData.subject === "english" ? formData.vocabulary_id : null,
         sentence_example_id: formData.subject === "english" ? formData.sentence_example_id : null,
-        passage_analysis_id: formData.subject === "english" ? formData.passage_analysis_id : null,
         student_ids: studentIds,
       };
 
@@ -310,7 +302,6 @@ export default function TeacherHomeworkCalendar() {
             content: "",
             vocabulary_id: null,
             sentence_example_id: null,
-            passage_analysis_id: null,
             student_ids: null,
           });
           setStudentSelectionMode("all");
@@ -377,7 +368,6 @@ export default function TeacherHomeworkCalendar() {
       content: homework.content || "",
       vocabulary_id: homework.vocabulary_id || null,
       sentence_example_id: homework.sentence_example_id || null,
-      passage_analysis_id: homework.passage_analysis_id || null,
       student_ids: studentIds,
     });
     setStudentSelectionMode(studentIds === null ? "all" : "select");
@@ -391,7 +381,6 @@ export default function TeacherHomeworkCalendar() {
       content: "",
       vocabulary_id: null,
       sentence_example_id: null,
-      passage_analysis_id: null,
       student_ids: null,
     });
     setStudentSelectionMode("all");
@@ -690,31 +679,6 @@ export default function TeacherHomeworkCalendar() {
                       </select>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-medium mb-1" style={{ color: '#13181B' }}>
-                        지문 해체 선택 (선택사항)
-                      </label>
-                      <select
-                        value={formData.passage_analysis_id || ""}
-                        onChange={(e) => setFormData({ ...formData, passage_analysis_id: e.target.value || null })}
-                        className="w-full px-3 py-2 text-sm border-2 rounded-lg transition-all"
-                        style={{ backgroundColor: '#FFFFFF', borderColor: '#CCD5DA', color: '#13181B' }}
-                        onFocus={(e) => {
-                          e.currentTarget.style.borderColor = '#13181B';
-                          e.currentTarget.style.outline = 'none';
-                        }}
-                        onBlur={(e) => {
-                          e.currentTarget.style.borderColor = '#CCD5DA';
-                        }}
-                      >
-                        <option value="">지문 해체를 선택하세요 (선택사항)</option>
-                        {passageAnalyses.map((passage) => (
-                          <option key={passage.id} value={passage.id}>
-                            {passage.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                   </>
                 )}
 
@@ -800,9 +764,6 @@ export default function TeacherHomeworkCalendar() {
                               )}
                               {homework.sentence_example_id && (
                                 <div>문장 예제: 선택됨</div>
-                              )}
-                              {homework.passage_analysis_id && (
-                                <div>지문 해체: 선택됨</div>
                               )}
                             </div>
                           )}

@@ -666,7 +666,81 @@ export default function AdminPage() {
         {/* 승인 관리 탭 */}
         {activeTab === "approval" && (
               <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-            <h2 className="text-2xl font-bold mb-4" style={{ color: '#13181B' }}>승인 대기 학생</h2>
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold mb-4" style={{ color: '#13181B' }}>승인 대기 학생</h2>
+              
+              {/* Auth 사용자 삭제 도구 */}
+              <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: '#FFF5E8', border: '1px solid #FFE4B5' }}>
+                <h3 className="text-sm font-semibold mb-2" style={{ color: '#13181B' }}>
+                  🔧 Auth 사용자 삭제 도구
+                </h3>
+                <p className="text-xs mb-3" style={{ color: '#13181B', opacity: 0.8 }}>
+                  users 테이블에는 없지만 Auth에만 남아있는 사용자를 삭제할 수 있습니다.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    id="auth-delete-email"
+                    placeholder="이메일 입력"
+                    className="flex-1 px-3 py-2 text-sm rounded-lg border-2"
+                    style={{ borderColor: '#CCD5DA', color: '#13181B' }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        const button = document.getElementById('auth-delete-btn') as HTMLButtonElement;
+                        button?.click();
+                      }
+                    }}
+                  />
+                  <button
+                    id="auth-delete-btn"
+                    onClick={async () => {
+                      const emailInput = document.getElementById('auth-delete-email') as HTMLInputElement;
+                      const email = emailInput?.value.trim();
+                      
+                      if (!email) {
+                        alert("이메일을 입력해주세요.");
+                        return;
+                      }
+                      
+                      if (!confirm(`이 이메일(${email})의 Auth 사용자를 삭제하시겠습니까?\n\n(users 테이블에는 없지만 Auth에만 남아있는 경우에 사용합니다.)`)) {
+                        return;
+                      }
+                      
+                      try {
+                        const response = await fetch('/api/delete-auth-user-by-email', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({ email }),
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                          alert(`✅ Auth 사용자가 삭제되었습니다.\n\n이제 ${email}로 재가입이 가능합니다.`);
+                          emailInput.value = '';
+                        } else {
+                          if (result.error?.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+                            alert(`❌ 삭제 실패\n\nService Role Key가 설정되지 않았습니다.\n\nSupabase 대시보드에서 직접 삭제해주세요:\n1. Authentication > Users\n2. 이메일로 검색\n3. 삭제`);
+                          } else {
+                            alert(`❌ 삭제 실패: ${result.error || '알 수 없는 오류'}\n\nSupabase 대시보드에서 직접 삭제해주세요.`);
+                          }
+                        }
+                      } catch (err: any) {
+                        alert(`❌ 오류 발생: ${err.message}\n\nService Role Key가 설정되어 있는지 확인해주세요.`);
+                      }
+                    }}
+                    className="px-4 py-2 text-sm font-semibold rounded-lg transition-colors"
+                    style={{ backgroundColor: '#DC2626', color: '#FFFFFF' }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                  >
+                    Auth 사용자 삭제
+                  </button>
+                </div>
+              </div>
+            </div>
             {pendingStudents.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-lg" style={{ color: '#13181B', opacity: 0.8 }}>승인 대기 중인 학생이 없습니다.</p>
@@ -815,7 +889,38 @@ export default function AdminPage() {
                               }
                               
                               try {
-                                // 학생 계정 삭제 (CASCADE로 관련 데이터 자동 삭제)
+                                // 1) Supabase Auth에서 사용자 삭제
+                                let authDeleted = false;
+                                try {
+                                  const deleteAuthResponse = await fetch('/api/delete-auth-user', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({ userId: s.id }),
+                                  });
+
+                                  if (deleteAuthResponse.ok) {
+                                    authDeleted = true;
+                                  } else {
+                                    const authError = await deleteAuthResponse.json();
+                                    // Service Role Key가 없으면 경고만 표시
+                                    if (authError.error?.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+                                      alert(`⚠️ 경고: Auth 사용자 삭제 실패\n\nService Role Key가 설정되지 않아 Auth 사용자를 자동 삭제할 수 없습니다.\n\nSupabase 대시보드에서 수동으로 삭제해주세요:\n1. Authentication > Users\n2. 이메일: ${s.email}\n3. 삭제\n\nusers 테이블 삭제는 계속 진행됩니다.`);
+                                    } else {
+                                      console.warn('Auth 사용자 삭제 실패:', authError);
+                                      // 404는 이미 삭제된 경우이므로 무시
+                                      if (deleteAuthResponse.status !== 404) {
+                                        alert(`⚠️ 경고: Auth 사용자 삭제 실패\n\n${authError.error || '알 수 없는 오류'}\n\nSupabase 대시보드에서 수동으로 삭제해주세요.\n\nusers 테이블 삭제는 계속 진행됩니다.`);
+                                      }
+                                    }
+                                  }
+                                } catch (authErr: any) {
+                                  console.error('Auth 삭제 API 호출 실패:', authErr);
+                                  alert(`⚠️ 경고: Auth 사용자 삭제 API 호출 실패\n\n${authErr.message}\n\nSupabase 대시보드에서 수동으로 삭제해주세요.\n\nusers 테이블 삭제는 계속 진행됩니다.`);
+                                }
+
+                                // 2) 데이터베이스에서 학생 계정 삭제 (CASCADE로 관련 데이터 자동 삭제)
                                 const { error } = await supabase
                                   .from("users")
                                   .delete()
@@ -825,7 +930,11 @@ export default function AdminPage() {
                                 if (error) {
                                   alert("학생 삭제 실패: " + error.message);
                                 } else {
-                                  alert(`${s.name} 학생이 탈퇴 처리되었습니다.`);
+                                  if (authDeleted) {
+                                    alert(`${s.name} 학생이 완전히 탈퇴 처리되었습니다.\n\n(Auth 사용자와 users 테이블 모두 삭제됨)`);
+                                  } else {
+                                    alert(`${s.name} 학생이 탈퇴 처리되었습니다.\n\n⚠️ 주의: Auth 사용자는 수동으로 삭제해주세요.\n\nSupabase 대시보드 > Authentication > Users에서 ${s.email}을 검색하여 삭제하세요.`);
+                                  }
                                   // 목록 새로고침
                                   fetchApproved();
                                   fetchAllApproved();

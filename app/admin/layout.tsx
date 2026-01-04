@@ -127,7 +127,7 @@ export default function AdminLayout({
   const menuItems: Array<{ href: string; label: string; icon: { black: string; white: string }; description: string; color?: string }> = [
     { href: "/admin", label: "학생 관리", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "학생 승인 및 관리", color: '#13181B' },
     { href: "/admin/passages", label: selectedSubject === "korean" ? "국어 지문" : "영어 지문", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: selectedSubject === "korean" ? "수능 국어 지문 관리" : "수능 영어 지문 관리" },
-    ...(selectedSubject === "english" ? [{ href: "/admin/materials", label: "자료실", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "영어 단어장/문장/지문 해체 관리" }] : []),
+    ...(selectedSubject === "english" ? [{ href: "/admin/materials", label: "자료실", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "영어 단어장/문장" }] : []),
     { href: "/admin/my-checkpoints", label: "내 체크포인트", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "내가 작성한 체크포인트" },
     { href: "/admin/daily-homework", label: "일별 숙제 체크", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "학생별 일별 숙제 확인" },
     { href: "/admin/schedule", label: "Daily 숙제 관리", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "학생들에게 내줄 공통 일별 숙제" },

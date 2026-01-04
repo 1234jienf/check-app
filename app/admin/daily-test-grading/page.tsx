@@ -8,10 +8,9 @@ import Link from "next/link";
 export default function DailyTestGradingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"vocabulary" | "sentence" | "passage">("vocabulary");
+  const [activeTab, setActiveTab] = useState<"vocabulary" | "sentence">("vocabulary");
   const [vocabularyTests, setVocabularyTests] = useState<any[]>([]);
   const [sentenceTests, setSentenceTests] = useState<any[]>([]);
-  const [passageTests, setPassageTests] = useState<any[]>([]);
   const [selectedTest, setSelectedTest] = useState<any>(null);
   const [score, setScore] = useState<number>(0);
   const [feedback, setFeedback] = useState<string>("");
@@ -51,20 +50,6 @@ export default function DailyTestGradingPage() {
 
         if (error) throw error;
         setSentenceTests(data || []);
-      } else {
-        const { data, error } = await supabase
-          .from("daily_passage_test")
-          .select(`
-            *,
-            users(id, name, email),
-            teacher_homework(id, homework_date),
-            english_passage_analysis(id, title, passage_text)
-          `)
-          .is("teacher_score", null)
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-        setPassageTests(data || []);
       }
     } catch (err) {
     } finally {
@@ -142,10 +127,9 @@ export default function DailyTestGradingPage() {
           
           if (error) throw error;
         }
-      } else {
-        const tableName = activeTab === "sentence" ? "daily_sentence_test" : "daily_passage_test";
+      } else if (activeTab === "sentence") {
         const { error } = await supabase
-          .from(tableName)
+          .from("daily_sentence_test")
           .update({
             teacher_score: score,
             teacher_feedback: feedback.trim() || null,
@@ -175,7 +159,7 @@ export default function DailyTestGradingPage() {
     );
   }
 
-  const tests = activeTab === "vocabulary" ? vocabularyTests : activeTab === "sentence" ? sentenceTests : passageTests;
+  const tests = activeTab === "vocabulary" ? vocabularyTests : sentenceTests;
 
   return (
     <div className="min-h-screen p-6 md:p-10" style={{ backgroundColor: '#F0EEEB' }}>
@@ -188,7 +172,7 @@ export default function DailyTestGradingPage() {
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
             </h1>
           </div>
-          <p className="text-sm md:text-base" style={{ color: '#13181B', opacity: 0.8 }}>학생들이 제출한 단어장, 구문 해석 및 지문 해석을 채점하세요.</p>
+          <p className="text-sm md:text-base" style={{ color: '#13181B', opacity: 0.8 }}>학생들이 제출한 단어장 및 구문 해석을 채점하세요.</p>
         </div>
 
         <div className="rounded-xl p-4 md:p-6 lg:p-8 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
@@ -217,18 +201,6 @@ export default function DailyTestGradingPage() {
               style={activeTab === "sentence" ? { backgroundColor: '#13181B' } : { backgroundColor: '#CCD5DA', color: '#13181B' }}
             >
               구문 해석 ({sentenceTests.length})
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("passage");
-                setSelectedTest(null);
-              }}
-              className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                activeTab === "passage" ? 'text-white' : ''
-              }`}
-              style={activeTab === "passage" ? { backgroundColor: '#13181B' } : { backgroundColor: '#CCD5DA', color: '#13181B' }}
-            >
-              지문 해석 ({passageTests.length})
             </button>
           </div>
 
@@ -400,29 +372,6 @@ export default function DailyTestGradingPage() {
                 </div>
               )}
 
-              {activeTab === "passage" && (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-2" style={{ color: '#13181B' }}>
-                      {selectedTest.english_passage_analysis?.title}
-                    </h3>
-                    <div className="p-4 rounded-lg" style={{ backgroundColor: '#F0EEEB' }}>
-                      <h4 className="font-semibold mb-2" style={{ color: '#13181B' }}>지문</h4>
-                      <div className="whitespace-pre-wrap text-sm" style={{ color: '#13181B', opacity: 0.9 }}>
-                        {selectedTest.english_passage_analysis?.passage_text}
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2" style={{ color: '#13181B' }}>학생 답안</h4>
-                    <div className="p-4 rounded-lg border-2" style={{ borderColor: '#CCD5DA', backgroundColor: '#FFFFFF' }}>
-                      <p className="text-sm whitespace-pre-wrap" style={{ color: '#13181B', opacity: 0.9 }}>
-                        {selectedTest.answer}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               <div className="space-y-4">
                 {activeTab === "vocabulary" && (

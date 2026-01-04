@@ -57,19 +57,6 @@ export default function StudentOtherPassageList() {
       });
     }
 
-    if (selectedLiteraryType !== "all") {
-      filtered = filtered.filter((p) => p.literary_type === selectedLiteraryType);
-    }
-
-    if (selectedSubCategory !== "all") {
-      filtered = filtered.filter((p) => {
-        if (selectedLiteraryType === "문학") {
-          const subCategories = p.sub_category?.split(",").map((s: string) => s.trim()) || [];
-          return subCategories.includes(selectedSubCategory);
-        }
-        return p.sub_category === selectedSubCategory || p.sub_category?.includes(selectedSubCategory);
-      });
-    }
 
     setFilteredPassages(filtered);
   }, [passages, selectedLiteraryType, selectedSubCategory, searchQuery]);
@@ -204,77 +191,6 @@ export default function StudentOtherPassageList() {
             </div>
           </div>
 
-          <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>문학/비문학</label>
-                <select
-                  value={selectedLiteraryType}
-                  onChange={(e) => {
-                    setSelectedLiteraryType(e.target.value);
-                    setSelectedSubCategory("all");
-                  }}
-                  className="w-full rounded-xl px-4 py-2.5 text-sm transition-all shadow-sm border-2"
-                  style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#13181B'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#13181B';
-                    e.currentTarget.style.outline = 'none';
-                  }}
-                  onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-                >
-                  <option value="all">전체</option>
-                  <option value="비문학">비문학</option>
-                  <option value="문학">문학</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>세부 카테고리</label>
-                <select
-                  value={selectedSubCategory}
-                  onChange={(e) => setSelectedSubCategory(e.target.value)}
-                  className="w-full rounded-xl px-4 py-2.5 text-sm transition-all shadow-sm border-2"
-                  style={{ 
-                    backgroundColor: selectedLiteraryType === "all" ? '#CCD5DA' : '#F0EEEB', 
-                    borderColor: '#CCD5DA', 
-                    color: selectedLiteraryType === "all" ? '#13181B' : '#13181B',
-                    opacity: selectedLiteraryType === "all" ? 0.5 : 1
-                  }}
-                  disabled={selectedLiteraryType === "all"}
-                  onMouseEnter={(e) => {
-                    if (selectedLiteraryType !== "all") {
-                      e.currentTarget.style.borderColor = '#13181B';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedLiteraryType !== "all") {
-                      e.currentTarget.style.borderColor = '#CCD5DA';
-                    }
-                  }}
-                  onFocus={(e) => {
-                    if (selectedLiteraryType !== "all") {
-                      e.currentTarget.style.borderColor = '#13181B';
-                      e.currentTarget.style.outline = 'none';
-                    }
-                  }}
-                  onBlur={(e) => {
-                    if (selectedLiteraryType !== "all") {
-                      e.currentTarget.style.borderColor = '#CCD5DA';
-                    }
-                  }}
-                >
-                  <option value="all">전체</option>
-                  {getSubCategoryOptions().map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="mb-6">
@@ -339,16 +255,6 @@ export default function StudentOtherPassageList() {
                             </h2>
                             
                             <div className="flex flex-wrap items-center gap-2 mb-3">
-                              {p.literary_type && (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
-                                  {p.literary_type}
-                                </span>
-                              )}
-                              {p.sub_category && (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
-                                  {p.sub_category.split(",").join(", ")}
-                                </span>
-                              )}
                               {p.difficulty && (
                                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
                                   {p.difficulty}

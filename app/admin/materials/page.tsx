@@ -22,20 +22,12 @@ interface SentenceExample {
   created_at: string;
 }
 
-interface PassageAnalysis {
-  id: string;
-  title: string;
-  passage_text: string;
-  analysis: string;
-  created_at: string;
-}
 
 export default function MaterialsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"vocabulary" | "sentences" | "passages">("vocabulary");
+  const [activeTab, setActiveTab] = useState<"vocabulary" | "sentences">("vocabulary");
   const [vocabularies, setVocabularies] = useState<Vocabulary[]>([]);
   const [sentenceExamples, setSentenceExamples] = useState<SentenceExample[]>([]);
-  const [passageAnalyses, setPassageAnalyses] = useState<PassageAnalysis[]>([]);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -91,16 +83,6 @@ export default function MaterialsPage() {
 
         if (!error && data) {
           setSentenceExamples(data);
-        }
-      } else if (activeTab === "passages") {
-        const { data, error } = await supabase
-          .from("english_passage_analysis")
-          .select("*")
-          .eq("teacher_id", teacherId)
-          .order("created_at", { ascending: false });
-
-        if (!error && data) {
-          setPassageAnalyses(data);
         }
       }
     } catch (err) {
@@ -182,34 +164,6 @@ export default function MaterialsPage() {
 
           if (error) throw error;
         }
-      } else if (activeTab === "passages") {
-        if (!formData.passage_text.trim()) {
-          alert("지문 원문을 입력해주세요.");
-          return;
-        }
-
-        if (editingItem) {
-          const { error } = await supabase
-            .from("english_passage_analysis")
-            .update({
-              title: formData.title.trim(),
-              passage_text: formData.passage_text.trim(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", editingItem.id);
-
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from("english_passage_analysis")
-            .insert({
-              teacher_id: teacherId,
-              title: formData.title.trim(),
-              passage_text: formData.passage_text.trim(),
-            });
-
-          if (error) throw error;
-        }
       }
 
       alert(editingItem ? "수정되었습니다." : "추가되었습니다.");
@@ -245,12 +199,6 @@ export default function MaterialsPage() {
           .delete()
           .eq("id", id);
         if (error) throw error;
-      } else if (activeTab === "passages") {
-        const { error } = await supabase
-          .from("english_passage_analysis")
-          .delete()
-          .eq("id", id);
-        if (error) throw error;
       }
 
       alert("삭제되었습니다.");
@@ -278,15 +226,6 @@ export default function MaterialsPage() {
         pattern: item.pattern,
         sentences: item.sentences,
         passage_text: "",
-        analysis: "",
-      });
-    } else if (activeTab === "passages") {
-      setFormData({
-        title: item.title,
-        words: "",
-        pattern: "",
-        sentences: "",
-        passage_text: item.passage_text,
         analysis: "",
       });
     }
@@ -325,7 +264,7 @@ export default function MaterialsPage() {
               <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
             </h1>
           </div>
-          <p className="text-sm md:text-base" style={{ color: '#13181B', opacity: 0.8 }}>영어 단어장, 문장 예제, 지문 해체 자료를 관리합니다.</p>
+          <p className="text-sm md:text-base" style={{ color: '#13181B', opacity: 0.8 }}>영어 단어장, 문장 예제 자료를 관리합니다.</p>
         </div>
 
         {/* 탭 */}
@@ -359,21 +298,6 @@ export default function MaterialsPage() {
             }}
           >
             문장 예제
-          </button>
-          <button
-            onClick={() => setActiveTab("passages")}
-            className={`px-6 py-3 font-semibold transition-all ${
-              activeTab === "passages" ? "-mb-[2px]" : ""
-            }`}
-            style={activeTab === "passages" ? {
-              color: '#13181B',
-              borderBottom: '2px solid #13181B'
-            } : {
-              color: '#13181B',
-              opacity: 0.7
-            }}
-          >
-            지문 해체
           </button>
         </div>
 
@@ -548,81 +472,6 @@ export default function MaterialsPage() {
               ))
             )
           )}
-
-          {activeTab === "passages" && (
-            passageAnalyses.length === 0 ? (
-              <div className="text-center py-20 rounded-xl shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-                <p style={{ color: '#13181B', opacity: 0.7 }}>등록된 지문 해체가 없습니다.</p>
-              </div>
-            ) : (
-              passageAnalyses.map((passage) => (
-                <div
-                  key={passage.id}
-                  onClick={() => router.push(`/admin/materials/passages/${passage.id}`)}
-                  className="block rounded-xl p-6 shadow-sm transition-all cursor-pointer"
-                  style={{ backgroundColor: '#FFFFFF' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-4" style={{ color: '#13181B' }}>{passage.title}</h3>
-                      <div>
-                        <h4 className="text-sm font-semibold mb-2" style={{ color: '#13181B' }}>지문</h4>
-                        <div className="text-sm whitespace-pre-wrap max-h-40 overflow-y-auto p-3 rounded-lg" style={{ backgroundColor: '#F0EEEB', color: '#13181B', opacity: 0.9 }}>
-                          {passage.passage_text}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(passage);
-                        }}
-                        className="p-2 rounded-lg transition-all"
-                        style={{ color: '#13181B' }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#CCD5DA';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(passage.id);
-                        }}
-                        className="p-2 rounded-lg transition-all"
-                        style={{ color: '#FD8973' }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#FFF0ED';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )
-          )}
         </div>
 
         {/* 모달 */}
@@ -752,29 +601,6 @@ export default function MaterialsPage() {
                       />
                     </div>
                   </>
-                )}
-
-                {activeTab === "passages" && (
-                  <div>
-                    <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>
-                      지문 원문 <span style={{ color: '#FD8973' }}>*</span>
-                    </label>
-                    <textarea
-                      value={formData.passage_text}
-                      onChange={(e) => setFormData({ ...formData, passage_text: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border-2 transition-all"
-                      style={{ backgroundColor: '#FFFFFF', borderColor: '#CCD5DA', color: '#13181B' }}
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = '#13181B';
-                        e.currentTarget.style.outline = 'none';
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderColor = '#CCD5DA';
-                      }}
-                      rows={12}
-                      placeholder="지문 원문을 입력하세요"
-                    />
-                  </div>
                 )}
 
                 <div className="flex gap-3 pt-4">

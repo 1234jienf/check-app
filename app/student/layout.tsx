@@ -138,7 +138,7 @@ export default function StudentLayout({
 
   const menuItems = [
     { href: selectedSubject === "english" ? "/student/english" : "/student/korean", label: "자료 선택", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "지문 카테고리 선택" },
-    ...(selectedSubject === "english" ? [{ href: "/student/materials", label: "자료실", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "영어 단어장/문장/지문 해체" }] : []),
+    ...(selectedSubject === "english" ? [{ href: "/student/materials", label: "자료실", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "영어 단어장/문장" }] : []),
     { href: "/student/my-checkpoints", label: "내 체크포인트", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "작성한 체크포인트 확인" },
     { href: "/student/daily-homework", label: "일별 숙제 체크", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "일별 학습 계획 및 체크" },
     { href: "/student/questions", label: "질문 게시판", icon: { black: "/pawn_black.svg", white: "/pawn_white.svg" }, description: "문제 질문 및 답변" },

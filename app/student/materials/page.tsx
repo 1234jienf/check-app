@@ -22,19 +22,12 @@ interface SentenceExample {
   created_at: string;
 }
 
-interface PassageAnalysis {
-  id: string;
-  title: string;
-  passage_text: string;
-  created_at: string;
-}
 
 export default function StudentMaterialsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"vocabulary" | "sentences" | "passages">("vocabulary");
+  const [activeTab, setActiveTab] = useState<"vocabulary" | "sentences">("vocabulary");
   const [vocabularies, setVocabularies] = useState<Vocabulary[]>([]);
   const [sentenceExamples, setSentenceExamples] = useState<SentenceExample[]>([]);
-  const [passageAnalyses, setPassageAnalyses] = useState<PassageAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,15 +63,6 @@ export default function StudentMaterialsPage() {
 
           if (!error && data) {
             setSentenceExamples(data);
-          }
-        } else if (activeTab === "passages") {
-          const { data, error } = await supabase
-            .from("english_passage_analysis")
-            .select("*")
-            .order("created_at", { ascending: false });
-
-          if (!error && data) {
-            setPassageAnalyses(data);
           }
         }
       } catch (err) {
@@ -131,15 +115,6 @@ export default function StudentMaterialsPage() {
             style={activeTab === "sentences" ? { backgroundColor: '#13181B' } : { backgroundColor: '#CCD5DA', color: '#13181B' }}
           >
             문장 예제
-          </button>
-          <button
-            onClick={() => setActiveTab("passages")}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              activeTab === "passages" ? 'text-white' : ''
-            }`}
-            style={activeTab === "passages" ? { backgroundColor: '#13181B' } : { backgroundColor: '#CCD5DA', color: '#13181B' }}
-          >
-            지문 해체
           </button>
         </div>
 
@@ -208,39 +183,6 @@ export default function StudentMaterialsPage() {
                   </p>
                   <div className="text-sm whitespace-pre-wrap max-h-32 overflow-y-auto" style={{ color: '#13181B', opacity: 0.8 }}>
                     {example.sentences}
-                  </div>
-                </Link>
-              ))
-            )
-          )}
-
-          {activeTab === "passages" && (
-            passageAnalyses.length === 0 ? (
-              <div className="text-center py-20 rounded-xl shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
-                <p style={{ color: '#13181B', opacity: 0.7 }}>등록된 지문 해체가 없습니다.</p>
-              </div>
-            ) : (
-              passageAnalyses.map((passage) => (
-                <Link
-                  key={passage.id}
-                  href={`/student/materials/passages/${passage.id}`}
-                  className="block rounded-xl p-6 shadow-sm transition-all cursor-pointer"
-                  style={{ backgroundColor: '#F0EEEB' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <h3 className="text-xl font-bold mb-4" style={{ color: '#13181B' }}>{passage.title}</h3>
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2" style={{ color: '#13181B' }}>지문</h4>
-                    <div className="text-sm whitespace-pre-wrap max-h-40 overflow-y-auto p-3 rounded-lg" style={{ backgroundColor: '#F0EEEB', color: '#13181B', opacity: 0.9 }}>
-                      {passage.passage_text}
-                    </div>
                   </div>
                 </Link>
               ))
