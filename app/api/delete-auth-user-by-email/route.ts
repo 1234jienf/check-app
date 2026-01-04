@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// 서버 사이드에서만 사용하는 Admin 클라이언트
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // 서비스 역할 키 필요
-  {
+// 빌드 시점에는 환경 변수가 없을 수 있으므로 런타임에만 클라이언트 생성
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase 환경 변수가 설정되지 않았습니다.');
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     }
-  }
-);
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +27,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    const supabaseAdmin = getSupabaseAdmin();
 
     const { email } = await request.json();
 
