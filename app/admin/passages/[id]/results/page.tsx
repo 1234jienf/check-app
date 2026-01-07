@@ -14,9 +14,18 @@ export default function PassageResults() {
   const [studentFeedbacks, setStudentFeedbacks] = useState<Record<string, any>>({});
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [showCommentInput, setShowCommentInput] = useState<Record<string, boolean>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState<string>("");
 
   useEffect(() => {
     const load = async () => {
+      // 현재 로그인한 사용자 정보 가져오기
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+
       // 지문 정보 가져오기
       const { data: passageData } = await supabase
         .from("passages")
@@ -211,10 +220,15 @@ export default function PassageResults() {
         <div className="flex-1 w-full">
           {paragraphs.length > 0 ? (
             <div className="space-y-4 md:space-y-6">
-              <h3 className="text-lg md:text-xl font-semibold mb-3 md:mb-4" style={{ color: '#13181B' }}>모든 학생 답변</h3>
+              <h3 className="text-lg md:text-xl font-semibold mb-3 md:mb-4" style={{ color: '#13181B' }}>
+                {selectedStudentId ? `${selectedStudentName} 님의 답변` : '모든 학생 답변'}
+              </h3>
 
               {/* 학생별로 카드 형태로 표시 */}
-              {Object.values(byStudent).map((student: any) => {
+              {(selectedStudentId 
+                ? Object.values(byStudent).filter((s: any) => s.student_id === selectedStudentId)
+                : Object.values(byStudent)
+              ).map((student: any) => {
                 const studentCheckpoints = results.filter(
                   (r: any) => (r.user_id || r.student_id) === student.student_id
                 );
@@ -354,16 +368,139 @@ export default function PassageResults() {
                                         {/* 기존 댓글 */}
                                         {comments[checkpoint.id] && comments[checkpoint.id].length > 0 && (
                                           <div className="space-y-2 mb-2">
-                                            {comments[checkpoint.id].map((comment: any) => (
-                                              <div key={comment.id} className="p-3 rounded-lg shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
-                                                <div className="text-xs mb-1" style={{ color: '#13181B', opacity: 0.7 }}>
-                                                  {new Date(comment.created_at).toLocaleString('ko-KR')}
+                                            {comments[checkpoint.id].map((comment: any) => {
+                                              const isMyComment = currentUserId && comment.teacher_id === currentUserId;
+                                              const isEditing = editingCommentId === comment.id;
+                                              
+                                              return (
+                                                <div key={comment.id} className="p-3 rounded-lg shadow-sm border-l-2" style={{ backgroundColor: '#F0EEEB', borderLeftColor: '#13181B' }}>
+                                                  <div className="flex items-center justify-between mb-1">
+                                                    <div className="font-semibold" style={{ color: '#13181B' }}>선생님</div>
+                                                    {isMyComment && !isEditing && (
+                                                      <div className="flex gap-2">
+                                                        <button
+                                                          onClick={() => {
+                                                            setEditingCommentId(comment.id);
+                                                            setEditCommentText(comment.comment_text);
+                                                          }}
+                                                          className="text-xs px-2 py-1 rounded transition-colors"
+                                                          style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
+                                                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                        >
+                                                          수정
+                                                        </button>
+                                                        <button
+                                                          onClick={async () => {
+                                                            if (!confirm("정말 삭제하시겠습니까?")) return;
+                                                            
+                                                            const { error } = await supabase
+                                                              .from("teacher_comments")
+                                                              .delete()
+                                                              .eq("id", comment.id);
+                                                            
+                                                            if (error) {
+                                                              alert("삭제 실패: " + error.message);
+                                                            } else {
+                                                              // 댓글 다시 로드
+                                                              const { data: commentsData } = await supabase
+                                                                .from("teacher_comments")
+                                                                .select("*")
+                                                                .eq("student_submission_id", checkpoint.id)
+                                                                .order("created_at", { ascending: false });
+                                                              if (commentsData) {
+                                                                setComments((prev: any) => ({
+                                                                  ...prev,
+                                                                  [checkpoint.id]: commentsData,
+                                                                }));
+                                                              }
+                                                            }
+                                                          }}
+                                                          className="text-xs px-2 py-1 rounded transition-colors"
+                                                          style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
+                                                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                        >
+                                                          삭제
+                                                        </button>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                  {isEditing ? (
+                                                    <div className="space-y-2">
+                                                      <textarea
+                                                        value={editCommentText}
+                                                        onChange={(e) => setEditCommentText(e.target.value)}
+                                                        className="w-full text-sm p-2 rounded-xl transition-all shadow-sm"
+                                                        style={{ backgroundColor: '#FFFFFF', color: '#13181B' }}
+                                                        rows={3}
+                                                      />
+                                                      <div className="flex gap-2">
+                                                        <button
+                                                          onClick={async () => {
+                                                            if (!editCommentText.trim()) {
+                                                              alert("댓글을 입력해주세요.");
+                                                              return;
+                                                            }
+                                                            
+                                                            const { error } = await supabase
+                                                              .from("teacher_comments")
+                                                              .update({ comment_text: editCommentText.trim() })
+                                                              .eq("id", comment.id);
+                                                            
+                                                            if (error) {
+                                                              alert("수정 실패: " + error.message);
+                                                            } else {
+                                                              setEditingCommentId(null);
+                                                              setEditCommentText("");
+                                                              // 댓글 다시 로드
+                                                              const { data: commentsData } = await supabase
+                                                                .from("teacher_comments")
+                                                                .select("*")
+                                                                .eq("student_submission_id", checkpoint.id)
+                                                                .order("created_at", { ascending: false });
+                                                              if (commentsData) {
+                                                                setComments((prev: any) => ({
+                                                                  ...prev,
+                                                                  [checkpoint.id]: commentsData,
+                                                                }));
+                                                              }
+                                                            }
+                                                          }}
+                                                          className="text-xs px-3 py-1 rounded transition-colors font-semibold"
+                                                          style={{ backgroundColor: '#13181B', color: '#FFFFFF' }}
+                                                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                        >
+                                                          저장
+                                                        </button>
+                                                        <button
+                                                          onClick={() => {
+                                                            setEditingCommentId(null);
+                                                            setEditCommentText("");
+                                                          }}
+                                                          className="text-xs px-3 py-1 rounded transition-colors"
+                                                          style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
+                                                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                        >
+                                                          취소
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                  ) : (
+                                                    <div>
+                                                      <div className="text-sm whitespace-pre-wrap mb-1" style={{ color: '#13181B' }}>
+                                                        {comment.comment_text}
+                                                      </div>
+                                                      <div className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
+                                                        {new Date(comment.created_at).toLocaleString('ko-KR')}
+                                                      </div>
+                                                    </div>
+                                                  )}
                                                 </div>
-                                                <div className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>
-                                                  {comment.comment_text}
-                                                </div>
-                                              </div>
-                                            ))}
+                                              );
+                                            })}
                                           </div>
                                         )}
 
@@ -410,29 +547,43 @@ export default function PassageResults() {
                                                   return;
                                                 }
 
-                                                const { error } = await supabase
+                                                const { error, data: newComment } = await supabase
                                                   .from("teacher_comments")
                                                   .insert({
                                                     student_submission_id: checkpoint.id,
                                                     teacher_id: user.id,
-                                                    comment_text: commentText,
-                                                  });
+                                                    comment_text: commentText.trim(),
+                                                  })
+                                                  .select()
+                                                  .single();
 
                                                 if (error) {
                                                   alert("댓글 추가 실패: " + error.message);
+                                                  console.error("댓글 작성 에러:", error);
                                                 } else {
-                                                  // 댓글 다시 로드
-                                                  const { data: commentsData } = await supabase
-                                                    .from("teacher_comments")
-                                                    .select("*")
-                                                    .eq("student_submission_id", checkpoint.id)
-                                                    .order("created_at", { ascending: false });
-
-                                                  if (commentsData) {
+                                                  // 즉시 UI에 반영 (새로고침 없이)
+                                                  if (newComment) {
                                                     setComments((prev: any) => ({
                                                       ...prev,
-                                                      [checkpoint.id]: commentsData,
+                                                      [checkpoint.id]: [
+                                                        newComment,
+                                                        ...(prev[checkpoint.id] || [])
+                                                      ],
                                                     }));
+                                                  } else {
+                                                    // fallback: 댓글 다시 로드
+                                                    const { data: commentsData } = await supabase
+                                                      .from("teacher_comments")
+                                                      .select("*")
+                                                      .eq("student_submission_id", checkpoint.id)
+                                                      .order("created_at", { ascending: false });
+
+                                                    if (commentsData) {
+                                                      setComments((prev: any) => ({
+                                                        ...prev,
+                                                        [checkpoint.id]: commentsData,
+                                                      }));
+                                                    }
                                                   }
 
                                                   setCommentTexts((prev: any) => ({

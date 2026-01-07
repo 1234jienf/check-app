@@ -828,6 +828,7 @@ export default function AdminPassageDetail() {
                             supabase={supabase}
                             passageId={id as string}
                             studentUserId={userId}
+                            currentUserId={currentUserId}
                           />
                         );
                       })}
@@ -866,6 +867,7 @@ function ParagraphSubmissions({
   supabase,
   passageId,
   studentUserId,
+  currentUserId,
 }: {
   paragraphNum: number;
   categoryColor: string;
@@ -882,7 +884,10 @@ function ParagraphSubmissions({
   supabase: any;
   passageId: string;
   studentUserId: string;
+  currentUserId: string | null;
 }) {
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState<string>("");
 
   // 기본값을 첫 번째 attempt로 설정
   const [selectedAttempt, setSelectedAttempt] = useState<number | null>(
@@ -1032,14 +1037,134 @@ function ParagraphSubmissions({
                                       {/* 기존 댓글 */}
                                       {comments[submission.id] && comments[submission.id].length > 0 && (
                                         <div className="space-y-2 mb-2">
-                                          {comments[submission.id].map((comment: any) => (
-                      <div key={comment.id} className="p-3 rounded text-xs">
-                        <div className="font-semibold mb-1" style={{ color: '#13181B' }}>선생님</div>
+                                          {comments[submission.id].map((comment: any) => {
+                                            const isMyComment = currentUserId && comment.teacher_id === currentUserId;
+                                            const isEditing = editingCommentId === comment.id;
+                                            
+                                            return (
+                                              <div key={comment.id} className="p-3 rounded text-xs border-l-2" style={{ borderLeftColor: categoryColor, backgroundColor: '#F9F9F9' }}>
+                                                <div className="flex items-center justify-between mb-1">
+                                                  <div className="font-semibold" style={{ color: '#13181B' }}>선생님</div>
+                                                  {isMyComment && !isEditing && (
+                                                    <div className="flex gap-2">
+                                                      <button
+                                                        onClick={() => {
+                                                          setEditingCommentId(comment.id);
+                                                          setEditCommentText(comment.comment_text);
+                                                        }}
+                                                        className="text-xs px-2 py-1 rounded transition-colors"
+                                                        style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                      >
+                                                        수정
+                                                      </button>
+                                                      <button
+                                                        onClick={async () => {
+                                                          if (!confirm("정말 삭제하시겠습니까?")) return;
+                                                          
+                                                          const { error } = await supabase
+                                                            .from("teacher_comments")
+                                                            .delete()
+                                                            .eq("id", comment.id);
+                                                          
+                                                          if (error) {
+                                                            alert("삭제 실패: " + error.message);
+                                                          } else {
+                                                            // 댓글 다시 로드
+                                                            const { data: commentsData } = await supabase
+                                                              .from("teacher_comments")
+                                                              .select("*")
+                                                              .eq("student_submission_id", submission.id)
+                                                              .order("created_at", { ascending: false });
+                                                            if (commentsData) {
+                                                              setComments((prev: any) => ({
+                                                                ...prev,
+                                                                [submission.id]: commentsData,
+                                                              }));
+                                                            }
+                                                          }
+                                                        }}
+                                                        className="text-xs px-2 py-1 rounded transition-colors"
+                                                        style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                      >
+                                                        삭제
+                                                      </button>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                {isEditing ? (
+                                                  <div className="space-y-2">
+                                                    <textarea
+                                                      value={editCommentText}
+                                                      onChange={(e) => setEditCommentText(e.target.value)}
+                                                      className="w-full text-xs p-2 rounded-xl transition-all shadow-sm"
+                                                      style={{ backgroundColor: '#FFFFFF', color: '#13181B' }}
+                                                      rows={3}
+                                                    />
+                                                    <div className="flex gap-2">
+                                                      <button
+                                                        onClick={async () => {
+                                                          if (!editCommentText.trim()) {
+                                                            alert("댓글을 입력해주세요.");
+                                                            return;
+                                                          }
+                                                          
+                                                          const { error } = await supabase
+                                                            .from("teacher_comments")
+                                                            .update({ comment_text: editCommentText.trim() })
+                                                            .eq("id", comment.id);
+                                                          
+                                                          if (error) {
+                                                            alert("수정 실패: " + error.message);
+                                                          } else {
+                                                            setEditingCommentId(null);
+                                                            setEditCommentText("");
+                                                            // 댓글 다시 로드
+                                                            const { data: commentsData } = await supabase
+                                                              .from("teacher_comments")
+                                                              .select("*")
+                                                              .eq("student_submission_id", submission.id)
+                                                              .order("created_at", { ascending: false });
+                                                            if (commentsData) {
+                                                              setComments((prev: any) => ({
+                                                                ...prev,
+                                                                [submission.id]: commentsData,
+                                                              }));
+                                                            }
+                                                          }
+                                                        }}
+                                                        className="text-xs px-3 py-1 rounded transition-colors"
+                                                        style={{ backgroundColor: categoryColor, color: '#FFFFFF' }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                      >
+                                                        저장
+                                                      </button>
+                                                      <button
+                                                        onClick={() => {
+                                                          setEditingCommentId(null);
+                                                          setEditCommentText("");
+                                                        }}
+                                                        className="text-xs px-3 py-1 rounded transition-colors"
+                                                        style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                      >
+                                                        취소
+                                                      </button>
+                                                    </div>
+                                                  </div>
+                                                ) : (
                         <div className="whitespace-pre-wrap" style={{ color: '#13181B' }}>
                                                 {comment.comment_text}
                                               </div>
+                                                )}
                                             </div>
-                                          ))}
+                                            );
+                                          })}
                                         </div>
                                       )}
 
@@ -1066,46 +1191,81 @@ function ParagraphSubmissions({
                                           />
                                           <button
                                             onClick={async () => {
-                                              const { data: { user } } = await supabase.auth.getUser();
-                                              if (!user) return;
+                                              const commentText = commentTexts[submission.id] || "";
+                                              if (!commentText.trim()) {
+                                                alert("댓글을 입력해주세요.");
+                                                return;
+                                              }
 
-                                              const { error } = await supabase
+                                              const { data: { user } } = await supabase.auth.getUser();
+                                              if (!user) {
+                                                alert("로그인이 필요합니다.");
+                                                return;
+                                              }
+
+                                              const { error, data: newComment } = await supabase
                                                 .from("teacher_comments")
                                                 .insert({
                                                   student_submission_id: submission.id,
                                                   teacher_id: user.id,
-                                                  comment_text: commentTexts[submission.id] || "",
-                                                });
+                                                  comment_text: commentText.trim(),
+                                                })
+                                                .select()
+                                                .single();
 
                                               if (error) {
                                                 alert("댓글 작성 실패: " + error.message);
+                                                console.error("댓글 작성 에러:", error);
                                               } else {
-                          setCommentTexts((prev: any) => ({
+                                                // 즉시 UI에 반영 (새로고침 없이)
+                                                if (newComment) {
+                                                  setComments((prev: any) => ({
                                                   ...prev,
-                                                  [submission.id]: "",
-                                                }));
-                          setShowCommentInput((prev: any) => ({
-                                                  ...prev,
-                                                  [submission.id]: false,
-                                                }));
-                                                // 댓글 다시 로드
-                                                const { data: commentsData } = await supabase
+                                                    [submission.id]: [
+                                                      newComment,
+                                                      ...(prev[submission.id] || [])
+                                                    ],
+                                                  }));
+                                                } else {
+                                                  // fallback: 댓글 다시 로드
+                                                  const { data: commentsData, error: loadError } = await supabase
                                                   .from("teacher_comments")
                                                   .select("*")
                                                   .eq("student_submission_id", submission.id)
                                                   .order("created_at", { ascending: false });
-                                                if (commentsData) {
+                                                  
+                                                  if (loadError) {
+                                                    console.error("댓글 로드 에러:", loadError);
+                                                    alert("댓글이 작성되었지만 표시에 실패했습니다. 페이지를 새로고침해주세요.");
+                                                  } else if (commentsData) {
                             setComments((prev: any) => ({
                                                     ...prev,
                                                     [submission.id]: commentsData,
                                                   }));
                                                 }
+                                                }
+
+                                                // 입력 필드 초기화
+                                                setCommentTexts((prev: any) => ({
+                                                  ...prev,
+                                                  [submission.id]: "",
+                                                }));
+                                                setShowCommentInput((prev: any) => ({
+                                                  ...prev,
+                                                  [submission.id]: false,
+                                                }));
                                               }
                                             }}
-                      className="text-xs text-white px-3 py-1 rounded transition-colors"
-                      style={{ backgroundColor: categoryColor }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                      className="text-xs px-3 py-1 rounded transition-colors font-semibold"
+                      style={{ backgroundColor: '#13181B', color: '#FFFFFF' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.opacity = '0.9';
+                        e.currentTarget.style.backgroundColor = '#2A2F33';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.opacity = '1';
+                        e.currentTarget.style.backgroundColor = '#13181B';
+                      }}
                                           >
                                             댓글 작성
                                           </button>
