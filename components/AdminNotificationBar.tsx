@@ -183,7 +183,7 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
                   id: `new_checkpoint_${studentId}_${passageId}_${attemptNum}`,
                   type: "new_checkpoint",
                   message: `${studentData.name}님이 ${passageData.title}에 ${attemptNum}차 체크포인트를 작성했습니다`,
-                  link: "/admin",
+                  link: `/admin/passages/${passageId}/results?student=${studentId}`,
                   count: 1,
                 });
               }

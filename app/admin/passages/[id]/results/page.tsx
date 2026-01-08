@@ -1,8 +1,84 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+
+// 문단에 하이라이트를 표시하는 컴포넌트
+const ParagraphWithHighlights = ({ paragraph, checkpoints }: { paragraph: string; checkpoints: any[] }) => {
+  if (!checkpoints || checkpoints.length === 0) {
+    return <div className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>{paragraph}</div>;
+  }
+
+  // 하이라이트 정보를 정렬 (시작 위치 기준)
+  const sortedHighlights = [...checkpoints]
+    .filter((cp: any) => cp.highlight_start !== null && cp.highlight_end !== null)
+    .sort((a: any, b: any) => a.highlight_start - b.highlight_start);
+
+  if (sortedHighlights.length === 0) {
+    return <div className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>{paragraph}</div>;
+  }
+
+  // 하이라이트가 겹치지 않도록 처리
+  const parts: Array<{ text: string; highlight: any | null }> = [];
+  let currentIndex = 0;
+
+  sortedHighlights.forEach((cp: any) => {
+    const start = cp.highlight_start;
+    const end = cp.highlight_end;
+
+    // 하이라이트 전 텍스트
+    if (start > currentIndex) {
+      parts.push({
+        text: paragraph.substring(currentIndex, start),
+        highlight: null,
+      });
+    }
+
+    // 하이라이트된 텍스트
+    parts.push({
+      text: paragraph.substring(start, end),
+      highlight: cp,
+    });
+
+    currentIndex = Math.max(currentIndex, end);
+  });
+
+  // 마지막 하이라이트 이후 텍스트
+  if (currentIndex < paragraph.length) {
+    parts.push({
+      text: paragraph.substring(currentIndex),
+      highlight: null,
+    });
+  }
+
+  return (
+    <div className="text-sm whitespace-pre-wrap" style={{ color: '#13181B', lineHeight: '1.6' }}>
+      {parts.map((part, idx) => {
+        if (part.highlight) {
+          const bgColor = part.highlight.category === "거시" ? '#E8F0F8' : part.highlight.category === "미시" ? '#FFF5E8' : '#F0EEEB';
+          const borderColor = part.highlight.category === "거시" ? '#13181B' : part.highlight.category === "미시" ? '#13181B' : '#CCD5DA';
+          return (
+            <span
+              key={idx}
+              className="px-1 rounded"
+              style={{
+                backgroundColor: bgColor,
+                borderBottom: `2px solid ${borderColor}`,
+                fontWeight: '500',
+              }}
+              title={`${part.highlight.category || ''} 체크포인트`}
+            >
+              {part.text}
+            </span>
+          );
+        }
+        return <span key={idx}>{part.text}</span>;
+      })}
+    </div>
+  );
+};
 
 export default function PassageResults() {
   const { id } = useParams();
@@ -158,12 +234,34 @@ export default function PassageResults() {
 
   return (
     <div className="p-4 md:p-6 lg:p-10 max-w-7xl mx-auto" style={{ backgroundColor: '#F0EEEB', minHeight: '100vh' }}>
-      <div className="flex items-center gap-3 mb-4 md:mb-5">
+      <div className="flex items-center justify-between mb-4 md:mb-5">
+        <div className="flex items-center gap-3">
         <img src="/file.svg" alt="File" className="w-8 h-8" style={{ filter: 'brightness(0) saturate(100%)' }} />
         <h1 className="text-xl md:text-2xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
           학생 제출 현황
           <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
         </h1>
+        </div>
+        {passage && (
+          <Link
+            href={`/admin/passages/${id}`}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all"
+            style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '0.9';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '1';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <span>지문 상세히 보기</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        )}
       </div>
       {passage && (
         <div className="mb-4 md:mb-6">
@@ -264,6 +362,17 @@ export default function PassageResults() {
                         const paragraphNum = idx + 1;
                         const paragraphAttempts = checkpointsByParagraph[paragraphNum] || {};
                         const attemptNumbers = Object.keys(paragraphAttempts).map(Number).sort((a, b) => a - b);
+                        
+                        // 해당 문단의 모든 체크포인트 수집 (하이라이트 표시용)
+                        const allCheckpointsForHighlight: any[] = [];
+                        attemptNumbers.forEach((attemptNum) => {
+                          const attemptCheckpoints = paragraphAttempts[attemptNum] || [];
+                          attemptCheckpoints.forEach((cp: any) => {
+                            if (cp.highlighted_text && cp.highlight_start !== null && cp.highlight_end !== null) {
+                              allCheckpointsForHighlight.push(cp);
+                            }
+                          });
+                        });
 
                         return (
                           <div key={idx} className="border-l-4 pl-4 py-2" style={{ borderLeftColor: '#CCD5DA' }}>
@@ -285,6 +394,16 @@ export default function PassageResults() {
                                 </div>
                               )}
                             </div>
+
+                            {/* 문단 내용에 하이라이트 표시 */}
+                            {allCheckpointsForHighlight.length > 0 && (
+                              <div className="mb-4 p-3 rounded-xl" style={{ backgroundColor: '#F0EEEB', border: '1px solid #CCD5DA' }}>
+                                <ParagraphWithHighlights
+                                  paragraph={paragraph}
+                                  checkpoints={allCheckpointsForHighlight}
+                                />
+                              </div>
+                            )}
 
                             {/* attempt_number별로 체크포인트 표시 */}
                             {attemptNumbers.length > 0 ? (
@@ -315,6 +434,17 @@ export default function PassageResults() {
                                       }}>
                                         {checkpoint.category} 체크
                                       </span>
+                                    </div>
+                                  )}
+                                  {/* 하이라이트된 텍스트 표시 */}
+                                  {checkpoint.highlighted_text && (
+                                    <div className="mb-2 p-2 rounded text-xs" style={{ backgroundColor: '#FFFFFF', color: '#13181B', opacity: 0.9, border: '1px solid #CCD5DA' }}>
+                                      <span className="font-semibold">하이라이트된 부분:</span> {checkpoint.highlighted_text}
+                                      {checkpoint.highlight_start !== null && checkpoint.highlight_end !== null && (
+                                        <span className="ml-2 text-xs" style={{ color: '#13181B', opacity: 0.6 }}>
+                                          (위치: {checkpoint.highlight_start}~{checkpoint.highlight_end})
+                                        </span>
+                                      )}
                                     </div>
                                   )}
                                   <div className="text-sm p-3 rounded" style={{ color: '#13181B' }}>
@@ -494,8 +624,8 @@ export default function PassageResults() {
                                                         {comment.comment_text}
                                                       </div>
                                                       <div className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
-                                                        {new Date(comment.created_at).toLocaleString('ko-KR')}
-                                                      </div>
+                                                  {new Date(comment.created_at).toLocaleString('ko-KR')}
+                                                </div>
                                                     </div>
                                                   )}
                                                 </div>
@@ -572,17 +702,17 @@ export default function PassageResults() {
                                                     }));
                                                   } else {
                                                     // fallback: 댓글 다시 로드
-                                                    const { data: commentsData } = await supabase
-                                                      .from("teacher_comments")
-                                                      .select("*")
-                                                      .eq("student_submission_id", checkpoint.id)
-                                                      .order("created_at", { ascending: false });
+                                                  const { data: commentsData } = await supabase
+                                                    .from("teacher_comments")
+                                                    .select("*")
+                                                    .eq("student_submission_id", checkpoint.id)
+                                                    .order("created_at", { ascending: false });
 
-                                                    if (commentsData) {
-                                                      setComments((prev: any) => ({
-                                                        ...prev,
-                                                        [checkpoint.id]: commentsData,
-                                                      }));
+                                                  if (commentsData) {
+                                                    setComments((prev: any) => ({
+                                                      ...prev,
+                                                      [checkpoint.id]: commentsData,
+                                                    }));
                                                     }
                                                   }
 
