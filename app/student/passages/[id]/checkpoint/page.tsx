@@ -39,8 +39,7 @@ export default function StudentCheckpointPage() {
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
   const [showReplyInput, setShowReplyInput] = useState<Record<string, boolean>>({});
   
-  // 텍스트 선택 관련 상태
-  const [selectedText, setSelectedText] = useState<Record<number, { text: string; start: number; end: number }>>({});
+  // 체크포인트 입력 관련 상태
   const [newCheckpointText, setNewCheckpointText] = useState<Record<number, string>>({});
   const [newCheckpointCategory, setNewCheckpointCategory] = useState<Record<number, string>>({});
   
@@ -272,46 +271,21 @@ export default function StudentCheckpointPage() {
     if (passageId) loadData();
   }, [passageId, userId, selectedAttempt]);
 
-  // 텍스트 선택 핸들러
-  const handleTextSelect = (paragraphNum: number, paragraph: string) => {
-    const selection = window.getSelection();
-    if (selection && selection.toString().trim()) {
-      const selectedText = selection.toString().trim();
-      const range = selection.getRangeAt(0);
-      
-      // 선택된 텍스트의 위치 찾기
-      const normalizedParagraph = paragraph.trim().replace(/\n/g, " ");
-      
-      // range.startOffset은 DOM 노드 기준이므로, 실제 문단 텍스트에서 찾기
-      // 선택된 텍스트가 문단 내에서 처음 나타나는 위치를 찾음
-      const start = normalizedParagraph.indexOf(selectedText);
-      const end = start + selectedText.length;
-      
-      if (start >= 0) {
-        setSelectedText(prev => ({
-          ...prev,
-          [paragraphNum]: { text: selectedText, start, end }
-        }));
-      }
-    }
-  };
-
   // 체크포인트 추가
   const handleAddCheckpoint = (paragraphNum: number) => {
-    const selected = selectedText[paragraphNum];
     const checkpointText = newCheckpointText[paragraphNum] || "";
     const category = newCheckpointCategory[paragraphNum] || "미시";
     
-    if (!selected || !checkpointText.trim()) {
-      alert("텍스트를 선택하고 체크포인트 내용을 입력해주세요.");
+    if (!checkpointText.trim()) {
+      alert("체크포인트 내용을 입력해주세요.");
       return;
     }
 
     const newCheckpoint: CheckpointItem = {
       checkpoint: checkpointText.trim(),
-      highlighted_text: selected.text,
-      highlight_start: selected.start,
-      highlight_end: selected.end,
+      highlighted_text: "",
+      highlight_start: 0,
+      highlight_end: 0,
       category,
       dontKnow: false,
       reason: "",
@@ -323,11 +297,6 @@ export default function StudentCheckpointPage() {
     }));
 
     // 입력 필드 초기화
-    setSelectedText(prev => {
-      const newState = { ...prev };
-      delete newState[paragraphNum];
-      return newState;
-    });
     setNewCheckpointText(prev => {
       const newState = { ...prev };
       delete newState[paragraphNum];
@@ -466,9 +435,9 @@ export default function StudentCheckpointPage() {
           paragraph: paragraph,
           attempt_number: selectedAttempt,
           checkpoint_text: checkpoint.checkpoint,
-          highlighted_text: checkpoint.highlighted_text,
-          highlight_start: checkpoint.highlight_start,
-          highlight_end: checkpoint.highlight_end,
+          highlighted_text: null,
+          highlight_start: null,
+          highlight_end: null,
           category: isKorean ? checkpoint.category : null,
           reason: checkpoint.dontKnow ? checkpoint.reason : null,
         };
@@ -723,13 +692,11 @@ export default function StudentCheckpointPage() {
                       )}
                     </div>
 
-                    {/* 문단 내용 - 텍스트 선택 가능 */}
+                    {/* 문단 내용 */}
                     <div className="mb-6 p-4 rounded-xl border-l-4 relative" style={{ backgroundColor: '#CCD5DA', borderLeftColor: '#CCD5DA' }}>
                       <div 
-                        className="flex-1 w-full cursor-text"
-                        onMouseUp={() => handleTextSelect(paragraphNum, paragraph)}
+                        className="flex-1 w-full"
                         style={{ 
-                          userSelect: "text",
                           lineHeight: '1.6'
                         }}
                       >
@@ -1040,16 +1007,6 @@ export default function StudentCheckpointPage() {
                           <h4 className="text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
                             체크포인트 추가
                           </h4>
-                          <p className="text-xs mb-3" style={{ color: '#13181B', opacity: 0.7 }}>
-                            위 문단에서 텍스트를 선택한 후, 체크포인트를 작성하세요.
-                          </p>
-                          
-                          {selectedText[paragraphNum] && (
-                            <div className="mb-3 p-2 rounded" style={{ backgroundColor: '#F0EEEB' }}>
-                              <p className="text-xs font-semibold mb-1" style={{ color: '#13181B' }}>선택된 텍스트:</p>
-                              <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>{selectedText[paragraphNum].text}</p>
-                            </div>
-                          )}
 
                           <div className="mb-3">
                             <label className="block text-xs font-semibold mb-2" style={{ color: '#13181B' }}>

@@ -14,9 +14,6 @@ function AddCheckpointContent() {
     Number(searchParams.get("paragraph")) || 1
   );
   const [checkpointText, setCheckpointText] = useState("");
-  const [selectedText, setSelectedText] = useState("");
-  const [highlightStart, setHighlightStart] = useState<number | null>(null);
-  const [highlightEnd, setHighlightEnd] = useState<number | null>(null);
   const [category, setCategory] = useState<string>("미시");
 
   useEffect(() => {
@@ -34,21 +31,6 @@ function AddCheckpointContent() {
   const paragraphs = passage?.content
     ? passage.content.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0)
     : [];
-
-  const handleTextSelect = () => {
-    const selection = window.getSelection();
-    if (selection && selection.toString().trim()) {
-      setSelectedText(selection.toString().trim());
-      // 선택된 텍스트의 위치 찾기
-      const range = selection.getRangeAt(0);
-      const paragraph = paragraphs[paragraphNum - 1];
-      if (paragraph) {
-        const textBefore = paragraph.substring(0, range.startOffset);
-        setHighlightStart(textBefore.length);
-        setHighlightEnd(textBefore.length + selection.toString().length);
-      }
-    }
-  };
 
   const handleAddCheckpoint = async () => {
     if (!checkpointText.trim()) {
@@ -82,9 +64,9 @@ function AddCheckpointContent() {
       paragraph: paragraphNum,
       text: checkpointText,
       order_num: nextOrder,
-      highlighted_text: selectedText || null,
-      highlight_start: highlightStart,
-      highlight_end: highlightEnd,
+      highlighted_text: null,
+      highlight_start: null,
+      highlight_end: null,
       teacher_id: user.id,
       category: checkpointCategory,
     });
@@ -93,7 +75,8 @@ function AddCheckpointContent() {
       alert("체크포인트 추가 실패: " + error.message);
     } else {
       alert("체크포인트가 추가되었습니다.");
-      router.push(`/admin/passages/${passageId}`);
+      // 폼 초기화하여 같은 문단에서 여러 체크포인트 추가 가능하게 함
+      setCheckpointText("");
     }
   };
 
@@ -125,9 +108,7 @@ function AddCheckpointContent() {
             value={paragraphNum}
             onChange={(e) => {
               setParagraphNum(Number(e.target.value));
-              setSelectedText("");
-              setHighlightStart(null);
-              setHighlightEnd(null);
+              setCheckpointText("");
             }}
             className="w-full px-4 py-2 rounded-xl text-sm"
             style={{ 
@@ -152,13 +133,11 @@ function AddCheckpointContent() {
         {paragraphs[paragraphNum - 1] && (
           <div className="rounded-xl p-6 shadow-sm mb-6" style={{ backgroundColor: '#FFFFFF' }}>
             <label className="block text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
-              문단 내용 (텍스트를 선택하면 하이라이트됩니다)
+              문단 내용
             </label>
             <div
               className="p-4 rounded-xl min-h-[200px]"
-              onMouseUp={handleTextSelect}
               style={{ 
-                userSelect: "text",
                 backgroundColor: '#F0EEEB',
                 border: '1px solid #CCD5DA',
                 color: '#13181B',
@@ -171,12 +150,6 @@ function AddCheckpointContent() {
                 </p>
               ))}
             </div>
-            {selectedText && (
-              <div className="mt-4 p-3 rounded-lg shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
-                <p className="text-sm font-semibold mb-1" style={{ color: '#13181B' }}>선택된 텍스트:</p>
-                <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>{selectedText}</p>
-              </div>
-            )}
           </div>
         )}
 
@@ -295,7 +268,7 @@ function AddCheckpointContent() {
               e.currentTarget.style.boxShadow = 'none';
             }}
           >
-            취소
+            완료
           </Link>
         </div>
       </div>
