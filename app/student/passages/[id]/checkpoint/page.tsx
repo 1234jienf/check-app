@@ -1451,7 +1451,7 @@ function ParagraphWithHighlights({
             e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.15)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = isTeacher ? 1 : 0.7;
+            e.currentTarget.style.opacity = isTeacher ? '1' : '0.7';
             e.currentTarget.style.boxShadow = 'none';
           }}
           onClick={() => onCheckpointClick(cp)}
