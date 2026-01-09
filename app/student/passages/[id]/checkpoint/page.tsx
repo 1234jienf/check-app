@@ -332,6 +332,33 @@ export default function StudentCheckpointPage() {
       return;
     }
 
+    // 모든 문단이 완료되었는지 확인
+    const incompleteParagraphs: number[] = [];
+    for (let i = 0; i < paragraphs.length; i++) {
+      const paragraph = i + 1;
+      const checkpoints = studentCheckpoints[paragraph] || [];
+      const completedAttempts = attemptStatus[paragraph] || [];
+      
+      // 이미 제출된 문단은 스킵
+      if (completedAttempts.includes(selectedAttempt)) {
+        continue;
+      }
+      
+      // 체크포인트 있음, 체크포인트 없음, 모름 중 하나여야 함
+      const hasCheckpoints = checkpoints.length > 0;
+      const hasNoCheckpointSelected = hasNoCheckpoint[paragraph];
+      const hasDontKnowWithReason = dontKnow[paragraph] && dontKnowReason[paragraph]?.trim();
+      
+      if (!hasCheckpoints && !hasNoCheckpointSelected && !hasDontKnowWithReason) {
+        incompleteParagraphs.push(paragraph);
+      }
+    }
+    
+    if (incompleteParagraphs.length > 0) {
+      alert(`다음 문단을 완료해주세요: ${incompleteParagraphs.join(', ')}문단\n모든 문단이 완료되어야 제출할 수 있습니다.`);
+      return;
+    }
+
     const isKorean = !passage?.subject || passage.subject === "korean" || passage.subject === null;
     let successCount = 0;
     let errorCount = 0;
@@ -457,16 +484,8 @@ export default function StudentCheckpointPage() {
       alert(`제출 중 오류가 발생했습니다. 성공: ${successCount}개, 실패: ${errorCount}개`);
     } else if (successCount > 0) {
       alert(`${selectedAttempt}차 제출이 완료되었습니다! (${successCount}개 체크포인트)`);
-      // 데이터 다시 로드
-      const { data: existingCheckpointsData } = await supabase
-        .from("student_checkpoint_record")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("passage_id", passageId)
-        .order("attempt_number", { ascending: true });
-      if (existingCheckpointsData) {
-        setExistingCheckpoints(existingCheckpointsData);
-      }
+      // 페이지 새로고침
+      window.location.reload();
     } else {
       alert("제출할 내용이 없습니다. 체크포인트를 작성해주세요.");
     }
@@ -982,7 +1001,7 @@ export default function StudentCheckpointPage() {
                                 e.currentTarget.style.outline = 'none';
                               }}
                               onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-                              placeholder="모른 이유를 작성하세요"
+                              placeholder="사유를 작성하세요"
                               value={dontKnowReason[paragraphNum] || ""}
                               onChange={(e) =>
                                 setDontKnowReason(prev => ({
@@ -1292,13 +1311,40 @@ export default function StudentCheckpointPage() {
                   return completedAttemptsForPara.includes(selectedAttempt);
                 });
                 
-                const hasSubmittableParagraphs = paragraphs.some((_, index) => {
+                // 모든 문단이 완료되어야 제출 가능
+                // 각 문단은 다음 중 하나여야 함:
+                // 1. 체크포인트가 있음
+                // 2. 체크포인트 없음 선택
+                // 3. 모름 선택 + 사유 입력
+                const allParagraphsCompleted = paragraphs.length > 0 && paragraphs.every((_, index) => {
                   const paragraphNum = index + 1;
                   const checkpoints = studentCheckpoints[paragraphNum] || [];
-                  return checkpoints.length > 0 || hasNoCheckpoint[paragraphNum] || dontKnow[paragraphNum];
+                  
+                  // 이미 제출된 문단은 완료로 간주
+                  const completedAttemptsForPara = attemptStatus[paragraphNum] || [];
+                  if (completedAttemptsForPara.includes(selectedAttempt)) {
+                    return true;
+                  }
+                  
+                  // 체크포인트 있음
+                  if (checkpoints.length > 0) {
+                    return true;
+                  }
+                  
+                  // 체크포인트 없음 선택
+                  if (hasNoCheckpoint[paragraphNum]) {
+                    return true;
+                  }
+                  
+                  // 모름 선택 + 사유 입력
+                  if (dontKnow[paragraphNum] && dontKnowReason[paragraphNum]?.trim()) {
+                    return true;
+                  }
+                  
+                  return false;
                 });
                 
-                const isDisabled = allParagraphsSubmitted || !hasSubmittableParagraphs;
+                const isDisabled = allParagraphsSubmitted || !allParagraphsCompleted;
                 
                 return (
                   <button

@@ -214,36 +214,44 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
         .order("created_at", { ascending: false });
 
       if (newFeedbacks && newFeedbacks.length > 0) {
-        // 각 학생별로 그룹화
-        const feedbacksByStudent = new Map();
+        // 각 학생별, 지문별로 그룹화
+        const feedbacksByStudentAndPassage = new Map();
         newFeedbacks.forEach((feedback: any) => {
           const studentId = feedback.student_checkpoint_record?.users?.id;
           const studentName = feedback.student_checkpoint_record?.users?.name || "학생";
-          if (studentId) {
-            if (!feedbacksByStudent.has(studentId)) {
-              feedbacksByStudent.set(studentId, {
+          const passageId = feedback.student_checkpoint_record?.passage_id;
+          const passageTitle = feedback.student_checkpoint_record?.passages?.title || "지문";
+          
+          if (studentId && passageId) {
+            const key = `${studentId}_${passageId}`;
+            if (!feedbacksByStudentAndPassage.has(key)) {
+              feedbacksByStudentAndPassage.set(key, {
                 studentId,
                 studentName,
+                passageId,
+                passageTitle,
                 count: 0,
                 feedbacks: [],
               });
             }
-            const studentData = feedbacksByStudent.get(studentId);
-            studentData.count++;
-            studentData.feedbacks.push(feedback);
+            const data = feedbacksByStudentAndPassage.get(key);
+            data.count++;
+            data.feedbacks.push(feedback);
           }
         });
 
-        // 각 학생별로 개별 알림 생성
-        feedbacksByStudent.forEach((studentData, studentId) => {
-          const readKey = `student_feedback_${studentId}`;
+        // 각 학생별, 지문별로 개별 알림 생성
+        feedbacksByStudentAndPassage.forEach((data, key) => {
+          const readKey = `student_feedback_${data.studentId}_${data.passageId}`;
           if (!currentReadSet.has(readKey)) {
+            const link = `/admin/passages/${data.passageId}/results?student=${data.studentId}`;
+            
             notifs.push({
-              id: `student_feedback_${studentId}`,
+              id: `student_feedback_${data.studentId}_${data.passageId}`,
               type: "student_feedback",
-              message: `${studentData.studentName}님이 ${studentData.count}개의 피드백을 작성했습니다`,
-              link: "/admin",
-              count: studentData.count,
+              message: `${data.studentName}님이 ${data.passageTitle}에 ${data.count}개의 피드백을 작성했습니다`,
+              link: link,
+              count: data.count,
             });
           }
         });
@@ -299,8 +307,8 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
       // notif.id가 이미 해당 형식이므로 그대로 사용
       readKey = notif.id;
     } else if (notif.type === "student_feedback") {
-      // loadNotifications에서는 "student_feedback_${studentId}" 형식 사용
-      // notif.id가 이미 "student_feedback_${studentId}" 형식이므로 그대로 사용
+      // loadNotifications에서는 "student_feedback_${studentId}_${passageId}" 형식 사용
+      // notif.id가 이미 해당 형식이므로 그대로 사용
       readKey = notif.id;
     } else if (notif.type === "schedule") {
       // loadNotifications에서는 "schedule_${schedule.id}" 형식 사용
