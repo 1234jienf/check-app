@@ -48,6 +48,8 @@ export default function StudentCheckpointPage() {
   // 체크포인트 입력 관련 상태
   const [newCheckpointText, setNewCheckpointText] = useState<Record<number, string>>({});
   const [newCheckpointCategory, setNewCheckpointCategory] = useState<Record<number, string>>({});
+  const [newCheckpointText거시, setNewCheckpointText거시] = useState<Record<number, string>>({});
+  const [newCheckpointText미시, setNewCheckpointText미시] = useState<Record<number, string>>({});
   
   // 체크포인트 없음 및 모름 상태
   const [hasNoCheckpoint, setHasNoCheckpoint] = useState<Record<number, boolean>>({});
@@ -277,7 +279,85 @@ export default function StudentCheckpointPage() {
     if (passageId) loadData();
   }, [passageId, userId, selectedAttempt]);
 
-  // 체크포인트 추가
+  // 거시 체크포인트 추가
+  const handleAddCheckpoint거시 = (paragraphNum: number) => {
+    const checkpointText = newCheckpointText거시[paragraphNum] || "";
+    
+    if (!checkpointText.trim()) {
+      alert("거시 체크포인트 내용을 입력해주세요.");
+      return;
+    }
+
+    const existingCheckpoints = studentCheckpoints[paragraphNum] || [];
+    // 이미 거시 체크포인트가 있으면 알림
+    if (existingCheckpoints.some((cp: any) => cp.category === "거시")) {
+      alert("거시 체크포인트는 한 문단당 하나만 작성할 수 있습니다.");
+      return;
+    }
+
+    const newCheckpoint: CheckpointItem = {
+      checkpoint: checkpointText.trim(),
+      highlighted_text: "",
+      highlight_start: 0,
+      highlight_end: 0,
+      category: "거시",
+      dontKnow: false,
+      reason: "",
+    };
+
+    setStudentCheckpoints(prev => ({
+      ...prev,
+      [paragraphNum]: [...(prev[paragraphNum] || []), newCheckpoint]
+    }));
+
+    // 입력 필드 초기화
+    setNewCheckpointText거시(prev => {
+      const newState = { ...prev };
+      delete newState[paragraphNum];
+      return newState;
+    });
+  };
+
+  // 미시 체크포인트 추가
+  const handleAddCheckpoint미시 = (paragraphNum: number) => {
+    const checkpointText = newCheckpointText미시[paragraphNum] || "";
+    
+    if (!checkpointText.trim()) {
+      alert("미시 체크포인트 내용을 입력해주세요.");
+      return;
+    }
+
+    const existingCheckpoints = studentCheckpoints[paragraphNum] || [];
+    // 이미 미시 체크포인트가 있으면 알림
+    if (existingCheckpoints.some((cp: any) => cp.category === "미시")) {
+      alert("미시 체크포인트는 한 문단당 하나만 작성할 수 있습니다.");
+      return;
+    }
+
+    const newCheckpoint: CheckpointItem = {
+      checkpoint: checkpointText.trim(),
+      highlighted_text: "",
+      highlight_start: 0,
+      highlight_end: 0,
+      category: "미시",
+      dontKnow: false,
+      reason: "",
+    };
+
+    setStudentCheckpoints(prev => ({
+      ...prev,
+      [paragraphNum]: [...(prev[paragraphNum] || []), newCheckpoint]
+    }));
+
+    // 입력 필드 초기화
+    setNewCheckpointText미시(prev => {
+      const newState = { ...prev };
+      delete newState[paragraphNum];
+      return newState;
+    });
+  };
+
+  // 체크포인트 추가 (영어용)
   const handleAddCheckpoint = (paragraphNum: number) => {
     const checkpointText = newCheckpointText[paragraphNum] || "";
     const category = newCheckpointCategory[paragraphNum] || "미시";
@@ -354,6 +434,19 @@ export default function StudentCheckpointPage() {
       const hasCheckpoints = checkpoints.length > 0;
       const hasNoCheckpointSelected = hasNoCheckpoint[paragraph];
       const hasDontKnowWithReason = dontKnow[paragraph] && dontKnowReason[paragraph]?.trim();
+      
+      // 거시/미시는 각각 최대 1개씩만 가능 (최대 2개)
+      if (hasCheckpoints) {
+        const 거시개수 = checkpoints.filter((cp: any) => cp.category === "거시").length;
+        const 미시개수 = checkpoints.filter((cp: any) => cp.category === "미시").length;
+        
+        // 거시나 미시가 2개 이상이면 오류
+        if (거시개수 > 1 || 미시개수 > 1) {
+          alert(`${paragraph}문단: 거시와 미시는 각각 하나씩만 작성할 수 있습니다.`);
+          incompleteParagraphs.push(paragraph);
+          continue;
+        }
+      }
       
       if (!hasCheckpoints && !hasNoCheckpointSelected && !hasDontKnowWithReason) {
         incompleteParagraphs.push(paragraph);
@@ -460,7 +553,7 @@ export default function StudentCheckpointPage() {
         continue;
       }
 
-      // 각 체크포인트 저장
+      // 각 체크포인트 저장 (거시 1개, 미시 1개 최대)
       for (const checkpoint of checkpoints) {
         const upsertData: any = {
           passage_id: passageId,
@@ -667,7 +760,7 @@ export default function StudentCheckpointPage() {
         <div>
           <h2 className="text-2xl font-bold mb-2" style={{ color: '#13181B' }}>문단별 Checkpoint</h2>
           <p className="text-sm mb-6" style={{ color: '#13181B', opacity: 0.8 }}>
-            각 문단에 대한 체크포인트를 작성해주세요. 여러 개의 체크포인트를 작성할 수 있습니다.
+            각 문단에 대한 체크포인트를 작성해주세요. 한 문단당 체크포인트는 하나만 작성할 수 있습니다.
           </p>
 
           {paragraphs.length === 0 ? (
@@ -1027,7 +1120,132 @@ export default function StudentCheckpointPage() {
                         )}
 
                         {/* 텍스트 선택 및 체크포인트 추가 UI */}
-                        {!hasNoCheckpoint[paragraphNum] && !dontKnow[paragraphNum] && (
+                        {!hasNoCheckpoint[paragraphNum] && !dontKnow[paragraphNum] && isKorean && (
+                        <div className="border-2 rounded-xl p-4" style={{ backgroundColor: '#FFFFFF', borderColor: '#CCD5DA' }}>
+                          <h4 className="text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
+                            체크포인트 작성 
+                          </h4>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* 거시 체크포인트 입력 */}
+                            <div>
+                              <label className="block text-xs font-semibold mb-2 flex items-center gap-2" style={{ color: '#13181B' }}>
+                                <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: '#D4E4F4', color: '#13181B' }}>거시</span>
+                              </label>
+                              {(() => {
+                                const 거시체크 = checkpoints.find((cp: any) => cp.category === "거시");
+                                return 거시체크 ? (
+                                  <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#E8F0F8', borderColor: '#CCD5DA' }}>
+                                    <div className="text-sm whitespace-pre-wrap mb-2" style={{ color: '#13181B' }}>
+                                      {거시체크.checkpoint}
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        const 거시Idx = checkpoints.findIndex((cp: any) => cp.category === "거시");
+                                        if (거시Idx !== -1) handleDeleteCheckpoint(paragraphNum, 거시Idx);
+                                      }}
+                                      className="text-xs px-2 py-1 rounded transition-colors"
+                                      style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+                                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                    >
+                                      삭제
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <textarea
+                                      value={newCheckpointText거시[paragraphNum] || ""}
+                                      onChange={(e) => setNewCheckpointText거시(prev => ({
+                                        ...prev,
+                                        [paragraphNum]: e.target.value
+                                      }))}
+                                      placeholder="거시 체크포인트를 입력하세요..."
+                                      className="w-full text-sm p-3 border-2 rounded-lg transition-all mb-2"
+                                      style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                                      onFocus={(e) => {
+                                        e.currentTarget.style.borderColor = '#13181B';
+                                        e.currentTarget.style.outline = 'none';
+                                      }}
+                                      onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                                      rows={4}
+                                    />
+                                    <button
+                                      onClick={() => handleAddCheckpoint거시(paragraphNum)}
+                                      className="w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all"
+                                      style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+                                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                    >
+                                      거시 추가
+                                    </button>
+                                  </>
+                                );
+                              })()}
+                            </div>
+
+                            {/* 미시 체크포인트 입력 */}
+                            <div>
+                              <label className="block text-xs font-semibold mb-2 flex items-center gap-2" style={{ color: '#13181B' }}>
+                                <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: '#FFE5CC', color: '#13181B' }}>미시</span>
+                              </label>
+                              {(() => {
+                                const 미시체크 = checkpoints.find((cp: any) => cp.category === "미시");
+                                return 미시체크 ? (
+                                  <div className="p-3 rounded-lg border-2" style={{ backgroundColor: '#FFF5E8', borderColor: '#CCD5DA' }}>
+                                    <div className="text-sm whitespace-pre-wrap mb-2" style={{ color: '#13181B' }}>
+                                      {미시체크.checkpoint}
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        const 미시Idx = checkpoints.findIndex((cp: any) => cp.category === "미시");
+                                        if (미시Idx !== -1) handleDeleteCheckpoint(paragraphNum, 미시Idx);
+                                      }}
+                                      className="text-xs px-2 py-1 rounded transition-colors"
+                                      style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+                                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                    >
+                                      삭제
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <textarea
+                                      value={newCheckpointText미시[paragraphNum] || ""}
+                                      onChange={(e) => setNewCheckpointText미시(prev => ({
+                                        ...prev,
+                                        [paragraphNum]: e.target.value
+                                      }))}
+                                      placeholder="미시 체크포인트를 입력하세요..."
+                                      className="w-full text-sm p-3 border-2 rounded-lg transition-all mb-2"
+                                      style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                                      onFocus={(e) => {
+                                        e.currentTarget.style.borderColor = '#13181B';
+                                        e.currentTarget.style.outline = 'none';
+                                      }}
+                                      onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                                      rows={4}
+                                    />
+                                    <button
+                                      onClick={() => handleAddCheckpoint미시(paragraphNum)}
+                                      className="w-full px-3 py-2 rounded-lg font-semibold text-xs transition-all"
+                                      style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+                                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                    >
+                                      미시 추가
+                                    </button>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                        )}
+
+                        {/* 영어 지문인 경우 (기존 방식 유지) */}
+                        {!hasNoCheckpoint[paragraphNum] && !dontKnow[paragraphNum] && !isKorean && (
                         <div className="border-2 rounded-xl p-4" style={{ backgroundColor: '#FFFFFF', borderColor: '#CCD5DA' }}>
                           <h4 className="text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
                             체크포인트 추가
@@ -1060,46 +1278,6 @@ export default function StudentCheckpointPage() {
                               }
                             `}</style>
                           </div>
-
-                          {isKorean && (
-                            <div className="mb-3">
-                              <label className="block text-xs font-semibold mb-2" style={{ color: '#13181B' }}>
-                                카테고리 선택
-                              </label>
-                              <div className="flex gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setNewCheckpointCategory(prev => ({
-                                    ...prev,
-                                    [paragraphNum]: "거시"
-                                  }))}
-                                  className="flex-1 px-3 py-2 rounded-lg font-semibold text-sm transition-all"
-                                  style={{
-                                    backgroundColor: (newCheckpointCategory[paragraphNum] || "미시") === "거시" ? '#E8F0F8' : '#F0EEEB',
-                                    border: '2px solid #CCD5DA',
-                                    color: '#13181B'
-                                  }}
-                                >
-                                  거시
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setNewCheckpointCategory(prev => ({
-                                    ...prev,
-                                    [paragraphNum]: "미시"
-                                  }))}
-                                  className="flex-1 px-3 py-2 rounded-lg font-semibold text-sm transition-all"
-                                  style={{
-                                    backgroundColor: (newCheckpointCategory[paragraphNum] || "미시") === "미시" ? '#FFF5E8' : '#F0EEEB',
-                                    border: '2px solid #CCD5DA',
-                                    color: '#13181B'
-                                  }}
-                                >
-                                  미시
-                                </button>
-                              </div>
-                            </div>
-                          )}
 
                           <button
                             onClick={() => handleAddCheckpoint(paragraphNum)}
@@ -1180,19 +1358,41 @@ export default function StudentCheckpointPage() {
                           <div className="space-y-2">
                             {checkpoints.map((cp, idx) => {
                               const categoryBg = cp.category === "거시" ? '#E8F0F8' : cp.category === "미시" ? '#FFF5E8' : '#F0EEEB';
+                              // 선생님이 확인했는지 확인
+                              const submission = existingCheckpoints?.find((c: any) => {
+                                const paraNum = c.paragraph || c.paragraph_index;
+                                return paraNum === paragraphNum && 
+                                       (c.attempt_number || 1) === selectedAttempt &&
+                                       c.category === cp.category;
+                              });
+                              const teacherViewed = submission?.teacher_viewed || false;
+                              
                               return (
-                                <div key={cp.id || `${paragraphNum}-${idx}-${cp.highlight_start}-${cp.highlight_end}`} className="p-3 border-2 rounded-lg" style={{ 
+                                <div key={cp.id || `${paragraphNum}-${idx}-${cp.highlight_start}-${cp.highlight_end}`} className="p-3 border-2 rounded-lg relative" style={{ 
                                   backgroundColor: categoryBg, 
                                   borderColor: '#CCD5DA',
                                   borderLeft: `4px solid ${cp.category === "거시" ? '#13181B' : cp.category === "미시" ? '#13181B' : 'transparent'}`
                                 }}>
-                                  <div className="flex items-center gap-2 mb-2">
-                                    {cp.category && (
-                                      <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
-                                        backgroundColor: cp.category === "거시" ? '#D4E4F4' : '#FFE5CC',
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      {cp.category && (
+                                        <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                                          backgroundColor: cp.category === "거시" ? '#D4E4F4' : '#FFE5CC',
+                                          color: '#13181B'
+                                        }}>
+                                          {cp.category}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {teacherViewed && (
+                                      <span className="flex items-center gap-1 text-xs px-2 py-1 rounded font-semibold" style={{ 
+                                        backgroundColor: '#D4E4F4',
                                         color: '#13181B'
                                       }}>
-                                        {cp.category}
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        선생님 확인 완료
                                       </span>
                                     )}
                                   </div>

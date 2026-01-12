@@ -46,21 +46,38 @@ export default function MyCheckpointsPage() {
       // 내가 체크포인트를 작성한 지문들 가져오기 (현재 과목에 맞는 것만)
       const { data: submissions } = await supabase
         .from("student_checkpoint_record")
-        .select("passage_id, passages(id, title, category, source, subject)")
+        .select("passage_id, teacher_viewed, passages(id, title, category, source, subject)")
         .eq("user_id", user.id);
 
       if (submissions) {
         // 중복 제거 및 정렬 (현재 과목에 맞는 것만)
         const passageMap = new Map();
+        const passageCheckpoints: Record<string, any[]> = {};
+        
         submissions
           .filter((s: any) => s.passages && (s.passages.subject === currentSubject || (s.passages.subject === null && currentSubject === "korean")))
           .forEach((s: any) => {
             if (!passageMap.has(s.passage_id)) {
               passageMap.set(s.passage_id, s.passages);
             }
+            // 각 지문별 체크포인트 수집
+            if (!passageCheckpoints[s.passage_id]) {
+              passageCheckpoints[s.passage_id] = [];
+            }
+            passageCheckpoints[s.passage_id].push(s);
           });
         
-        const uniquePassages = Array.from(passageMap.values());
+        const uniquePassages = Array.from(passageMap.values()).map((passage: any) => {
+          // 해당 지문의 모든 체크포인트가 확인되었는지 확인
+          const checkpoints = passageCheckpoints[passage.id] || [];
+          const allViewed = checkpoints.length > 0 && 
+                            checkpoints.every((cp: any) => cp.teacher_viewed === true);
+          return {
+            ...passage,
+            allViewed
+          };
+        });
+        
         // 제목으로 정렬
         uniquePassages.sort((a: any, b: any) => {
           const titleA = a.title || "";
@@ -204,9 +221,16 @@ export default function MyCheckpointsPage() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold mb-1 transition-colors line-clamp-2" style={{ color: '#13181B' }}>
-                      {passage.title || "(제목 없음)"}
-                    </h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-lg font-bold transition-colors line-clamp-2" style={{ color: '#13181B' }}>
+                        {passage.title || "(제목 없음)"}
+                      </h3>
+                      {passage.allViewed && (
+                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ color: '#13181B' }}>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="px-3 py-1.5 text-xs font-semibold rounded-full" style={{ 
                         backgroundColor: '#CCD5DA', 
@@ -237,8 +261,19 @@ export default function MyCheckpointsPage() {
                     />
                   </svg>
                 </div>
-                <div className="text-sm mt-4 pt-4" style={{ color: '#13181B', borderTop: '1px solid #CCD5DA' }}>
-                  체크포인트 확인하기 →
+                <div className="text-sm mt-4 pt-4 flex items-center justify-between" style={{ color: '#13181B', borderTop: '1px solid #CCD5DA' }}>
+                  <span>체크포인트 확인하기 →</span>
+                  {passage.allViewed && (
+                    <span className="text-xs px-2 py-1 rounded font-semibold flex items-center gap-1" style={{ 
+                      backgroundColor: '#D4E4F4',
+                      color: '#13181B'
+                    }}>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                      선생님 확인완료
+                    </span>
+                  )}
                 </div>
               </Link>
             ))}

@@ -172,7 +172,8 @@ export default function AdminPage() {
         paragraph,
         attempt_number,
         created_at,
-        reason
+        reason,
+        teacher_viewed
       `)
       .in("user_id", studentIds)
       .order("created_at", { ascending: false });
@@ -281,7 +282,8 @@ export default function AdminPage() {
         paragraph,
         attempt_number,
         created_at,
-        reason
+        reason,
+        teacher_viewed
       `)
       .eq("user_id", studentId)
       .order("created_at", { ascending: false });
@@ -1269,39 +1271,51 @@ export default function AdminPage() {
                                       {passage.year} {passage.source && `- ${passage.source}`}
                                     </div>
                                   )}
-                                  {sortedParagraphs.length > 0 && (
-                                    <div className="mt-3 pt-3">
-                                      <div
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          window.location.href = `/admin/passages/${passage.id}?student=${selectedStudentId}`;
-                                        }}
-                                        className="block p-3 rounded-lg transition-all cursor-pointer"
-                                        style={{ backgroundColor: '#F0EEEB' }}
-                                        onMouseEnter={(e) => {
-                                          e.currentTarget.style.backgroundColor = '#CCD5DA';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.currentTarget.style.backgroundColor = '#F0EEEB';
-                                        }}
-                                      >
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-sm font-semibold" style={{ color: '#13181B' }}>
-                                            {sortedParagraphs.length}개 문단 체크포인트 확인
-                                          </span>
-                                          <svg 
-                                            className="w-4 h-4 flex-shrink-0 ml-2" 
-                                            fill="none" 
-                                            stroke="currentColor" 
-                                            viewBox="0 0 24 24"
-                                            style={{ color: '#13181B' }}
-                                          >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                          </svg>
+                                  {sortedParagraphs.length > 0 && (() => {
+                                    // 해당 지문의 모든 체크포인트가 확인되었는지 확인
+                                    const passageCheckpoints = checkpoints.filter((cp: any) => cp.passage_id === passage.id);
+                                    const allViewed = passageCheckpoints.length > 0 && 
+                                                      passageCheckpoints.every((cp: any) => cp.teacher_viewed === true);
+                                    
+                                    return (
+                                      <div className="mt-3 pt-3">
+                                        <div
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.location.href = `/admin/passages/${passage.id}?student=${selectedStudentId}`;
+                                          }}
+                                          className="block p-3 rounded-lg transition-all cursor-pointer"
+                                          style={{ backgroundColor: '#F0EEEB' }}
+                                          onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#CCD5DA';
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = '#F0EEEB';
+                                          }}
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-sm font-semibold flex items-center gap-2" style={{ color: '#13181B' }}>
+                                              {allViewed && (
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                              )}
+                                              {sortedParagraphs.length}개 문단 체크포인트 확인
+                                            </span>
+                                            <svg 
+                                              className="w-4 h-4 flex-shrink-0 ml-2" 
+                                              fill="none" 
+                                              stroke="currentColor" 
+                                              viewBox="0 0 24 24"
+                                              style={{ color: '#13181B' }}
+                                            >
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  )}
+                                    );
+                                  })()}
                                 </Link>
                               );
                             })}
@@ -1450,8 +1464,23 @@ export default function AdminPage() {
                                                   }}
                                                 >
                                                   <div className="flex items-center justify-between">
-                                                    <span className="text-sm font-semibold" style={{ color: '#13181B' }}>
-                                                      {sortedParagraphs.length}개 문단 체크포인트 확인
+                                                    <span className="text-sm font-semibold flex items-center gap-2" style={{ color: '#13181B' }}>
+                                                      {(() => {
+                                                        // 해당 지문의 모든 체크포인트가 확인되었는지 확인
+                                                        const passageCheckpoints = checkpoints.filter((cp: any) => cp.passage_id === passage.id);
+                                                        const allViewed = passageCheckpoints.length > 0 && 
+                                                                          passageCheckpoints.every((cp: any) => cp.teacher_viewed === true);
+                                                        return allViewed ? (
+                                                          <>
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            {sortedParagraphs.length}개 문단 체크포인트 확인
+                                                          </>
+                                                        ) : (
+                                                          `${sortedParagraphs.length}개 문단 체크포인트 확인`
+                                                        );
+                                                      })()}
                                                     </span>
                                                     <svg 
                                                       className="w-4 h-4 flex-shrink-0 ml-2" 

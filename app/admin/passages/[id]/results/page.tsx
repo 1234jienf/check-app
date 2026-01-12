@@ -351,11 +351,92 @@ export default function PassageResults() {
                   return acc;
                 }, {});
 
+                // 학생의 모든 체크포인트 ID 수집
+                const allStudentCheckpointIds = studentCheckpoints.map((cp: any) => cp.id);
+                const allViewed = allStudentCheckpointIds.length > 0 && 
+                                  studentCheckpoints.every((cp: any) => cp.teacher_viewed);
+
                 return (
                   <div key={student.student_id} className="rounded-xl p-4 md:p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-                    <h4 className="text-lg font-bold mb-4 pb-2 border-b" style={{ color: '#13181B', borderBottomColor: '#CCD5DA' }}>
+                    <div className="flex items-center justify-between mb-4 pb-2 border-b" style={{ borderBottomColor: '#CCD5DA' }}>
+                      <h4 className="text-lg font-bold" style={{ color: '#13181B' }}>
                       {student.name} 님
                     </h4>
+                      {/* 전체 확인 버튼 */}
+                      {allStudentCheckpointIds.length > 0 && (
+                        <button
+                          onClick={async () => {
+                            // 학생의 모든 체크포인트 확인 상태 업데이트
+                            const { error } = await supabase
+                              .from("student_checkpoint_record")
+                              .update({ teacher_viewed: true })
+                              .in("id", allStudentCheckpointIds);
+                            
+                            if (error) {
+                              alert("확인 상태 업데이트 실패: " + error.message);
+                            } else {
+                              // 결과 다시 로드
+                              const { data, error: loadError } = await supabase
+                                .from("student_checkpoint_record")
+                                .select("*, users(name, email)")
+                                .eq("passage_id", id);
+                              
+                              if (loadError) {
+                                // users 조인 실패 시 직접 조회
+                                const { data: checkpointsData } = await supabase
+                                  .from("student_checkpoint_record")
+                                  .select("*")
+                                  .eq("passage_id", id);
+                                
+                                if (checkpointsData) {
+                                  const userIds = [...new Set(checkpointsData.map((c: any) => c.user_id))];
+                                  const { data: usersData } = await supabase
+                                    .from("users")
+                                    .select("id, name, email")
+                                    .in("id", userIds);
+                                  
+                                  const usersMap = new Map(usersData?.map((u: any) => [u.id, u]) || []);
+                                  const resultsWithUsers = checkpointsData.map((c: any) => ({
+                                    ...c,
+                                    users: usersMap.get(c.user_id) || { name: "이름 미등록", email: "" },
+                                  }));
+                                  setResults(resultsWithUsers);
+                                }
+                              } else if (data) {
+                                setResults(data);
+                              }
+                            }
+                          }}
+                          className="px-4 py-2 rounded-lg font-semibold text-sm transition-colors"
+                          style={{ 
+                            backgroundColor: allViewed ? '#D4E4F4' : '#F0EEEB',
+                            color: '#13181B',
+                            border: '2px solid #CCD5DA'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!allViewed) {
+                              e.currentTarget.style.backgroundColor = '#E8F0F8';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!allViewed) {
+                              e.currentTarget.style.backgroundColor = '#F0EEEB';
+                            }
+                          }}
+                        >
+                          {allViewed ? (
+                            <span className="flex items-center gap-2">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                              전체 확인 완료
+                            </span>
+                          ) : (
+                            '전체 확인'
+                          )}
+                        </button>
+                      )}
+                    </div>
 
                     <div className="space-y-4">
                       {paragraphs.map((paragraph: string, idx: number) => {
@@ -407,105 +488,161 @@ export default function PassageResults() {
 
                             {/* attempt_number별로 체크포인트 표시 */}
                             {attemptNumbers.length > 0 ? (
-                              <div className="space-y-2">
+                              <div className="space-y-3">
                                 {attemptNumbers.map((attemptNum) => {
                                   const attemptCheckpoints = paragraphAttempts[attemptNum] || [];
-                                  return attemptCheckpoints.map((checkpoint: any) => (
-                                    <div key={checkpoint.id} className="rounded-xl p-3 mb-2 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-xs font-bold px-3 py-1.5 rounded" style={{ color: '#13181B' }}>
+                                  // 거시와 미시 체크포인트 분리
+                                  const 거시Checkpoint = attemptCheckpoints.find((cp: any) => cp.category === "거시");
+                                  const 미시Checkpoint = attemptCheckpoints.find((cp: any) => cp.category === "미시");
+                                  const 기타Checkpoints = attemptCheckpoints.filter((cp: any) => cp.category !== "거시" && cp.category !== "미시");
+                                  const firstCheckpoint = attemptCheckpoints[0];
+                                  const createdDate = firstCheckpoint?.created_at ? new Date(firstCheckpoint.created_at).toLocaleDateString('ko-KR') : '';
+                                  
+                                  return (
+                                    <div key={`${paragraphNum}-${attemptNum}`} className="rounded-xl p-3 shadow-sm border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#CCD5DA' }}>
+                                      <div className="flex items-center gap-2 mb-3">
+                                        <span className="text-xs font-bold px-3 py-1.5 rounded" style={{ backgroundColor: '#F0EEEB', color: '#13181B' }}>
                                           {attemptNum}차
                                         </span>
                                         <span className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
-                                          {checkpoint.created_at ? new Date(checkpoint.created_at).toLocaleDateString('ko-KR') : ''}
-                              </span>
-                            </div>
+                                          {createdDate}
+                                        </span>
+                                      </div>
 
-                            {/* 체크포인트 */}
-                            <div className="mb-2">
-                              {checkpoint?.checkpoint_text && checkpoint.checkpoint_text.trim() ? (
-                                          <div>
-                                  {/* 거시/미시 카테고리 표시 (국어 지문만) */}
-                                  {checkpoint.category && (
-                                    <div className="mb-2">
+                                      {/* 거시/미시 체크포인트를 한 줄에 나란히 표시 */}
+                                      {(거시Checkpoint || 미시Checkpoint) ? (
+                                        <div className="grid grid-cols-2 gap-3 mb-3">
+                                          {/* 거시 체크포인트 */}
+                                          <div className="p-3 rounded-lg border-2 relative" style={{ 
+                                            backgroundColor: 거시Checkpoint ? '#E8F0F8' : '#F0EEEB',
+                                            borderColor: '#CCD5DA',
+                                            borderLeft: '4px solid #13181B'
+                                          }}>
+                                            <div className="flex items-center gap-2 mb-2">
                                       <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
-                                        backgroundColor: checkpoint.category === "거시" ? '#D4E4F4' : '#FFE5CC',
+                                                backgroundColor: '#D4E4F4',
                                         color: '#13181B'
                                       }}>
-                                        {checkpoint.category} 체크
+                                                거시
                                       </span>
                                     </div>
-                                  )}
-                                  {/* 하이라이트된 텍스트 표시 */}
-                                  {checkpoint.highlighted_text && (
+                                            {거시Checkpoint?.highlighted_text && (
                                     <div className="mb-2 p-2 rounded text-xs" style={{ backgroundColor: '#FFFFFF', color: '#13181B', opacity: 0.9, border: '1px solid #CCD5DA' }}>
-                                      <span className="font-semibold">하이라이트된 부분:</span> {checkpoint.highlighted_text}
-                                      {checkpoint.highlight_start !== null && checkpoint.highlight_end !== null && (
-                                        <span className="ml-2 text-xs" style={{ color: '#13181B', opacity: 0.6 }}>
-                                          (위치: {checkpoint.highlight_start}~{checkpoint.highlight_end})
+                                                <span className="font-semibold">하이라이트:</span> {거시Checkpoint.highlighted_text}
+                                              </div>
+                                            )}
+                                            {거시Checkpoint?.checkpoint_text && 거시Checkpoint.checkpoint_text.trim() ? (
+                                              <div className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>
+                                                {거시Checkpoint.checkpoint_text}
+                                              </div>
+                                            ) : (
+                                              <div className="text-sm italic" style={{ color: '#13181B', opacity: 0.5 }}>
+                                                없음
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          {/* 미시 체크포인트 */}
+                                          <div className="p-3 rounded-lg border-2 relative" style={{ 
+                                            backgroundColor: 미시Checkpoint ? '#FFF5E8' : '#F0EEEB',
+                                            borderColor: '#CCD5DA',
+                                            borderLeft: '4px solid #13181B'
+                                          }}>
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                                                backgroundColor: '#FFE5CC',
+                                                color: '#13181B'
+                                              }}>
+                                                미시
                                         </span>
-                                      )}
+                                            </div>
+                                            {미시Checkpoint?.highlighted_text && (
+                                              <div className="mb-2 p-2 rounded text-xs" style={{ backgroundColor: '#FFFFFF', color: '#13181B', opacity: 0.9, border: '1px solid #CCD5DA' }}>
+                                                <span className="font-semibold">하이라이트:</span> {미시Checkpoint.highlighted_text}
+                                              </div>
+                                            )}
+                                            {미시Checkpoint?.checkpoint_text && 미시Checkpoint.checkpoint_text.trim() ? (
+                                              <div className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>
+                                                {미시Checkpoint.checkpoint_text}
+                                              </div>
+                                            ) : (
+                                              <div className="text-sm italic" style={{ color: '#13181B', opacity: 0.5 }}>
+                                                없음
                                     </div>
                                   )}
-                                  <div className="text-sm p-3 rounded" style={{ color: '#13181B' }}>
-                                    {checkpoint.checkpoint_text}
                                   </div>
+                                        </div>
+                                      ) : null}
+
+                                      {/* 기타 체크포인트 (거시/미시가 아닌 경우) */}
+                                      {기타Checkpoints.map((checkpoint: any) => (
+                                        <div key={checkpoint.id} className="mb-2">
+                                          {checkpoint?.checkpoint_text && checkpoint.checkpoint_text.trim() ? (
+                                            <div className="text-sm p-3 rounded" style={{ backgroundColor: '#F0EEEB', color: '#13181B' }}>
+                                              {checkpoint.checkpoint_text}
                                 </div>
                               ) : (
                                           <span className="text-sm italic" style={{ color: '#13181B', opacity: 0.6 }}>체크포인트 없음</span>
                               )}
                             </div>
+                                      ))}
 
                             {/* 모름 사유 */}
-                            {checkpoint?.reason && (
-                                        <div className="mt-2 p-3 rounded border-l-4" style={{ borderLeftColor: '#CCD5DA' }}>
+                                      {(거시Checkpoint?.reason || 미시Checkpoint?.reason || 기타Checkpoints.some((cp: any) => cp.reason)) && (
+                                        <div className="mt-2 p-3 rounded border-l-4" style={{ borderLeftColor: '#CCD5DA', backgroundColor: '#F0EEEB' }}>
                                           <span className="text-xs font-semibold" style={{ color: '#13181B' }}>⚠️ 모름 - 사유: </span>
                                           <span className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>
-                                  {checkpoint.reason}
+                                            {거시Checkpoint?.reason || 미시Checkpoint?.reason || 기타Checkpoints.find((cp: any) => cp.reason)?.reason}
                                 </span>
                                         </div>
                                       )}
 
                                       {/* 학생 자기 피드백 */}
-                                      {studentFeedbacks[checkpoint.id] && (
-                                        <div className="mt-2 p-3 rounded-xl shadow-sm">
+                                      {(거시Checkpoint && studentFeedbacks[거시Checkpoint.id]) || (미시Checkpoint && studentFeedbacks[미시Checkpoint.id]) ? (
+                                        <div className="mt-2 p-3 rounded-xl shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
                                           <div className="text-xs font-semibold mb-1" style={{ color: '#13181B' }}>
                                             ✍️ 학생 자기 피드백
                                           </div>
                                           <div className="text-sm whitespace-pre-wrap" style={{ color: '#13181B' }}>
-                                            {studentFeedbacks[checkpoint.id].feedback_text}
+                                            {studentFeedbacks[거시Checkpoint?.id]?.feedback_text || studentFeedbacks[미시Checkpoint?.id]?.feedback_text}
                                           </div>
                                         </div>
-                                      )}
+                                      ) : null}
 
                                       {/* 선생님 댓글 */}
                                       <div className="mt-2">
                                         <button
                                           onClick={() => {
+                                            const checkpointId = 거시Checkpoint?.id || 미시Checkpoint?.id || 기타Checkpoints[0]?.id;
+                                            if (checkpointId) {
                                             setShowCommentInput((prev: any) => ({
                                               ...prev,
-                                              [checkpoint.id]: !prev[checkpoint.id],
+                                                [checkpointId]: !prev[checkpointId],
                                             }));
+                                            }
                                           }}
                                           className="text-xs mb-2 transition-colors"
                                           style={{ color: '#13181B' }}
                                           onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
                                           onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                                         >
-                                          댓글 {comments[checkpoint.id]?.length || 0}개
+                                          댓글 {(거시Checkpoint && comments[거시Checkpoint.id]?.length) || (미시Checkpoint && comments[미시Checkpoint.id]?.length) || 0}개
                                         </button>
 
-                                        {/* 기존 댓글 */}
-                                        {comments[checkpoint.id] && comments[checkpoint.id].length > 0 && (
+                                        {/* 기존 댓글 - 거시/미시 각각 표시 */}
+                                        {((거시Checkpoint && comments[거시Checkpoint.id]?.length > 0) || (미시Checkpoint && comments[미시Checkpoint.id]?.length > 0)) && (
                                           <div className="space-y-2 mb-2">
-                                            {comments[checkpoint.id].map((comment: any) => {
+                                            {거시Checkpoint && comments[거시Checkpoint.id]?.map((comment: any) => {
                                               const isMyComment = currentUserId && comment.teacher_id === currentUserId;
                                               const isEditing = editingCommentId === comment.id;
                                               
                                               return (
-                                                <div key={comment.id} className="p-3 rounded-lg shadow-sm border-l-2" style={{ backgroundColor: '#F0EEEB', borderLeftColor: '#13181B' }}>
+                                                <div key={comment.id} className="p-3 rounded-lg shadow-sm border-l-2" style={{ backgroundColor: '#E8F0F8', borderLeftColor: '#13181B' }}>
                                                   <div className="flex items-center justify-between mb-1">
-                                                    <div className="font-semibold" style={{ color: '#13181B' }}>선생님</div>
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="text-xs font-semibold px-2 py-1 rounded" style={{ backgroundColor: '#D4E4F4', color: '#13181B' }}>거시</span>
+                                                      <div className="font-semibold text-sm" style={{ color: '#13181B' }}>선생님</div>
+                                                    </div>
                                                     {isMyComment && !isEditing && (
                                                       <div className="flex gap-2">
                                                         <button
@@ -532,16 +669,15 @@ export default function PassageResults() {
                                                             if (error) {
                                                               alert("삭제 실패: " + error.message);
                                                             } else {
-                                                              // 댓글 다시 로드
                                                               const { data: commentsData } = await supabase
                                                                 .from("teacher_comments")
                                                                 .select("*")
-                                                                .eq("student_submission_id", checkpoint.id)
+                                                                .eq("student_submission_id", 거시Checkpoint.id)
                                                                 .order("created_at", { ascending: false });
                                                               if (commentsData) {
                                                                 setComments((prev: any) => ({
                                                                   ...prev,
-                                                                  [checkpoint.id]: commentsData,
+                                                                  [거시Checkpoint.id]: commentsData,
                                                                 }));
                                                               }
                                                             }
@@ -583,16 +719,15 @@ export default function PassageResults() {
                                                             } else {
                                                               setEditingCommentId(null);
                                                               setEditCommentText("");
-                                                              // 댓글 다시 로드
                                                               const { data: commentsData } = await supabase
                                                                 .from("teacher_comments")
                                                                 .select("*")
-                                                                .eq("student_submission_id", checkpoint.id)
+                                                                .eq("student_submission_id", 거시Checkpoint.id)
                                                                 .order("created_at", { ascending: false });
                                                               if (commentsData) {
                                                                 setComments((prev: any) => ({
                                                                   ...prev,
-                                                                  [checkpoint.id]: commentsData,
+                                                                  [거시Checkpoint.id]: commentsData,
                                                                 }));
                                                               }
                                                             }
@@ -631,18 +766,154 @@ export default function PassageResults() {
                                                 </div>
                                               );
                                             })}
+                                            {미시Checkpoint && comments[미시Checkpoint.id]?.map((comment: any) => {
+                                              const isMyComment = currentUserId && comment.teacher_id === currentUserId;
+                                              const isEditing = editingCommentId === comment.id;
+                                              
+                                              return (
+                                                <div key={comment.id} className="p-3 rounded-lg shadow-sm border-l-2" style={{ backgroundColor: '#FFF5E8', borderLeftColor: '#13181B' }}>
+                                                  <div className="flex items-center justify-between mb-1">
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="text-xs font-semibold px-2 py-1 rounded" style={{ backgroundColor: '#FFE5CC', color: '#13181B' }}>미시</span>
+                                                      <div className="font-semibold text-sm" style={{ color: '#13181B' }}>선생님</div>
+                                                    </div>
+                                                    {isMyComment && !isEditing && (
+                                                      <div className="flex gap-2">
+                                                        <button
+                                                          onClick={() => {
+                                                            setEditingCommentId(comment.id);
+                                                            setEditCommentText(comment.comment_text);
+                                                          }}
+                                                          className="text-xs px-2 py-1 rounded transition-colors"
+                                                          style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
+                                                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                        >
+                                                          수정
+                                                        </button>
+                                                        <button
+                                                          onClick={async () => {
+                                                            if (!confirm("정말 삭제하시겠습니까?")) return;
+                                                            
+                                                            const { error } = await supabase
+                                                              .from("teacher_comments")
+                                                              .delete()
+                                                              .eq("id", comment.id);
+                                                            
+                                                            if (error) {
+                                                              alert("삭제 실패: " + error.message);
+                                                            } else {
+                                                              const { data: commentsData } = await supabase
+                                                                .from("teacher_comments")
+                                                                .select("*")
+                                                                .eq("student_submission_id", 미시Checkpoint.id)
+                                                                .order("created_at", { ascending: false });
+                                                              if (commentsData) {
+                                                                setComments((prev: any) => ({
+                                                                  ...prev,
+                                                                  [미시Checkpoint.id]: commentsData,
+                                                                }));
+                                                              }
+                                                            }
+                                                          }}
+                                                          className="text-xs px-2 py-1 rounded transition-colors"
+                                                          style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
+                                                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                        >
+                                                          삭제
+                                                        </button>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                  {isEditing ? (
+                                                    <div className="space-y-2">
+                                                      <textarea
+                                                        value={editCommentText}
+                                                        onChange={(e) => setEditCommentText(e.target.value)}
+                                                        className="w-full text-sm p-2 rounded-xl transition-all shadow-sm"
+                                                        style={{ backgroundColor: '#FFFFFF', color: '#13181B' }}
+                                                        rows={3}
+                                                      />
+                                                      <div className="flex gap-2">
+                                                        <button
+                                                          onClick={async () => {
+                                                            if (!editCommentText.trim()) {
+                                                              alert("댓글을 입력해주세요.");
+                                                              return;
+                                                            }
+                                                            
+                                                            const { error } = await supabase
+                                                              .from("teacher_comments")
+                                                              .update({ comment_text: editCommentText.trim() })
+                                                              .eq("id", comment.id);
+                                                            
+                                                            if (error) {
+                                                              alert("수정 실패: " + error.message);
+                                                            } else {
+                                                              setEditingCommentId(null);
+                                                              setEditCommentText("");
+                                                              const { data: commentsData } = await supabase
+                                                                .from("teacher_comments")
+                                                                .select("*")
+                                                                .eq("student_submission_id", 미시Checkpoint.id)
+                                                                .order("created_at", { ascending: false });
+                                                              if (commentsData) {
+                                                                setComments((prev: any) => ({
+                                                                  ...prev,
+                                                                  [미시Checkpoint.id]: commentsData,
+                                                                }));
+                                                              }
+                                                            }
+                                                          }}
+                                                          className="text-xs px-3 py-1 rounded transition-colors font-semibold"
+                                                          style={{ backgroundColor: '#13181B', color: '#FFFFFF' }}
+                                                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                                                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                        >
+                                                          저장
+                                                        </button>
+                                                        <button
+                                                          onClick={() => {
+                                                            setEditingCommentId(null);
+                                                            setEditCommentText("");
+                                                          }}
+                                                          className="text-xs px-3 py-1 rounded transition-colors"
+                                                          style={{ color: '#13181B', backgroundColor: '#FFFFFF' }}
+                                                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                                                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                                                        >
+                                                          취소
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                  ) : (
+                                                    <div>
+                                                      <div className="text-sm whitespace-pre-wrap mb-1" style={{ color: '#13181B' }}>
+                                                        {comment.comment_text}
+                                                      </div>
+                                                      <div className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>
+                                                        {new Date(comment.created_at).toLocaleString('ko-KR')}
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              );
+                                            })}
                                           </div>
                                         )}
 
                                         {/* 댓글 입력 */}
-                                        {showCommentInput[checkpoint.id] && (
+                                        {(() => {
+                                          const checkpointId = 거시Checkpoint?.id || 미시Checkpoint?.id || 기타Checkpoints[0]?.id;
+                                          return checkpointId && showCommentInput[checkpointId] && (
                                           <div className="mt-2">
                                             <textarea
-                                              value={commentTexts[checkpoint.id] || ""}
+                                              value={commentTexts[checkpointId] || ""}
                                               onChange={(e) => {
                                                 setCommentTexts((prev: any) => ({
                                                   ...prev,
-                                                  [checkpoint.id]: e.target.value,
+                                                  [checkpointId]: e.target.value,
                                                 }));
                                               }}
                                               placeholder="댓글을 입력하세요..."
@@ -665,7 +936,7 @@ export default function PassageResults() {
                                             />
                                             <button
                                               onClick={async () => {
-                                                const commentText = commentTexts[checkpoint.id];
+                                                const commentText = commentTexts[checkpointId];
                                                 if (!commentText?.trim()) {
                                                   alert("댓글을 입력해주세요.");
                                                   return;
@@ -680,7 +951,7 @@ export default function PassageResults() {
                                                 const { error, data: newComment } = await supabase
                                                   .from("teacher_comments")
                                                   .insert({
-                                                    student_submission_id: checkpoint.id,
+                                                    student_submission_id: checkpointId,
                                                     teacher_id: user.id,
                                                     comment_text: commentText.trim(),
                                                   })
@@ -695,9 +966,9 @@ export default function PassageResults() {
                                                   if (newComment) {
                                                     setComments((prev: any) => ({
                                                       ...prev,
-                                                      [checkpoint.id]: [
+                                                      [checkpointId]: [
                                                         newComment,
-                                                        ...(prev[checkpoint.id] || [])
+                                                        ...(prev[checkpointId] || [])
                                                       ],
                                                     }));
                                                   } else {
@@ -705,24 +976,24 @@ export default function PassageResults() {
                                                   const { data: commentsData } = await supabase
                                                     .from("teacher_comments")
                                                     .select("*")
-                                                    .eq("student_submission_id", checkpoint.id)
+                                                    .eq("student_submission_id", checkpointId)
                                                     .order("created_at", { ascending: false });
 
                                                   if (commentsData) {
                                                     setComments((prev: any) => ({
                                                       ...prev,
-                                                      [checkpoint.id]: commentsData,
+                                                      [checkpointId]: commentsData,
                                                     }));
                                                     }
                                                   }
 
                                                   setCommentTexts((prev: any) => ({
                                                     ...prev,
-                                                    [checkpoint.id]: "",
+                                                    [checkpointId]: "",
                                                   }));
                                                   setShowCommentInput((prev: any) => ({
                                                     ...prev,
-                                                    [checkpoint.id]: false,
+                                                    [checkpointId]: false,
                                                   }));
                                                 }
                                               }}
@@ -743,10 +1014,11 @@ export default function PassageResults() {
                                               댓글 작성
                                             </button>
                                           </div>
-                                        )}
+                                          );
+                                        })()}
                                       </div>
                                     </div>
-                                  ));
+                                  );
                                 })}
                               </div>
                             ) : (
