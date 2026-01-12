@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -15,6 +15,10 @@ function AddCheckpointContent() {
   );
   const [checkpointText, setCheckpointText] = useState("");
   const [category, setCategory] = useState<string>("미시");
+  const [highlightedText, setHighlightedText] = useState<string>("");
+  const [highlightStart, setHighlightStart] = useState<number | null>(null);
+  const [highlightEnd, setHighlightEnd] = useState<number | null>(null);
+  const paragraphRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -64,9 +68,9 @@ function AddCheckpointContent() {
       paragraph: paragraphNum,
       text: checkpointText,
       order_num: nextOrder,
-      highlighted_text: null,
-      highlight_start: null,
-      highlight_end: null,
+      highlighted_text: highlightedText || null,
+      highlight_start: highlightStart !== null ? highlightStart : null,
+      highlight_end: highlightEnd !== null ? highlightEnd : null,
       teacher_id: user.id,
       category: checkpointCategory,
     });
@@ -77,6 +81,9 @@ function AddCheckpointContent() {
       alert("체크포인트가 추가되었습니다.");
       // 폼 초기화하여 같은 문단에서 여러 체크포인트 추가 가능하게 함
       setCheckpointText("");
+      setHighlightedText("");
+      setHighlightStart(null);
+      setHighlightEnd(null);
     }
   };
 
@@ -109,6 +116,9 @@ function AddCheckpointContent() {
             onChange={(e) => {
               setParagraphNum(Number(e.target.value));
               setCheckpointText("");
+              setHighlightedText("");
+              setHighlightStart(null);
+              setHighlightEnd(null);
             }}
             className="w-full px-4 py-2 rounded-xl text-sm"
             style={{ 
@@ -133,15 +143,55 @@ function AddCheckpointContent() {
         {paragraphs[paragraphNum - 1] && (
           <div className="rounded-xl p-6 shadow-sm mb-6" style={{ backgroundColor: '#FFFFFF' }}>
             <label className="block text-sm font-semibold mb-3" style={{ color: '#13181B' }}>
-              문단 내용
+              문단 내용 (텍스트를 드래그하여 선택하면 체크포인트 내용에 자동으로 입력됩니다)
             </label>
             <div
-              className="p-4 rounded-xl min-h-[200px]"
+              ref={paragraphRef}
+              className="p-4 rounded-xl min-h-[200px] select-text"
               style={{ 
                 backgroundColor: '#F0EEEB',
                 border: '1px solid #CCD5DA',
                 color: '#13181B',
-                lineHeight: '1.6'
+                lineHeight: '1.6',
+                userSelect: 'text',
+                cursor: 'text'
+              }}
+              onMouseUp={(e) => {
+                // 약간의 지연을 두어 선택이 완료된 후 처리
+                setTimeout(() => {
+                  const selection = window.getSelection();
+                  const selectedText = selection?.toString().trim() || "";
+                  
+                  if (selectedText.length > 0) {
+                    const paragraphText = paragraphs[paragraphNum - 1].trim().replace(/\n/g, " ");
+                    
+                    // 선택된 텍스트의 시작 위치 찾기
+                    try {
+                      if (paragraphRef.current && selection && selection.rangeCount > 0) {
+                        const range = selection.getRangeAt(0);
+                        const preSelectionRange = range.cloneRange();
+                        preSelectionRange.selectNodeContents(paragraphRef.current);
+                        preSelectionRange.setEnd(range.startContainer, range.startOffset);
+                        const start = preSelectionRange.toString().length;
+                        const end = start + selectedText.length;
+                        
+                        setHighlightedText(selectedText);
+                        setHighlightStart(start);
+                        setHighlightEnd(end);
+                      } else {
+                        setHighlightedText(selectedText);
+                      }
+                    } catch (err) {
+                      // 범위 계산 실패 시에도 텍스트는 설정
+                      setHighlightedText(selectedText);
+                    }
+                    
+                    // 선택 해제 (상태 업데이트 후)
+                    if (selection) {
+                      selection.removeAllRanges();
+                    }
+                  }
+                }, 100);
               }}
             >
               {paragraphs[paragraphNum - 1].split("\n").map((line: string, idx: number) => (
@@ -150,6 +200,16 @@ function AddCheckpointContent() {
                 </p>
               ))}
             </div>
+            {highlightedText && (
+              <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: '#E8F0F8', border: '1px solid #D4E4F4' }}>
+                <div className="text-xs font-semibold mb-1" style={{ color: '#13181B' }}>
+                  선택된 텍스트:
+                </div>
+                <div className="text-sm" style={{ color: '#13181B' }}>
+                  "{highlightedText}"
+                </div>
+              </div>
+            )}
           </div>
         )}
 

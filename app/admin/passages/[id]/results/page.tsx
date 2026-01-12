@@ -637,12 +637,9 @@ export default function PassageResults() {
                                               const isEditing = editingCommentId === comment.id;
                                               
                                               return (
-                                                <div key={comment.id} className="p-3 rounded-lg shadow-sm border-l-2" style={{ backgroundColor: '#E8F0F8', borderLeftColor: '#13181B' }}>
+                                                <div key={comment.id} className="p-3 rounded-lg shadow-sm border-l-2" style={{ backgroundColor: '#F0EEEB', borderLeftColor: '#13181B' }}>
                                                   <div className="flex items-center justify-between mb-1">
-                                                    <div className="flex items-center gap-2">
-                                                      <span className="text-xs font-semibold px-2 py-1 rounded" style={{ backgroundColor: '#D4E4F4', color: '#13181B' }}>거시</span>
-                                                      <div className="font-semibold text-sm" style={{ color: '#13181B' }}>선생님</div>
-                                                    </div>
+                                                    <div className="font-semibold text-sm" style={{ color: '#13181B' }}>선생님</div>
                                                     {isMyComment && !isEditing && (
                                                       <div className="flex gap-2">
                                                         <button
@@ -771,12 +768,9 @@ export default function PassageResults() {
                                               const isEditing = editingCommentId === comment.id;
                                               
                                               return (
-                                                <div key={comment.id} className="p-3 rounded-lg shadow-sm border-l-2" style={{ backgroundColor: '#FFF5E8', borderLeftColor: '#13181B' }}>
+                                                <div key={comment.id} className="p-3 rounded-lg shadow-sm border-l-2" style={{ backgroundColor: '#F0EEEB', borderLeftColor: '#13181B' }}>
                                                   <div className="flex items-center justify-between mb-1">
-                                                    <div className="flex items-center gap-2">
-                                                      <span className="text-xs font-semibold px-2 py-1 rounded" style={{ backgroundColor: '#FFE5CC', color: '#13181B' }}>미시</span>
-                                                      <div className="font-semibold text-sm" style={{ color: '#13181B' }}>선생님</div>
-                                                    </div>
+                                                    <div className="font-semibold text-sm" style={{ color: '#13181B' }}>선생님</div>
                                                     {isMyComment && !isEditing && (
                                                       <div className="flex gap-2">
                                                         <button
