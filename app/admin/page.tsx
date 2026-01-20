@@ -18,6 +18,7 @@ export default function AdminPage() {
   const [allApprovedStudents, setAllApprovedStudents] = useState<any[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [isLoadingPassages, setIsLoadingPassages] = useState<boolean>(true);
+  const [studentSearchQuery, setStudentSearchQuery] = useState<string>("");
 
   // 세션에서 선택한 과목 불러오기
   useEffect(() => {
@@ -245,6 +246,52 @@ export default function AdminPage() {
               grouped[category] = [];
             }
             grouped[category].push(passage);
+          });
+
+          // 각 카테고리별로 지문 정렬 (연도와 월 기준)
+          Object.keys(grouped).forEach((category) => {
+            grouped[category].sort((a: any, b: any) => {
+              // 연도 추출
+              const yearA = a.year ? parseInt(a.year.toString().substring(0, 4)) : 0;
+              const yearB = b.year ? parseInt(b.year.toString().substring(0, 4)) : 0;
+              
+              if (yearA !== yearB) {
+                return yearB - yearA; // 최신 연도가 먼저
+              }
+              
+              // source에서 월 추출 (예: "2021년 6월 모의고사" -> 6)
+              const getMonth = (source: string | null): number => {
+                if (!source) return 0;
+                const monthMatch = source.match(/(\d+)월/);
+                if (monthMatch) {
+                  return parseInt(monthMatch[1]);
+                }
+                // "10월" 같은 경우도 처리
+                const monthNames: Record<string, number> = {
+                  '1월': 1, '2월': 2, '3월': 3, '4월': 4, '5월': 5, '6월': 6,
+                  '7월': 7, '8월': 8, '9월': 9, '10월': 10, '11월': 11, '12월': 12
+                };
+                for (const [key, value] of Object.entries(monthNames)) {
+                  if (source.includes(key)) {
+                    return value;
+                  }
+                }
+                return 0;
+              };
+              
+              const monthA = getMonth(a.source);
+              const monthB = getMonth(b.source);
+              
+              // 월이 같으면 source 문자열로 정렬
+              if (monthA !== monthB) {
+                return monthB - monthA; // 큰 월이 먼저 (10월이 4월보다 먼저)
+              }
+              
+              // source 문자열로 정렬
+              const sourceA = a.source || "";
+              const sourceB = b.source || "";
+              return sourceB.localeCompare(sourceA);
+            });
           });
 
           allStudentPassages[student.id] = grouped;
@@ -1119,12 +1166,43 @@ export default function AdminPage() {
                 }}
               >
                 <h2 className="text-xl font-bold mb-4" style={{ color: '#13181B' }}>학생 목록</h2>
+                {/* 학생 검색 입력창 */}
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    placeholder="학생 이름 검색..."
+                    value={studentSearchQuery}
+                    onChange={(e) => setStudentSearchQuery(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border-2 transition-all"
+                    style={{ 
+                      backgroundColor: '#FFFFFF', 
+                      borderColor: '#CCD5DA', 
+                      color: '#13181B',
+                      outline: 'none'
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#13181B';
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(19, 24, 27, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = '#CCD5DA';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
                 <div className="max-h-[600px] overflow-y-auto">
                   {approvedStudents.length === 0 ? (
                     <p className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>승인된 학생이 없습니다.</p>
                   ) : (
                     <div className="flex flex-col gap-2">
-                      {approvedStudents.map((s: any) => (
+                      {approvedStudents
+                        .filter((s: any) => {
+                          if (!studentSearchQuery.trim()) return true;
+                          const query = studentSearchQuery.toLowerCase().trim();
+                          return s.name?.toLowerCase().includes(query) || 
+                                 s.email?.toLowerCase().includes(query);
+                        })
+                        .map((s: any) => (
                       <button
                         key={s.id}
                         onClick={() => setSelectedStudentId(s.id)}
@@ -1217,7 +1295,49 @@ export default function AdminPage() {
                           </div>
                           {isExpanded && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {passages.map((passage: any) => {
+                            {(() => {
+                              // 지문 정렬 (연도와 월 기준)
+                              const sortedPassages = [...passages].sort((a: any, b: any) => {
+                                // 연도 추출
+                                const yearA = a.year ? parseInt(a.year.toString().substring(0, 4)) : 0;
+                                const yearB = b.year ? parseInt(b.year.toString().substring(0, 4)) : 0;
+                                
+                                if (yearA !== yearB) {
+                                  return yearB - yearA; // 최신 연도가 먼저
+                                }
+                                
+                                // source에서 월 추출
+                                const getMonth = (source: string | null): number => {
+                                  if (!source) return 0;
+                                  const monthMatch = source.match(/(\d+)월/);
+                                  if (monthMatch) {
+                                    return parseInt(monthMatch[1]);
+                                  }
+                                  const monthNames: Record<string, number> = {
+                                    '1월': 1, '2월': 2, '3월': 3, '4월': 4, '5월': 5, '6월': 6,
+                                    '7월': 7, '8월': 8, '9월': 9, '10월': 10, '11월': 11, '12월': 12
+                                  };
+                                  for (const [key, value] of Object.entries(monthNames)) {
+                                    if (source.includes(key)) {
+                                      return value;
+                                    }
+                                  }
+                                  return 0;
+                                };
+                                
+                                const monthA = getMonth(a.source);
+                                const monthB = getMonth(b.source);
+                                
+                                if (monthA !== monthB) {
+                                  return monthB - monthA; // 큰 월이 먼저 (10월이 4월보다 먼저)
+                                }
+                                
+                                const sourceA = a.source || "";
+                                const sourceB = b.source || "";
+                                return sourceB.localeCompare(sourceA);
+                              });
+                              
+                              return sortedPassages.map((passage: any) => {
                               const checkpoints = studentCheckpoints[selectedStudentId]?.[passage.id] || [];
                               
                               // 각 문단별로 마지막 차수(최고 attempt_number) 찾기
@@ -1318,7 +1438,7 @@ export default function AdminPage() {
                                   })()}
                                 </Link>
                               );
-                            })}
+                            })})()}
                           </div>
                           )}
                         </div>
@@ -1373,6 +1493,48 @@ export default function AdminPage() {
                           <div className="space-y-6">
                             {Object.entries(studentPassageData).map(([category, passages]: [string, any[]]) => {
                               const isExpanded = expandedCategories[`${student.id}-${category}`] !== false;
+                              
+                              // 지문 정렬 (연도와 월 기준)
+                              const sortedPassages = [...passages].sort((a: any, b: any) => {
+                                // 연도 추출
+                                const yearA = a.year ? parseInt(a.year.toString().substring(0, 4)) : 0;
+                                const yearB = b.year ? parseInt(b.year.toString().substring(0, 4)) : 0;
+                                
+                                if (yearA !== yearB) {
+                                  return yearB - yearA; // 최신 연도가 먼저
+                                }
+                                
+                                // source에서 월 추출
+                                const getMonth = (source: string | null): number => {
+                                  if (!source) return 0;
+                                  const monthMatch = source.match(/(\d+)월/);
+                                  if (monthMatch) {
+                                    return parseInt(monthMatch[1]);
+                                  }
+                                  const monthNames: Record<string, number> = {
+                                    '1월': 1, '2월': 2, '3월': 3, '4월': 4, '5월': 5, '6월': 6,
+                                    '7월': 7, '8월': 8, '9월': 9, '10월': 10, '11월': 11, '12월': 12
+                                  };
+                                  for (const [key, value] of Object.entries(monthNames)) {
+                                    if (source.includes(key)) {
+                                      return value;
+                                    }
+                                  }
+                                  return 0;
+                                };
+                                
+                                const monthA = getMonth(a.source);
+                                const monthB = getMonth(b.source);
+                                
+                                if (monthA !== monthB) {
+                                  return monthB - monthA; // 큰 월이 먼저 (10월이 4월보다 먼저)
+                                }
+                                
+                                const sourceA = a.source || "";
+                                const sourceB = b.source || "";
+                                return sourceB.localeCompare(sourceA);
+                              });
+                              
                               return (
                                 <div key={category} className="rounded-xl p-4 shadow-sm" style={{ backgroundColor: '#F0EEEB' }}>
                                   <div 
@@ -1395,7 +1557,7 @@ export default function AdminPage() {
                                   </div>
                                   {isExpanded && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      {passages.map((passage: any) => {
+                                      {sortedPassages.map((passage: any) => {
                                         const checkpoints = studentCheckpoints[student.id]?.[passage.id] || [];
                                         
                                         const lastAttemptByParagraph: Record<number, any> = {};

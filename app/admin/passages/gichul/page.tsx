@@ -357,7 +357,34 @@ export default function GichulPassageList() {
         <div className="space-y-6">
           {years.map((year) => {
             const yearPassages = groupedPassages[year];
-            const types = Object.keys(yearPassages).sort();
+            // 월별 정렬: 숫자로 변환하여 정렬 (1월, 2월, ..., 10월, 11월, 12월 순서)
+            const types = Object.keys(yearPassages).sort((a, b) => {
+              // 월 추출 함수
+              const getMonthNumber = (type: string): number => {
+                // "4월", "6월", "10월" 같은 형식에서 숫자 추출
+                const monthMatch = type.match(/(\d+)월/);
+                if (monthMatch) {
+                  return parseInt(monthMatch[1]);
+                }
+                // "수능" 같은 경우는 맨 뒤로
+                if (type.includes('수능')) {
+                  return 99;
+                }
+                // 기타는 0으로
+                return 0;
+              };
+              
+              const monthA = getMonthNumber(a);
+              const monthB = getMonthNumber(b);
+              
+              // 숫자로 정렬 (작은 월이 먼저)
+              if (monthA !== monthB) {
+                return monthA - monthB;
+              }
+              
+              // 같은 월이면 문자열로 정렬
+              return a.localeCompare(b);
+            });
             const isYearExpanded = expandedYears.has(year);
             
             return (
