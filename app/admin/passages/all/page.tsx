@@ -9,6 +9,8 @@ export default function AllPassagesPage() {
   const [filteredPassages, setFilteredPassages] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedTextbook, setSelectedTextbook] = useState<string>("all"); // 교재 필터 (Opening, Look, 기타)
+  const [selectedChapter, setSelectedChapter] = useState<string>("all"); // 챕터 필터 (0, 1, 2, 3, 4, 5)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
 
@@ -42,9 +44,8 @@ export default function AllPassagesPage() {
       }
       
       const { data } = await query
-        .order("category", { ascending: true })
-        .order("year", { ascending: false })
-        .order("created_at", { ascending: false });
+        .select("*, opening_chapter"); // opening_chapter 포함
+      
       // 영어 선택 시 LEET 카테고리 제외
       const filteredData = subject === "english" 
         ? (data || []).filter((p: any) => p.category !== "LEET")
@@ -76,6 +77,16 @@ export default function AllPassagesPage() {
     }
   }, []);
 
+  // opening_chapter에서 교재 이름과 챕터 번호 추출하는 함수
+  const getTextbookInfo = (openingChapter: string | null) => {
+    if (!openingChapter) return { textbook: "기타", chapter: null };
+    const match = openingChapter.match(/^([^\(]+)\((\d+)\)$/);
+    if (match) {
+      return { textbook: match[1].trim(), chapter: parseInt(match[2]) };
+    }
+    return { textbook: "기타", chapter: null };
+  };
+
   useEffect(() => {
     let filtered = [...passages];
 
@@ -93,8 +104,25 @@ export default function AllPassagesPage() {
       filtered = filtered.filter((p) => p.category === selectedCategory);
     }
 
+    // 교재 필터링
+    if (selectedTextbook !== "all") {
+      filtered = filtered.filter((p) => {
+        const { textbook } = getTextbookInfo(p.opening_chapter);
+        return textbook === selectedTextbook;
+      });
+    }
+
+    // 챕터 필터링 (교재가 선택된 경우에만, 기타 제외)
+    if (selectedTextbook !== "all" && selectedTextbook !== "기타" && selectedChapter !== "all") {
+      const chapterNum = parseInt(selectedChapter);
+      filtered = filtered.filter((p) => {
+        const { chapter } = getTextbookInfo(p.opening_chapter);
+        return chapter === chapterNum;
+      });
+    }
+
     setFilteredPassages(filtered);
-  }, [passages, searchQuery, selectedCategory]);
+  }, [passages, searchQuery, selectedCategory, selectedTextbook, selectedChapter]);
 
   const groupedPassages = filteredPassages.reduce((acc: any, passage: any) => {
     const category = passage.category || "기타";
@@ -205,25 +233,76 @@ export default function AllPassagesPage() {
             `}</style>
           </div>
 
-          <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-            <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>카테고리 필터</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
-              style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = '#13181B';
-                e.currentTarget.style.outline = 'none';
-              }}
-              onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-            >
-              <option value="all">전체</option>
-              <option value="EBS">EBS</option>
-              <option value="기출">기출</option>
-              <option value="LEET">LEET</option>
-              <option value="기타">기타</option>
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>카테고리 필터</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = '#13181B';
+                  e.currentTarget.style.outline = 'none';
+                }}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+              >
+                <option value="all">전체</option>
+                <option value="EBS">EBS</option>
+                <option value="기출">기출</option>
+                <option value="LEET">LEET</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+
+            <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>교재 필터</label>
+              <select
+                value={selectedTextbook}
+                onChange={(e) => {
+                  setSelectedTextbook(e.target.value);
+                  setSelectedChapter("all"); // 교재 변경 시 챕터 초기화
+                }}
+                className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = '#13181B';
+                  e.currentTarget.style.outline = 'none';
+                }}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+              >
+                <option value="all">전체</option>
+                <option value="Opening">Opening</option>
+                <option value="Look">Look</option>
+                <option value="B's hop">B's hop</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+
+            {selectedTextbook !== "all" && selectedTextbook !== "기타" && (
+              <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>챕터 필터</label>
+                <select
+                  value={selectedChapter}
+                  onChange={(e) => setSelectedChapter(e.target.value)}
+                  className="w-full border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                  style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#13181B';
+                    e.currentTarget.style.outline = 'none';
+                  }}
+                  onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                >
+                  <option value="all">전체</option>
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
@@ -286,6 +365,18 @@ export default function AllPassagesPage() {
                             </h2>
                             
                             <div className="flex flex-wrap items-center gap-2 mb-3">
+                              {/* 교재 챕터 라벨 */}
+                              {p.opening_chapter && (() => {
+                                const { textbook, chapter } = getTextbookInfo(p.opening_chapter);
+                                if (textbook !== "기타") {
+                                  return (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}>
+                                      {textbook} {chapter !== null ? chapter : ''}
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
                               {selectedSubject !== "english" && p.literary_type && (
                                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
                                   {p.literary_type}

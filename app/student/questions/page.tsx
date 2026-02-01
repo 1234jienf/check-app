@@ -44,12 +44,28 @@ export default function StudentQuestionsPage() {
       }
       setSelectedSubject(currentSubject);
 
-      // 질문 목록 가져오기 (현재 과목에 맞는 것만, 최신순)
-      const { data: questionsData, error } = await supabase
+      // 사용자 역할 확인
+      const { data: userData } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      
+      const isTeacher = userData?.role === "teacher";
+
+      // 질문 목록 가져오기
+      // 선생님: 모든 질문, 학생: 자신이 작성한 질문만
+      let query = supabase
         .from("questions")
         .select("*")
-        .eq("subject", currentSubject)
-        .order("created_at", { ascending: false });
+        .eq("subject", currentSubject);
+      
+      // 학생인 경우 자신이 작성한 질문만 필터링
+      if (!isTeacher) {
+        query = query.eq("student_id", user.id);
+      }
+      
+      const { data: questionsData, error } = await query.order("created_at", { ascending: false });
 
       if (error) {
         console.error("질문 목록 로드 실패:", error);
@@ -207,11 +223,31 @@ export default function StudentQuestionsPage() {
                         if (!user) return;
 
                         const currentSubject = selectedSubject;
-                        const { data: questionsData, error } = await supabase
+                        
+                        // 사용자 역할 확인
+                        const { data: { user: reloadUser } } = await supabase.auth.getUser();
+                        if (!reloadUser) return;
+                        
+                        const { data: reloadUserData } = await supabase
+                          .from("users")
+                          .select("role")
+                          .eq("id", reloadUser.id)
+                          .single();
+                        
+                        const isTeacher = reloadUserData?.role === "teacher";
+                        
+                        // 질문 목록 가져오기
+                        let reloadQuery = supabase
                           .from("questions")
                           .select("*")
-                          .eq("subject", currentSubject)
-                          .order("created_at", { ascending: false });
+                          .eq("subject", currentSubject);
+                        
+                        // 학생인 경우 자신이 작성한 질문만 필터링
+                        if (!isTeacher) {
+                          reloadQuery = reloadQuery.eq("student_id", reloadUser.id);
+                        }
+                        
+                        const { data: questionsData, error } = await reloadQuery.order("created_at", { ascending: false });
 
                         if (!error && questionsData) {
                           const studentIds = [...new Set(questionsData.map((q: any) => q.student_id))];

@@ -214,44 +214,36 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
         .order("created_at", { ascending: false });
 
       if (newFeedbacks && newFeedbacks.length > 0) {
-        // 각 학생별, 지문별로 그룹화
-        const feedbacksByStudentAndPassage = new Map();
+        // 각 학생별로 그룹화
+        const feedbacksByStudent = new Map();
         newFeedbacks.forEach((feedback: any) => {
           const studentId = feedback.student_checkpoint_record?.users?.id;
           const studentName = feedback.student_checkpoint_record?.users?.name || "학생";
-          const passageId = feedback.student_checkpoint_record?.passage_id;
-          const passageTitle = feedback.student_checkpoint_record?.passages?.title || "지문";
-          
-          if (studentId && passageId) {
-            const key = `${studentId}_${passageId}`;
-            if (!feedbacksByStudentAndPassage.has(key)) {
-              feedbacksByStudentAndPassage.set(key, {
+          if (studentId) {
+            if (!feedbacksByStudent.has(studentId)) {
+              feedbacksByStudent.set(studentId, {
                 studentId,
                 studentName,
-                passageId,
-                passageTitle,
                 count: 0,
                 feedbacks: [],
               });
             }
-            const data = feedbacksByStudentAndPassage.get(key);
-            data.count++;
-            data.feedbacks.push(feedback);
+            const studentData = feedbacksByStudent.get(studentId);
+            studentData.count++;
+            studentData.feedbacks.push(feedback);
           }
         });
 
-        // 각 학생별, 지문별로 개별 알림 생성
-        feedbacksByStudentAndPassage.forEach((data, key) => {
-          const readKey = `student_feedback_${data.studentId}_${data.passageId}`;
+        // 각 학생별로 개별 알림 생성
+        feedbacksByStudent.forEach((studentData, studentId) => {
+          const readKey = `student_feedback_${studentId}`;
           if (!currentReadSet.has(readKey)) {
-            const link = `/admin/passages/${data.passageId}/results?student=${data.studentId}`;
-            
             notifs.push({
-              id: `student_feedback_${data.studentId}_${data.passageId}`,
+              id: `student_feedback_${studentId}`,
               type: "student_feedback",
-              message: `${data.studentName}님이 ${data.passageTitle}에 ${data.count}개의 피드백을 작성했습니다`,
-              link: link,
-              count: data.count,
+              message: `${studentData.studentName}님이 ${studentData.count}개의 피드백을 작성했습니다`,
+              link: "/admin",
+              count: studentData.count,
             });
           }
         });
@@ -307,8 +299,8 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
       // notif.id가 이미 해당 형식이므로 그대로 사용
       readKey = notif.id;
     } else if (notif.type === "student_feedback") {
-      // loadNotifications에서는 "student_feedback_${studentId}_${passageId}" 형식 사용
-      // notif.id가 이미 해당 형식이므로 그대로 사용
+      // loadNotifications에서는 "student_feedback_${studentId}" 형식 사용
+      // notif.id가 이미 "student_feedback_${studentId}" 형식이므로 그대로 사용
       readKey = notif.id;
     } else if (notif.type === "schedule") {
       // loadNotifications에서는 "schedule_${schedule.id}" 형식 사용
@@ -359,57 +351,6 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
     }
   };
 
-  // 모든 알림 지우기
-  const markAllAsRead = async () => {
-    if (!teacherId || notifications.length === 0) return;
-
-    // 즉시 UI에서 모든 알림 제거
-    setNotifications([]);
-
-    try {
-      // 모든 알림을 읽음 처리
-      const readRecords = notifications.map((notif) => ({
-        teacher_id: teacherId,
-        notification_type: notif.type,
-        notification_id: notif.id,
-      }));
-
-      // 배치로 삽입
-      const { error } = await supabase
-        .from("notification_read")
-        .upsert(readRecords, {
-          onConflict: "teacher_id,notification_type,notification_id"
-        });
-
-      if (error) {
-        // 에러 발생 시 다시 로드하여 상태 복구
-        loadNotifications();
-        alert("알림 삭제에 실패했습니다: " + error.message);
-        return;
-      }
-
-      // 읽은 알림 목록 업데이트
-      const newReadSet = new Set<string>();
-      notifications.forEach((notif) => {
-        let readKey: string;
-        if (notif.type === "new_checkpoint" || notif.type === "student_feedback") {
-          readKey = notif.id;
-        } else if (notif.type === "schedule") {
-          readKey = `schedule_${notif.id}`;
-        } else if (notif.type === "pending_student") {
-          readKey = "pending_student_pending_students";
-        } else {
-          readKey = `${notif.type}_${notif.id}`;
-        }
-        newReadSet.add(readKey);
-      });
-      setReadNotifications(newReadSet);
-    } catch (err) {
-      loadNotifications();
-      alert("알림 삭제 중 오류가 발생했습니다.");
-    }
-  };
-
   const totalCount = notifications.reduce((sum, notif) => sum + (notif.count || 1), 0);
 
   return (
@@ -447,27 +388,8 @@ export default function AdminNotificationBar({ isMobile = false }: { isMobile?: 
             onClick={() => setIsOpen(false)}
           />
           <div className={`absolute ${isMobile ? 'top-12 right-0' : 'top-14 right-0'} w-80 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto`} style={{ backgroundColor: '#F0EEEB', border: '1px solid #CCD5DA' }}>
-            <div className="flex items-center justify-between p-4" style={{ borderBottom: '1px solid #CCD5DA' }}>
+            <div className="p-4" style={{ borderBottom: '1px solid #CCD5DA' }}>
               <h3 className="font-bold" style={{ color: '#13181B' }}>알림</h3>
-              {notifications.length > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="text-xs px-3 py-1.5 rounded font-semibold transition-colors"
-                  style={{ 
-                    backgroundColor: '#F0EEEB',
-                    color: '#13181B',
-                    border: '1px solid #CCD5DA'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#CCD5DA';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#F0EEEB';
-                  }}
-                >
-                  모두 지우기
-                </button>
-              )}
             </div>
             <div style={{ borderTop: '1px solid #CCD5DA' }}>
               {notifications.length === 0 ? (

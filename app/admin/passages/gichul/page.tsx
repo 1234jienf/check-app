@@ -12,6 +12,8 @@ export default function GichulPassageList() {
   // 필터 상태
   const [selectedLiteraryType, setSelectedLiteraryType] = useState<string>("all");
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
+  const [selectedTextbook, setSelectedTextbook] = useState<string>("all"); // 교재 필터
+  const [selectedChapter, setSelectedChapter] = useState<string>("all"); // 챕터 필터
   const [searchQuery, setSearchQuery] = useState<string>(""); // 검색어
   
   // 토글 상태 (년도별, 타입별)
@@ -94,8 +96,40 @@ export default function GichulPassageList() {
       filtered = filtered.filter((p) => p.sub_category === selectedSubCategory);
     }
 
+    // 교재 필터링
+    if (selectedTextbook !== "all") {
+      filtered = filtered.filter((p) => {
+        const getTextbookInfo = (openingChapter: string | null) => {
+          if (!openingChapter) return { textbook: "기타", chapter: null };
+          const match = openingChapter.match(/^([^\(]+)\((\d+)\)$/);
+          if (match) {
+            return { textbook: match[1].trim(), chapter: parseInt(match[2]) };
+          }
+          return { textbook: "기타", chapter: null };
+        };
+        const { textbook } = getTextbookInfo(p.opening_chapter);
+        return textbook === selectedTextbook;
+      });
+    }
+
+    // 챕터 필터링
+    if (selectedTextbook !== "all" && selectedTextbook !== "기타" && selectedChapter !== "all") {
+      filtered = filtered.filter((p) => {
+        const getTextbookInfo = (openingChapter: string | null) => {
+          if (!openingChapter) return { textbook: "기타", chapter: null };
+          const match = openingChapter.match(/^([^\(]+)\((\d+)\)$/);
+          if (match) {
+            return { textbook: match[1].trim(), chapter: parseInt(match[2]) };
+          }
+          return { textbook: "기타", chapter: null };
+        };
+        const { chapter } = getTextbookInfo(p.opening_chapter);
+        return chapter === parseInt(selectedChapter);
+      });
+    }
+
     setFilteredPassages(filtered);
-  }, [passages, selectedLiteraryType, selectedSubCategory, searchQuery]);
+  }, [passages, selectedLiteraryType, selectedSubCategory, selectedTextbook, selectedChapter, searchQuery]);
   
   // 년도별, 타입별로 그룹화
   const groupedPassages = filteredPassages.reduce((acc: any, passage: any) => {
@@ -139,7 +173,7 @@ export default function GichulPassageList() {
     });
   };
 
-  const nonLiteraryCategories = ["인문", "예술", "법", "경제", "과학", "기술", "복합", "국어", "독서"];
+  const nonLiteraryCategories = ["인문", "사회", "과학", "기술", "예술", "복합", "독서"];
   const literaryCategories = ["현대시", "고전시가", "현대소설", "고전소설", "고전수필", "수필", "희곡"];
 
   const getSubCategoryOptions = () => {
@@ -204,7 +238,7 @@ export default function GichulPassageList() {
             <div className="flex items-center gap-3">
               <img src="/bishop_black.svg" alt="Bishop" className="w-8 h-8 md:w-10 md:h-10" style={{ filter: 'brightness(0) saturate(100%)' }} />
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold relative inline-block pb-2" style={{ color: '#13181B' }}>
-              기출
+              평가원 기출
                 <span className="absolute bottom-0 left-0 right-0 h-1.5" style={{ background: 'linear-gradient(to right, #13181B 0%, #13181B 50%, transparent 100%)', borderRadius: '2px' }}></span>
             </h1>
             </div>
@@ -266,7 +300,7 @@ export default function GichulPassageList() {
 
           {/* 필터 섹션 */}
           <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* 문학/비문학 필터 */}
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>문학/비문학</label>
@@ -297,6 +331,73 @@ export default function GichulPassageList() {
                   <option value="문학">문학</option>
                 </select>
               </div>
+
+              {/* 교재 필터 */}
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>교재</label>
+                <select
+                  value={selectedTextbook}
+                  onChange={(e) => {
+                    setSelectedTextbook(e.target.value);
+                    setSelectedChapter("all");
+                  }}
+                  className="w-full rounded-xl px-4 py-2.5 text-sm transition-all shadow-sm border"
+                  style={{ backgroundColor: '#FFFFFF', borderColor: '#13181B', color: '#13181B' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                    e.currentTarget.style.outline = 'none';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                  }}
+                >
+                  <option value="all">전체</option>
+                  <option value="Opening">Opening</option>
+                  <option value="Look">Look</option>
+                  <option value="B's hop">B's hop</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+
+              {/* 챕터 필터 */}
+              {selectedTextbook !== "all" && selectedTextbook !== "기타" && (
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>챕터</label>
+                  <select
+                    value={selectedChapter}
+                    onChange={(e) => setSelectedChapter(e.target.value)}
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-all shadow-sm border"
+                    style={{ backgroundColor: '#FFFFFF', borderColor: '#13181B', color: '#13181B' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                      e.currentTarget.style.outline = 'none';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                    }}
+                  >
+                    <option value="all">전체</option>
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </div>
+              )}
 
               {/* 세부 카테고리 필터 */}
               <div>
@@ -357,34 +458,7 @@ export default function GichulPassageList() {
         <div className="space-y-6">
           {years.map((year) => {
             const yearPassages = groupedPassages[year];
-            // 월별 정렬: 숫자로 변환하여 정렬 (1월, 2월, ..., 10월, 11월, 12월 순서)
-            const types = Object.keys(yearPassages).sort((a, b) => {
-              // 월 추출 함수
-              const getMonthNumber = (type: string): number => {
-                // "4월", "6월", "10월" 같은 형식에서 숫자 추출
-                const monthMatch = type.match(/(\d+)월/);
-                if (monthMatch) {
-                  return parseInt(monthMatch[1]);
-                }
-                // "수능" 같은 경우는 맨 뒤로
-                if (type.includes('수능')) {
-                  return 99;
-                }
-                // 기타는 0으로
-                return 0;
-              };
-              
-              const monthA = getMonthNumber(a);
-              const monthB = getMonthNumber(b);
-              
-              // 숫자로 정렬 (작은 월이 먼저)
-              if (monthA !== monthB) {
-                return monthA - monthB;
-              }
-              
-              // 같은 월이면 문자열로 정렬
-              return a.localeCompare(b);
-            });
+            const types = Object.keys(yearPassages).sort();
             const isYearExpanded = expandedYears.has(year);
             
             return (
@@ -481,19 +555,14 @@ export default function GichulPassageList() {
                                       </h2>
                                       
                                       <div className="flex flex-wrap items-center gap-2 mb-3">
-                                        {selectedSubject !== "english" && p.literary_type && (
+                                        {p.literary_type && (
                                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
                                             {p.literary_type}
                                           </span>
                                         )}
-                                        {selectedSubject !== "english" && p.sub_category && (
+                                        {p.sub_category && (
                                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
                                             {p.sub_category.split(",").join(", ")}
-                                          </span>
-                                        )}
-                                        {p.difficulty && (
-                                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
-                                            {p.difficulty}
                                           </span>
                                         )}
                                       </div>

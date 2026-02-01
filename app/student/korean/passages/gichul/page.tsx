@@ -12,6 +12,8 @@ export default function StudentGichulPassageList() {
   // 필터 상태
   const [selectedLiteraryType, setSelectedLiteraryType] = useState<string>("all");
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
+  const [selectedTextbook, setSelectedTextbook] = useState<string>("all"); // 교재 필터
+  const [selectedChapter, setSelectedChapter] = useState<string>("all"); // 챕터 필터
   const [searchQuery, setSearchQuery] = useState<string>("");
   
   // 토글 상태
@@ -74,8 +76,40 @@ export default function StudentGichulPassageList() {
       });
     }
 
+    // 교재 필터링
+    if (selectedTextbook !== "all") {
+      filtered = filtered.filter((p) => {
+        const getTextbookInfo = (openingChapter: string | null) => {
+          if (!openingChapter) return { textbook: "기타", chapter: null };
+          const match = openingChapter.match(/^([^\(]+)\((\d+)\)$/);
+          if (match) {
+            return { textbook: match[1].trim(), chapter: parseInt(match[2]) };
+          }
+          return { textbook: "기타", chapter: null };
+        };
+        const { textbook } = getTextbookInfo(p.opening_chapter);
+        return textbook === selectedTextbook;
+      });
+    }
+
+    // 챕터 필터링
+    if (selectedTextbook !== "all" && selectedTextbook !== "기타" && selectedChapter !== "all") {
+      filtered = filtered.filter((p) => {
+        const getTextbookInfo = (openingChapter: string | null) => {
+          if (!openingChapter) return { textbook: "기타", chapter: null };
+          const match = openingChapter.match(/^([^\(]+)\((\d+)\)$/);
+          if (match) {
+            return { textbook: match[1].trim(), chapter: parseInt(match[2]) };
+          }
+          return { textbook: "기타", chapter: null };
+        };
+        const { chapter } = getTextbookInfo(p.opening_chapter);
+        return chapter === parseInt(selectedChapter);
+      });
+    }
+
     setFilteredPassages(filtered);
-  }, [passages, selectedLiteraryType, selectedSubCategory, searchQuery]);
+  }, [passages, selectedLiteraryType, selectedSubCategory, selectedTextbook, selectedChapter, searchQuery]);
   
   // 년도별, 타입별로 그룹화
   const groupedPassages = filteredPassages.reduce((acc: any, passage: any) => {
@@ -225,7 +259,7 @@ export default function StudentGichulPassageList() {
 
           {/* 필터 섹션 */}
           <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* 문학/비문학 필터 */}
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>문학/비문학</label>
@@ -250,6 +284,61 @@ export default function StudentGichulPassageList() {
                   <option value="문학">문학</option>
                 </select>
               </div>
+
+              {/* 교재 필터 */}
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>교재</label>
+                <select
+                  value={selectedTextbook}
+                  onChange={(e) => {
+                    setSelectedTextbook(e.target.value);
+                    setSelectedChapter("all");
+                  }}
+                  className="w-full rounded-xl px-4 py-2.5 text-sm transition-all shadow-sm border-2"
+                  style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#13181B'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#13181B';
+                    e.currentTarget.style.outline = 'none';
+                  }}
+                  onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                >
+                  <option value="all">전체</option>
+                  <option value="Opening">Opening</option>
+                  <option value="Look">Look</option>
+                  <option value="B's hop">B's hop</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+
+              {/* 챕터 필터 */}
+              {selectedTextbook !== "all" && selectedTextbook !== "기타" && (
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>챕터</label>
+                  <select
+                    value={selectedChapter}
+                    onChange={(e) => setSelectedChapter(e.target.value)}
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-all shadow-sm border-2"
+                    style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#13181B'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#13181B';
+                      e.currentTarget.style.outline = 'none';
+                    }}
+                    onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                  >
+                    <option value="all">전체</option>
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </div>
+              )}
 
               {/* 세부 카테고리 필터 */}
               <div>

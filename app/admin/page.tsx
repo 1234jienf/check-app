@@ -15,6 +15,7 @@ export default function AdminPage() {
   const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [editingStudentSubjects, setEditingStudentSubjects] = useState<string[]>([]);
+  const [editingStudentAcademy, setEditingStudentAcademy] = useState<string>("");
   const [allApprovedStudents, setAllApprovedStudents] = useState<any[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [isLoadingPassages, setIsLoadingPassages] = useState<boolean>(true);
@@ -66,12 +67,12 @@ export default function AdminPage() {
       
       
       // subjects 컬럼을 포함해서 직접 쿼리 시도
-      const { data: fullData, error: fullError } = await supabase
-        .from("users")
-        .select("id, name, email, approved, subjects")
-        .eq("role", "student")
-        .eq("approved", true)
-        .order("name", { ascending: true });
+          const { data: fullData, error: fullError } = await supabase
+            .from("users")
+            .select("id, name, email, approved, subjects, academy")
+            .eq("role", "student")
+            .eq("approved", true)
+            .order("name", { ascending: true });
 
       if (fullError) {
         const { data: basicData, error: basicError } = await supabase
@@ -164,23 +165,59 @@ export default function AdminPage() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("student_checkpoint_record")
-      .select(`
-        user_id,
-        passage_id,
-        checkpoint_text,
-        paragraph,
-        attempt_number,
-        created_at,
-        reason,
-        teacher_viewed
-      `)
-      .in("user_id", studentIds)
-      .order("created_at", { ascending: false });
+    // 모든 체크포인트를 가져오기 위해 pagination 사용 (Supabase 기본 limit은 1000개)
+    // 1000개를 초과하는 경우를 대비해 모든 데이터를 가져옴
+    let allData: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    let hasMore = true;
     
-    if (error) {
-      console.error("Error fetching student checkpoint records:", error);
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("student_checkpoint_record")
+        .select(`
+          user_id,
+          passage_id,
+          checkpoint_text,
+          paragraph,
+          attempt_number,
+          created_at,
+          reason,
+          teacher_viewed
+        `)
+        .in("user_id", studentIds)
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      
+      if (error) {
+        console.error("Error fetching student checkpoint records:", error);
+        break;
+      }
+      
+      if (data && data.length > 0) {
+        allData = [...allData, ...data];
+        from += pageSize;
+        hasMore = data.length === pageSize; // 정확히 pageSize만큼 가져왔으면 더 있을 수 있음
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    const data = allData;
+    
+    // 디버깅: 가져온 체크포인트 개수 확인
+    if (data && data.length > 0) {
+      console.log(`Total checkpoints fetched: ${data.length}`);
+      // 학생별 체크포인트 개수 확인
+      const checkpointsByStudent: Record<string, number> = {};
+      data.forEach((cp: any) => {
+        checkpointsByStudent[cp.user_id] = (checkpointsByStudent[cp.user_id] || 0) + 1;
+      });
+      console.log('Checkpoints by student:', checkpointsByStudent);
+    }
+    
+    // 데이터가 없거나 에러가 발생한 경우
+    if (!data || data.length === 0) {
       setStudentPassages({});
       setStudentCheckpoints({});
       setIsLoadingPassages(false);
@@ -247,6 +284,9 @@ export default function AdminPage() {
             }
             grouped[category].push(passage);
           });
+          
+          // 디버깅: 학생별 카테고리별 지문 개수 확인
+          console.log(`Student ${student.name}: Categories -`, Object.keys(grouped).map(cat => `${cat} (${grouped[cat].length}개)`).join(', '));
 
           // 각 카테고리별로 지문 정렬 (연도와 월 기준)
           Object.keys(grouped).forEach((category) => {
@@ -306,6 +346,10 @@ export default function AdminPage() {
           });
 
           allStudentCheckpoints[student.id] = checkpointsByPassage;
+          
+          // 디버깅: 각 학생의 체크포인트 개수 확인
+          const totalCheckpointsForStudent = Object.values(checkpointsByPassage).reduce((sum: number, arr: any[]) => sum + arr.length, 0);
+          console.log(`Student ${student.name} (${student.id}): ${totalCheckpointsForStudent} total checkpoints across ${Object.keys(checkpointsByPassage).length} passages`);
         }
       });
     }
@@ -321,22 +365,51 @@ export default function AdminPage() {
       ? (sessionStorage.getItem('adminSelectedSubject') as "korean" | "english" | null) || "korean"
       : selectedSubject;
     
-    const { data, error } = await supabase
-      .from("student_checkpoint_record")
-      .select(`
-        passage_id,
-        checkpoint_text,
-        paragraph,
-        attempt_number,
-        created_at,
-        reason,
-        teacher_viewed
-      `)
-      .eq("user_id", studentId)
-      .order("created_at", { ascending: false });
+    // 모든 체크포인트를 가져오기 위해 pagination 사용
+    let allData: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+    
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("student_checkpoint_record")
+        .select(`
+          passage_id,
+          checkpoint_text,
+          paragraph,
+          attempt_number,
+          created_at,
+          reason,
+          teacher_viewed
+        `)
+        .eq("user_id", studentId)
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      
+      if (error) {
+        console.error("Error fetching student checkpoint records:", error);
+        // 에러 발생 시에도 빈 객체로 설정하여 로딩 상태 해제
+        setStudentPassages((prev) => ({ ...prev, [studentId]: {} }));
+        setStudentCheckpoints((prev) => ({ ...prev, [studentId]: {} }));
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        allData = [...allData, ...data];
+        from += pageSize;
+        hasMore = data.length === pageSize;
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    const data = allData;
 
-    if (error) {
-      console.error("Error fetching student checkpoint records:", error);
+    // 데이터가 없어도 빈 객체로 설정하여 로딩 상태 해제
+    if (!data || data.length === 0) {
+      setStudentPassages((prev) => ({ ...prev, [studentId]: {} }));
+      setStudentCheckpoints((prev) => ({ ...prev, [studentId]: {} }));
       return;
     }
 
@@ -500,7 +573,7 @@ export default function AdminPage() {
     try {
       const { data: basicData, error: basicError } = await supabase
         .from("users")
-        .select("id, name, email, approved")
+        .select("id, name, email, approved, academy")
         .eq("role", "student")
         .eq("approved", true)
         .order("name", { ascending: true });
@@ -532,7 +605,7 @@ export default function AdminPage() {
         try {
           const { data: fullData, error: fullError } = await supabase
             .from("users")
-            .select("id, name, email, approved, subjects")
+            .select("id, name, email, approved, subjects, academy")
             .eq("role", "student")
             .eq("approved", true)
             .order("name", { ascending: true });
@@ -925,6 +998,11 @@ export default function AdminPage() {
                         <div className="flex-1">
                           <div className="font-bold mb-1" style={{ color: '#13181B' }}>{s.name}</div>
                           <div className="text-sm" style={{ color: '#13181B', opacity: 0.8 }}>{s.email}</div>
+                          {s.academy && (
+                            <div className="text-xs mt-1 px-2 py-0.5 rounded-full inline-block" style={{ backgroundColor: '#F0EEEB', opacity: 0.8 }}>
+                              {s.academy}
+                            </div>
+                          )}
                         </div>
                         {!isEditing && (
                           <button
@@ -1006,6 +1084,22 @@ export default function AdminPage() {
                       {isEditing ? (
                         <div className="space-y-3">
                           <div>
+                            <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>학원</label>
+                            <input
+                              type="text"
+                              placeholder="학원 이름 입력 (예: 샤인 동작 (고3), 샤인 금천 (고3), 피스톤 (고3) 등)"
+                              value={editingStudentAcademy}
+                              onChange={(e) => setEditingStudentAcademy(e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border-2"
+                              style={{ borderColor: '#CCD5DA', color: '#13181B' }}
+                              onFocus={(e) => {
+                                e.currentTarget.style.borderColor = '#13181B';
+                                e.currentTarget.style.outline = 'none';
+                              }}
+                              onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                            />
+                          </div>
+                          <div>
                             <label className="block text-sm font-semibold mb-2" style={{ color: '#13181B' }}>접근 가능한 과목</label>
                             <div className="space-y-2">
                               <label className="flex items-center gap-2 cursor-pointer">
@@ -1073,15 +1167,19 @@ export default function AdminPage() {
 
                                   const { error } = await supabase
                                     .from("users")
-                                    .update({ subjects: editingStudentSubjects })
+                                    .update({ 
+                                      subjects: editingStudentSubjects,
+                                      academy: editingStudentAcademy.trim() || null
+                                    })
                                     .eq("id", s.id);
 
                                   if (error) {
-                                    alert("과목 업데이트 실패: " + error.message);
+                                    alert("정보 업데이트 실패: " + error.message);
                                   } else {
-                                    alert("과목이 업데이트되었습니다.");
+                                    alert("정보가 업데이트되었습니다.");
                                     setEditingStudentId(null);
                                     setEditingStudentSubjects([]);
+                                    setEditingStudentAcademy("");
                                     fetchApproved();
                                     fetchAllApproved();
                                   }
@@ -1100,6 +1198,7 @@ export default function AdminPage() {
                               onClick={() => {
                                 setEditingStudentId(null);
                                 setEditingStudentSubjects([]);
+                                setEditingStudentAcademy("");
                               }}
                               className="px-4 py-2 font-semibold rounded-lg transition-colors"
                               style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}
@@ -1129,6 +1228,7 @@ export default function AdminPage() {
                             onClick={() => {
                               setEditingStudentId(s.id);
                               setEditingStudentSubjects([...studentSubjects]);
+                              setEditingStudentAcademy(s.academy || "");
                             }}
                             className="w-full mt-3 px-4 py-2 font-semibold rounded-lg transition-colors"
                             style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
@@ -1340,22 +1440,23 @@ export default function AdminPage() {
                               return sortedPassages.map((passage: any) => {
                               const checkpoints = studentCheckpoints[selectedStudentId]?.[passage.id] || [];
                               
-                              // 각 문단별로 마지막 차수(최고 attempt_number) 찾기
-                              const lastAttemptByParagraph: Record<number, any> = {};
+                              // 모든 체크포인트를 문단별로 그룹화 (마지막 attempt만이 아닌 모든 체크포인트)
+                              const checkpointsByParagraph: Record<number, any[]> = {};
                               checkpoints.forEach((cp: any) => {
                                 const paraNum = cp.paragraph;
-                                const attemptNum = cp.attempt_number || 1;
-                                if (!lastAttemptByParagraph[paraNum] || 
-                                    (lastAttemptByParagraph[paraNum].attempt_number || 1) < attemptNum) {
-                                  lastAttemptByParagraph[paraNum] = cp;
+                                if (!checkpointsByParagraph[paraNum]) {
+                                  checkpointsByParagraph[paraNum] = [];
                                 }
+                                checkpointsByParagraph[paraNum].push(cp);
                               });
                               
-                              // 문단 번호 순서대로 정렬
-                              const sortedParagraphs = Object.keys(lastAttemptByParagraph)
+                              // 문단 번호로 정렬
+                              const sortedParagraphNums = Object.keys(checkpointsByParagraph)
                                 .map(Number)
-                                .sort((a, b) => a - b)
-                                .map(paraNum => lastAttemptByParagraph[paraNum]);
+                                .sort((a, b) => a - b);
+                              
+                              // 실제 체크포인트 개수 계산
+                              const totalCheckpoints = checkpoints.length;
                               
                               return (
                                 <Link
@@ -1391,7 +1492,7 @@ export default function AdminPage() {
                                       {passage.year} {passage.source && `- ${passage.source}`}
                                     </div>
                                   )}
-                                  {sortedParagraphs.length > 0 && (() => {
+                                  {totalCheckpoints > 0 && (() => {
                                     // 해당 지문의 모든 체크포인트가 확인되었는지 확인
                                     const passageCheckpoints = checkpoints.filter((cp: any) => cp.passage_id === passage.id);
                                     const allViewed = passageCheckpoints.length > 0 && 
@@ -1402,7 +1503,7 @@ export default function AdminPage() {
                                         <div
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            window.location.href = `/admin/passages/${passage.id}?student=${selectedStudentId}`;
+                                            window.location.href = `/admin/passages/${passage.id}/results?student=${selectedStudentId}`;
                                           }}
                                           className="block p-3 rounded-lg transition-all cursor-pointer"
                                           style={{ backgroundColor: '#F0EEEB' }}
@@ -1420,7 +1521,7 @@ export default function AdminPage() {
                                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                                 </svg>
                                               )}
-                                              {sortedParagraphs.length}개 문단 체크포인트 확인
+                                              {totalCheckpoints}개 체크포인트 확인
                                             </span>
                                             <svg 
                                               className="w-4 h-4 flex-shrink-0 ml-2" 
@@ -1560,20 +1661,23 @@ export default function AdminPage() {
                                       {sortedPassages.map((passage: any) => {
                                         const checkpoints = studentCheckpoints[student.id]?.[passage.id] || [];
                                         
-                                        const lastAttemptByParagraph: Record<number, any> = {};
+                                        // 모든 체크포인트를 문단별로 그룹화 (마지막 attempt만이 아닌 모든 체크포인트)
+                                        const checkpointsByParagraph: Record<number, any[]> = {};
                                         checkpoints.forEach((cp: any) => {
                                           const paraNum = cp.paragraph;
-                                          const attemptNum = cp.attempt_number || 1;
-                                          if (!lastAttemptByParagraph[paraNum] || 
-                                              (lastAttemptByParagraph[paraNum].attempt_number || 1) < attemptNum) {
-                                            lastAttemptByParagraph[paraNum] = cp;
+                                          if (!checkpointsByParagraph[paraNum]) {
+                                            checkpointsByParagraph[paraNum] = [];
                                           }
+                                          checkpointsByParagraph[paraNum].push(cp);
                                         });
                                         
-                                        const sortedParagraphs = Object.keys(lastAttemptByParagraph)
+                                        // 문단 번호로 정렬
+                                        const sortedParagraphNums = Object.keys(checkpointsByParagraph)
                                           .map(Number)
-                                          .sort((a, b) => a - b)
-                                          .map(paraNum => lastAttemptByParagraph[paraNum]);
+                                          .sort((a, b) => a - b);
+                                        
+                                        // 실제 체크포인트 개수 계산
+                                        const totalCheckpoints = checkpoints.length;
                                         
                                         return (
                                           <Link
@@ -1609,7 +1713,7 @@ export default function AdminPage() {
                                                 {passage.year} {passage.source && `- ${passage.source}`}
                                               </div>
                                             )}
-                                            {sortedParagraphs.length > 0 && (
+                                            {totalCheckpoints > 0 && (
                                               <div className="mt-3 pt-3">
                                                 <div
                                                   onClick={(e) => {
@@ -1637,10 +1741,10 @@ export default function AdminPage() {
                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                                             </svg>
-                                                            {sortedParagraphs.length}개 문단 체크포인트 확인
+                                                            {totalCheckpoints}개 체크포인트 확인
                                                           </>
                                                         ) : (
-                                                          `${sortedParagraphs.length}개 문단 체크포인트 확인`
+                                                          `${totalCheckpoints}개 체크포인트 확인`
                                                         );
                                                       })()}
                                                     </span>

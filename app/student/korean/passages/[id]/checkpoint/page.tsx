@@ -1358,41 +1358,19 @@ export default function StudentCheckpointPage() {
                           <div className="space-y-2">
                             {checkpoints.map((cp, idx) => {
                               const categoryBg = cp.category === "거시" ? '#E8F0F8' : cp.category === "미시" ? '#FFF5E8' : '#F0EEEB';
-                              // 선생님이 확인했는지 확인
-                              const submission = existingCheckpoints?.find((c: any) => {
-                                const paraNum = c.paragraph || c.paragraph_index;
-                                return paraNum === paragraphNum && 
-                                       (c.attempt_number || 1) === selectedAttempt &&
-                                       c.category === cp.category;
-                              });
-                              const teacherViewed = submission?.teacher_viewed || false;
-                              
                               return (
-                                <div key={cp.id || `${paragraphNum}-${idx}-${cp.highlight_start}-${cp.highlight_end}`} className="p-3 border-2 rounded-lg relative" style={{ 
+                                <div key={cp.id || `${paragraphNum}-${idx}-${cp.highlight_start}-${cp.highlight_end}`} className="p-3 border-2 rounded-lg" style={{ 
                                   backgroundColor: categoryBg, 
                                   borderColor: '#CCD5DA',
                                   borderLeft: `4px solid ${cp.category === "거시" ? '#13181B' : cp.category === "미시" ? '#13181B' : 'transparent'}`
                                 }}>
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      {cp.category && (
-                                        <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
-                                          backgroundColor: cp.category === "거시" ? '#D4E4F4' : '#FFE5CC',
-                                          color: '#13181B'
-                                        }}>
-                                          {cp.category}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {teacherViewed && (
-                                      <span className="flex items-center gap-1 text-xs px-2 py-1 rounded font-semibold" style={{ 
-                                        backgroundColor: '#D4E4F4',
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {cp.category && (
+                                      <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                                        backgroundColor: cp.category === "거시" ? '#D4E4F4' : '#FFE5CC',
                                         color: '#13181B'
                                       }}>
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        선생님 확인 완료
+                                        {cp.category}
                                       </span>
                                     )}
                                   </div>

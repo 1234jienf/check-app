@@ -22,6 +22,258 @@ export default function AdminHomeworkCalendar() {
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<"korean" | "english">("korean");
 
+  // 엑셀 다운로드 함수 (체크포인트 확인용)
+  const exportCheckpointExcel = async () => {
+    try {
+      // 모든 학생 정보 가져오기 (학원 정보 포함)
+      const { data: studentsData } = await supabase
+        .from("users")
+        .select("id, name, email, academy")
+        .eq("role", "student")
+        .eq("approved", true)
+        .order("academy", { ascending: true })
+        .order("name", { ascending: true });
+
+      if (!studentsData || studentsData.length === 0) {
+        alert("학생 데이터가 없습니다.");
+        return;
+      }
+
+      // 과목 필터링
+      let filteredStudents = studentsData;
+      try {
+        const { data: testData } = await supabase
+          .from("users")
+          .select("subjects")
+          .eq("id", studentsData[0].id)
+          .single();
+
+        if (testData && testData.subjects !== undefined) {
+          const { data: fullStudentsData } = await supabase
+            .from("users")
+            .select("id, name, email, academy, subjects")
+            .eq("role", "student")
+            .eq("approved", true);
+
+          if (fullStudentsData) {
+            filteredStudents = fullStudentsData.filter((s: any) => {
+              const studentSubjects = Array.isArray(s.subjects) ? s.subjects : (s.subjects ? [s.subjects] : ['korean']);
+              return studentSubjects.includes(selectedSubject);
+            });
+          }
+        } else {
+          // subjects 필드가 없으면 영어 선택 시 빈 배열
+          if (selectedSubject === "english") {
+            filteredStudents = [];
+          }
+        }
+      } catch (err) {
+        if (selectedSubject === "english") {
+          filteredStudents = [];
+        }
+      }
+
+      if (filteredStudents.length === 0) {
+        alert("해당 과목의 학생이 없습니다.");
+        return;
+      }
+
+      const studentIds = filteredStudents.map(s => s.id);
+
+      // 모든 체크포인트 가져오기 (pagination)
+      let allCheckpoints: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("student_checkpoint_record")
+          .select(`
+            user_id,
+            passage_id,
+            checkpoint_text,
+            paragraph,
+            attempt_number,
+            created_at,
+            teacher_viewed
+          `)
+          .in("user_id", studentIds)
+          .order("created_at", { ascending: false })
+          .range(from, from + pageSize - 1);
+        
+        if (error) {
+          console.error("Error fetching checkpoints:", error);
+          break;
+        }
+        
+        if (data && data.length > 0) {
+          allCheckpoints = [...allCheckpoints, ...data];
+          from += pageSize;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      // passage_id 목록 추출
+      const passageIds = [...new Set(allCheckpoints.map((cp: any) => cp.passage_id).filter(Boolean))];
+      
+      // passages 정보 가져오기 (opening_chapter 포함)
+      const { data: passagesData } = await supabase
+        .from("passages")
+        .select("id, title, category, year, source, opening_chapter, subject")
+        .in("id", passageIds.length > 0 ? passageIds : []);
+      
+      // 과목 필터링
+      const filteredPassages = (passagesData || []).filter((p: any) => {
+        if (selectedSubject === "korean") {
+          return p.subject === "korean" || p.subject === null || p.subject === undefined;
+        } else {
+          return p.subject === "english";
+        }
+      });
+
+      // 교재 및 챕터 순서대로 정렬
+      const sortedPassages = [...filteredPassages].sort((a: any, b: any) => {
+        const getTextbookInfo = (chapter: string | null) => {
+          if (!chapter) return { textbook: "기타", chapterNum: 999 };
+          const match = chapter.match(/^([^\(]+)\((\d+)\)$/);
+          if (match) {
+            return { textbook: match[1].trim(), chapterNum: parseInt(match[2]) };
+          }
+          return { textbook: "기타", chapterNum: 999 };
+        };
+        
+        const aInfo = getTextbookInfo(a.opening_chapter);
+        const bInfo = getTextbookInfo(b.opening_chapter);
+        
+        // 교재 이름으로 먼저 정렬 (Opening -> Look -> B's hop -> 기타)
+        const textbookOrder: Record<string, number> = { "Opening": 1, "Look": 2, "B's hop": 3, "기타": 999 };
+        const aTextbookOrder = textbookOrder[aInfo.textbook] || 999;
+        const bTextbookOrder = textbookOrder[bInfo.textbook] || 999;
+        
+        if (aTextbookOrder !== bTextbookOrder) {
+          return aTextbookOrder - bTextbookOrder;
+        }
+        
+        // 같은 교재 내에서는 챕터 번호로 정렬
+        if (aInfo.chapterNum !== bInfo.chapterNum) {
+          return aInfo.chapterNum - bInfo.chapterNum;
+        }
+        
+        // 같은 챕터 내에서는 제목으로 정렬
+        return (a.title || "").localeCompare(b.title || "");
+      });
+
+      // 학생을 학원별로 그룹화
+      const studentsByAcademy: Record<string, any[]> = {};
+      filteredStudents.forEach((student: any) => {
+        const academy = student.academy || "기타";
+        if (!studentsByAcademy[academy]) {
+          studentsByAcademy[academy] = [];
+        }
+        studentsByAcademy[academy].push(student);
+      });
+
+      // 체크포인트 맵 생성 (학생별, 지문별)
+      // 각 학생-지문 조합에 대해 가장 최근 체크포인트와 모든 체크포인트의 확인 완료 상태를 저장
+      const checkpointMap = new Map<string, { latest: any; allCheckpoints: any[] }>();
+      allCheckpoints.forEach((cp: any) => {
+        const key = `${cp.user_id}-${cp.passage_id}`;
+        if (!checkpointMap.has(key)) {
+          checkpointMap.set(key, { latest: cp, allCheckpoints: [cp] });
+        } else {
+          const existing = checkpointMap.get(key)!;
+          existing.allCheckpoints.push(cp);
+          // 더 최근 체크포인트가 있으면 업데이트
+          if (new Date(cp.created_at) > new Date(existing.latest.created_at)) {
+            existing.latest = cp;
+          }
+        }
+      });
+
+      // CSV 데이터 생성
+      const csvRows: string[] = [];
+      
+      // 헤더 행 1: 체크포인트 없음 + 지문 제목들
+      const headerRow1: string[] = ["", ""]; // 학생 그룹, 학생 이름
+      sortedPassages.forEach((passage: any) => {
+        headerRow1.push(`"${passage.title || ""}"`);
+      });
+      csvRows.push(headerRow1.map(field => field || '""').join(","));
+
+      // 헤더 행 2: 빈 행 + 연도/출처
+      const headerRow2: string[] = ["", ""];
+      sortedPassages.forEach((passage: any) => {
+        const dateInfo = passage.source ? `${passage.year || ""}/${passage.source}` : `${passage.year || ""}`;
+        headerRow2.push(`"${dateInfo}"`);
+      });
+      csvRows.push(headerRow2.map(field => field || '""').join(","));
+
+      // 헤더 행 3: 빈 행 + Opening 챕터 정보
+      const headerRow3: string[] = ["", ""];
+      sortedPassages.forEach((passage: any) => {
+        const chapterInfo = passage.opening_chapter || "";
+        headerRow3.push(`"${chapterInfo}"`);
+      });
+      csvRows.push(headerRow3.map(field => field || '""').join(","));
+
+      // 학원별로 학생 데이터 추가
+      Object.keys(studentsByAcademy).sort().forEach((academy) => {
+        const students = studentsByAcademy[academy];
+        
+        students.forEach((student: any) => {
+          const row: string[] = [
+            `"${academy}"`,
+            `"${student.name || ""}"`
+          ];
+
+          sortedPassages.forEach((passage: any) => {
+            const key = `${student.id}-${passage.id}`;
+            const checkpointData = checkpointMap.get(key);
+            
+            if (checkpointData) {
+              const date = new Date(checkpointData.latest.created_at);
+              const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+              // 해당 학생-지문 조합의 모든 체크포인트가 확인 완료되었는지 확인
+              const allViewed = checkpointData.allCheckpoints.length > 0 && 
+                               checkpointData.allCheckpoints.every((cp: any) => cp.teacher_viewed === true);
+              if (allViewed) {
+                row.push(`"O (${dateStr}) 확인완료"`);
+              } else {
+                row.push(`"O (${dateStr})"`);
+              }
+            } else {
+              row.push(`"X"`);
+            }
+          });
+
+          csvRows.push(row.join(","));
+        });
+      });
+
+      // CSV 파일 생성 및 다운로드
+      const csvContent = csvRows.join("\n");
+      const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" }); // BOM 추가로 Excel에서 한글 깨짐 방지
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute("href", url);
+      link.setAttribute("download", `체크포인트_확인표_${selectedSubject === "korean" ? "국어" : "영어"}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = "hidden";
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      alert("엑셀 파일이 다운로드되었습니다.");
+    } catch (error: any) {
+      console.error("엑셀 다운로드 오류:", error);
+      alert("엑셀 다운로드 중 오류가 발생했습니다: " + error.message);
+    }
+  };
+
   useEffect(() => {
     const getTeacherId = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -420,6 +672,23 @@ export default function AdminHomeworkCalendar() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
+        </button>
+      </div>
+
+      {/* 엑셀 다운로드 버튼 */}
+      <div className="mb-4 flex justify-end">
+        <button
+          onClick={exportCheckpointExcel}
+          className="px-4 py-2 text-sm font-semibold rounded-lg transition-colors flex items-center gap-2"
+          style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}
+          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+          title="체크포인트 확인표를 엑셀 파일로 다운로드"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          체크포인트 확인표 다운로드
         </button>
       </div>
 

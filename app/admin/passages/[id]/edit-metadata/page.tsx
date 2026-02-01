@@ -22,10 +22,12 @@ export default function EditPassageMetadata() {
   const [literaryType, setLiteraryType] = useState("비문학");
   const [subCategory, setSubCategory] = useState("");
   const [difficulty, setDifficulty] = useState("");
-  const [isEnglish, setIsEnglish] = useState(false);
+  const [openingChapter, setOpeningChapter] = useState("");
+  const [selectedTextbook, setSelectedTextbook] = useState<string>(""); // 교재 선택 (Opening, Look, 기타)
+  const [selectedChapter, setSelectedChapter] = useState<string>(""); // 챕터 선택 (0, 1, 2, 3, 4, 5)
 
   // 비문학 세부 카테고리
-  const nonLiteraryCategories = ["인문", "예술", "법", "경제", "과학", "기술", "복합", "국어", "독서"];
+  const nonLiteraryCategories = ["인문", "사회", "과학", "기술", "예술", "복합", "독서"];
   // 문학 세부 카테고리
   const literaryCategories = ["현대시", "고전시가", "현대소설", "고전소설", "고전수필", "수필", "희곡"];
 
@@ -49,7 +51,23 @@ export default function EditPassageMetadata() {
         setLiteraryType(data.literary_type || "비문학");
         setSubCategory(data.sub_category || "");
         setDifficulty(data.difficulty || "");
-        setIsEnglish(data.subject === 'english');
+        setOpeningChapter(data.opening_chapter || "");
+        
+        // opening_chapter에서 교재와 챕터 추출
+        if (data.opening_chapter) {
+          const match = data.opening_chapter.match(/^(\w+)\((\d+)\)$/);
+          if (match) {
+            setSelectedTextbook(match[1]);
+            setSelectedChapter(match[2]);
+          } else {
+            setSelectedTextbook("");
+            setSelectedChapter("");
+          }
+        } else {
+          setSelectedTextbook("");
+          setSelectedChapter("");
+        }
+        
         setLoading(false);
       }
     };
@@ -58,14 +76,20 @@ export default function EditPassageMetadata() {
   }, [id]);
 
   const saveMetadata = async () => {
+    // 교재와 챕터가 모두 선택된 경우 opening_chapter 생성
+    let finalOpeningChapter = null;
+    if (selectedTextbook && selectedChapter !== "") {
+      finalOpeningChapter = `${selectedTextbook}(${selectedChapter})`;
+    }
+    
     const updateData: any = {
       title: title || null,
       source: source || null,
       year,
       category,
-      literary_type: isEnglish ? null : literaryType,
-      sub_category: isEnglish ? null : (subCategory || null),
-      difficulty: difficulty || null,
+      literary_type: literaryType,
+      sub_category: subCategory || null,
+      opening_chapter: finalOpeningChapter,
     };
 
     // 카테고리별 특수 필드
@@ -140,7 +164,7 @@ export default function EditPassageMetadata() {
 
   const getCategoryColor = (cat: string) => {
     if (cat === "EBS") return '#003A6C';
-    if (cat === "기출") return '#FFBF65';
+    if (cat === "기출" || cat === "평가원") return '#FFBF65';
     if (cat === "LEET") return '#FD8973';
     return '#13181B';
   };
@@ -192,7 +216,7 @@ export default function EditPassageMetadata() {
             }}
           >
             <option value="EBS">EBS</option>
-            <option value="기출">기출</option>
+            <option value="기출">평가원 기출</option>
             <option value="LEET">LEET</option>
             <option value="기타">기타</option>
           </select>
@@ -240,7 +264,7 @@ export default function EditPassageMetadata() {
           </div>
         )}
 
-        {/* 기출 전용 필드 */}
+        {/* 평가원 기출 전용 필드 */}
         {category === "기출" && (
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold" style={{ color: '#13181B' }}>시험 유형 *</label>
@@ -256,12 +280,8 @@ export default function EditPassageMetadata() {
               onChange={(e) => setExamType(e.target.value)}
             >
               <option value="">선택하세요</option>
-              <option value="3월">3월 모의평가</option>
-              <option value="4월">4월 모의평가</option>
               <option value="6월">6월 모의평가</option>
-              <option value="7월">7월 모의평가</option>
               <option value="9월">9월 모의평가</option>
-              <option value="10월">10월 모의평가</option>
               <option value="수능">수능</option>
             </select>
           </div>
@@ -283,58 +303,54 @@ export default function EditPassageMetadata() {
           />
         </div>
 
-        {!isEnglish && (
-          <>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold" style={{ color: '#13181B' }}>문학/비문학 *</label>
-              <select
-                className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
-                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = categoryColor;
-                  e.currentTarget.style.outline = 'none';
-                }}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-                value={literaryType}
-                onChange={(e) => {
-                  setLiteraryType(e.target.value);
-                  setSubCategory(""); // 문학/비문학 변경 시 세부 카테고리 초기화
-                }}
-              >
-                <option value="비문학">비문학</option>
-                <option value="문학">문학</option>
-              </select>
-            </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-semibold" style={{ color: '#13181B' }}>문학/비문학 *</label>
+          <select
+            className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = categoryColor;
+              e.currentTarget.style.outline = 'none';
+            }}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+            value={literaryType}
+            onChange={(e) => {
+              setLiteraryType(e.target.value);
+              setSubCategory(""); // 문학/비문학 변경 시 세부 카테고리 초기화
+            }}
+          >
+            <option value="비문학">비문학</option>
+            <option value="문학">문학</option>
+          </select>
+        </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold" style={{ color: '#13181B' }}>세부 카테고리 *</label>
-              <select
-                className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
-                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = categoryColor;
-                  e.currentTarget.style.outline = 'none';
-                }}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-                value={subCategory}
-                onChange={(e) => setSubCategory(e.target.value)}
-              >
-                <option value="">선택하세요</option>
-                {literaryType === "비문학"
-                  ? nonLiteraryCategories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))
-                  : literaryCategories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-              </select>
-            </div>
-          </>
-        )}
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-semibold" style={{ color: '#13181B' }}>세부 카테고리 *</label>
+          <select
+            className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+            style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = categoryColor;
+              e.currentTarget.style.outline = 'none';
+            }}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+            value={subCategory}
+            onChange={(e) => setSubCategory(e.target.value)}
+          >
+            <option value="">선택하세요</option>
+            {literaryType === "비문학"
+              ? nonLiteraryCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))
+              : literaryCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+          </select>
+        </div>
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-semibold" style={{ color: '#13181B' }}>출처</label>
@@ -359,26 +375,6 @@ export default function EditPassageMetadata() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold" style={{ color: '#13181B' }}>난이도</label>
-          <select
-            className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
-            style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = categoryColor;
-              e.currentTarget.style.outline = 'none';
-            }}
-            onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-          >
-            <option value="">선택하세요</option>
-            <option value="상">상</option>
-            <option value="중">중</option>
-            <option value="하">하</option>
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-2">
           <label className="text-sm font-semibold" style={{ color: '#13181B' }}>지문 제목</label>
           <input
             className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
@@ -391,6 +387,55 @@ export default function EditPassageMetadata() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-semibold" style={{ color: '#13181B' }}>교재 챕터</label>
+          <div className="grid grid-cols-2 gap-3">
+            <select
+              className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+              style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = categoryColor;
+                e.currentTarget.style.outline = 'none';
+              }}
+              onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+              value={selectedTextbook}
+              onChange={(e) => {
+                setSelectedTextbook(e.target.value);
+                if (!e.target.value) {
+                  setSelectedChapter("");
+                }
+              }}
+            >
+              <option value="">선택 안함</option>
+              <option value="Opening">Opening</option>
+              <option value="Look">Look</option>
+              <option value="B's hop">B's hop</option>
+            </select>
+            {selectedTextbook && (
+              <select
+                className="border-2 rounded-xl px-4 py-2.5 text-sm transition-all"
+                style={{ backgroundColor: '#F0EEEB', borderColor: '#CCD5DA', color: '#13181B' }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = categoryColor;
+                  e.currentTarget.style.outline = 'none';
+                }}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#CCD5DA'}
+                value={selectedChapter}
+                onChange={(e) => setSelectedChapter(e.target.value)}
+              >
+                <option value="">챕터 선택</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+            )}
+          </div>
+          <p className="text-xs" style={{ color: '#13181B', opacity: 0.7 }}>이 지문이 어느 교재의 어느 챕터에 수록되어 있는지 선택하세요. (없으면 선택 안함)</p>
         </div>
 
         <div className="flex gap-3 mt-4">
