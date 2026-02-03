@@ -131,15 +131,62 @@ export default function GichulPassageList() {
     setFilteredPassages(filtered);
   }, [passages, selectedLiteraryType, selectedSubCategory, selectedTextbook, selectedChapter, searchQuery]);
   
-  // 년도별, 타입별로 그룹화
+  // opening_chapter에서 교재 이름과 챕터 번호 추출하는 함수
+  const getTextbookInfo = (openingChapter: string | null) => {
+    if (!openingChapter) return { textbook: "기타", chapter: null };
+    const match = openingChapter.match(/^([^\(]+)\((\d+)\)$/);
+    if (match) {
+      return { textbook: match[1].trim(), chapter: parseInt(match[2]) };
+    }
+    return { textbook: "기타", chapter: null };
+  };
+
+  // source에서 월 추출하는 함수
+  const extractMonth = (source: string | null): number => {
+    if (!source || typeof source !== 'string') return 0;
+    
+    // "2025년 10월 모의고사" 형식에서 월 추출
+    // 패턴 1: "2025년 10월" 또는 "2025년10월" 형식 (가장 일반적)
+    let match = source.match(/(\d{4})년\s*(\d{1,2})월/);
+    if (match && match[2]) {
+      const month = parseInt(match[2], 10);
+      if (!isNaN(month) && month >= 1 && month <= 12) {
+        return month;
+      }
+    }
+    
+    // 패턴 2: "10월 모의고사" 또는 "10월 모의평가" 형식
+    match = source.match(/(\d{1,2})월\s*모의(고사|평가)/);
+    if (match && match[1]) {
+      const month = parseInt(match[1], 10);
+      if (!isNaN(month) && month >= 1 && month <= 12) {
+        return month;
+      }
+    }
+    
+    // 패턴 3: 단순 "10월" 형식
+    match = source.match(/(\d{1,2})월/);
+    if (match && match[1]) {
+      const month = parseInt(match[1], 10);
+      if (!isNaN(month) && month >= 1 && month <= 12) {
+        return month;
+      }
+    }
+    
+    return 0;
+  };
+
+  // 년도별, 타입별, 월별로 그룹화
   const groupedPassages = filteredPassages.reduce((acc: any, passage: any) => {
     const year = passage.year || 0;
     const type = passage.exam_type || "기타";
+    const month = extractMonth(passage.source);
     
     if (!acc[year]) acc[year] = {};
-    if (!acc[year][type]) acc[year][type] = [];
+    if (!acc[year][type]) acc[year][type] = {};
+    if (!acc[year][type][month]) acc[year][type][month] = [];
     
-    acc[year][type].push(passage);
+    acc[year][type][month].push(passage);
     return acc;
   }, {});
   
@@ -458,7 +505,24 @@ export default function GichulPassageList() {
         <div className="space-y-6">
           {years.map((year) => {
             const yearPassages = groupedPassages[year];
-            const types = Object.keys(yearPassages).sort();
+            // 타입 이름에서 월을 추출해서 숫자 순서로 정렬
+            const types = Object.keys(yearPassages).sort((a, b) => {
+              // 타입 이름이 "10월", "4월", "6월" 형식인 경우 월 숫자로 정렬
+              const extractMonthFromType = (typeName: string): number => {
+                const match = typeName.match(/(\d{1,2})월/);
+                if (match && match[1]) {
+                  const month = parseInt(match[1], 10);
+                  if (!isNaN(month) && month >= 1 && month <= 12) {
+                    return month;
+                  }
+                }
+                return 999; // 월이 없으면 뒤로
+              };
+              
+              const monthA = extractMonthFromType(a);
+              const monthB = extractMonthFromType(b);
+              return monthA - monthB; // 오름차순 정렬
+            });
             const isYearExpanded = expandedYears.has(year);
             
             return (
@@ -488,7 +552,11 @@ export default function GichulPassageList() {
                     </svg>
                     <span className="text-xl font-bold">{year}년</span>
                     <span className="text-sm opacity-90">
-                      ({Object.values(yearPassages).reduce((sum: number, arr: any) => sum + arr.length, 0)}개)
+                      ({Object.values(yearPassages).reduce((sum: number, typeData: any) => {
+                        return sum + Object.values(typeData).reduce((typeSum: number, monthData: any) => {
+                          return typeSum + (Array.isArray(monthData) ? monthData.length : 0);
+                        }, 0);
+                      }, 0)}개)
                     </span>
                   </div>
                 </button>
@@ -497,9 +565,31 @@ export default function GichulPassageList() {
                 {isYearExpanded && (
                   <div className="p-4 space-y-4">
                     {types.map((type) => {
-                      const typePassages = yearPassages[type];
+                      const typeMonths = yearPassages[type];
                       const typeKey = `${year}-${type}`;
                       const isTypeExpanded = expandedTypes.has(typeKey);
+                      
+                      // 월별로 오름차순 정렬 (4, 6, 9, 10월 순서)
+                      // Object.keys()는 문자열을 반환하므로 명시적으로 숫자로 변환 후 정렬
+                      const monthKeys = Object.keys(typeMonths);
+                      
+                      // 모든 월 키를 숫자로 변환하고 유효한 월만 필터링
+                      const validMonths: number[] = [];
+                      for (const key of monthKeys) {
+                        const monthNum = parseInt(key, 10);
+                        if (!isNaN(monthNum) && monthNum > 0 && monthNum <= 12) {
+                          validMonths.push(monthNum);
+                        }
+                      }
+                      
+                      // 숫자 오름차순 정렬 (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+                      validMonths.sort((a, b) => a - b);
+                      const months = validMonths;
+                      
+                      // 월 정보가 없는 항목도 포함
+                      const hasNoMonth = typeMonths[0] && typeMonths[0].length > 0;
+                      
+                      const totalCount = months.reduce((sum, month) => sum + typeMonths[month].length, 0) + (hasNoMonth ? typeMonths[0].length : 0);
                       
                       return (
                         <div key={type} className="rounded-xl overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
@@ -528,72 +618,183 @@ export default function GichulPassageList() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
                               <span className="font-semibold" style={{ color: '#13181B' }}>{type}</span>
-                              <span className="text-sm" style={{ color: '#13181B', opacity: 0.9 }}>({typePassages.length}개)</span>
+                              <span className="text-sm" style={{ color: '#13181B', opacity: 0.9 }}>({totalCount}개)</span>
                             </div>
                           </button>
                           
-                          {/* 갤러리 뷰 */}
+                          {/* 월별 그룹 */}
                           {isTypeExpanded && (
-                            <div className="p-4" style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #F0EEEB' }}>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {typePassages.map((p: any) => (
-                                  <Link
-                                    key={p.id}
-                                    href={`/admin/passages/${p.id}`}
-                                    className="group relative rounded-xl p-5 transition-all duration-300 transform hover:-translate-y-1 overflow-hidden shadow-sm"
-                                    style={{ backgroundColor: '#FFFFFF' }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
-                                    }}
-                                  >
-                                    <div className="relative z-10">
-                                      <h2 className="text-lg font-bold mb-3 transition-colors line-clamp-2" style={{ color: '#13181B' }}>
-                                        {p.title || "(제목 없음)"}
-                                      </h2>
-                                      
-                                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                                        {p.literary_type && (
-                                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
-                                            {p.literary_type}
-                                          </span>
-                                        )}
-                                        {p.sub_category && (
-                                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
-                                            {p.sub_category.split(",").join(", ")}
-                                          </span>
-                                        )}
-                                      </div>
-                                      
-                                      <div className="space-y-1.5 text-xs">
-                                        {p.source && (
-                                          <div className="flex items-start gap-2">
-                                            <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.8 }}>
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                            <span className="line-clamp-1" style={{ color: '#13181B' }}>{p.source}</span>
+                            <div className="p-4 space-y-4" style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #F0EEEB' }}>
+                              {months.map((month) => {
+                                const monthPassages = typeMonths[month];
+                                return (
+                                  <div key={month} className="space-y-3">
+                                    <div className="text-sm font-semibold" style={{ color: '#13181B' }}>
+                                      {month}월 ({monthPassages.length}개)
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                      {monthPassages.map((p: any) => (
+                                        <Link
+                                          key={p.id}
+                                          href={`/admin/passages/${p.id}`}
+                                          className="group relative rounded-xl p-5 transition-all duration-300 transform hover:-translate-y-1 overflow-hidden shadow-sm"
+                                          style={{ backgroundColor: '#FFFFFF' }}
+                                          onMouseEnter={(e) => {
+                                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                                          }}
+                                        >
+                                          <div className="relative z-10">
+                                            <h2 className="text-lg font-bold mb-3 transition-colors line-clamp-2" style={{ color: '#13181B' }}>
+                                              {p.title || "(제목 없음)"}
+                                            </h2>
+                                            
+                                            <div className="flex flex-wrap items-center gap-2 mb-3">
+                                              {/* 교재 챕터 라벨 */}
+                                              {p.opening_chapter && (() => {
+                                                const { textbook, chapter } = getTextbookInfo(p.opening_chapter);
+                                                if (textbook !== "기타") {
+                                                  return (
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}>
+                                                      {textbook} {chapter !== null ? chapter : ''}
+                                                    </span>
+                                                  );
+                                                }
+                                                return null;
+                                              })()}
+                                              {p.literary_type && (
+                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
+                                                  {p.literary_type}
+                                                </span>
+                                              )}
+                                              {p.sub_category && (
+                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
+                                                  {p.sub_category.split(",").join(", ")}
+                                                </span>
+                                              )}
+                                              {p.difficulty && (
+                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
+                                                  {p.difficulty}
+                                                </span>
+                                              )}
+                                            </div>
+                                            
+                                            <div className="space-y-1.5 text-xs">
+                                              {p.source && (
+                                                <div className="flex items-start gap-2">
+                                                  <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.8 }}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                  </svg>
+                                                  <span className="line-clamp-1" style={{ color: '#13181B' }}>{p.source}</span>
+                                                </div>
+                                              )}
+                                            </div>
                                           </div>
-                                        )}
-                                      </div>
+                                          
+                                          {/* 호버 시 우측 상단 화살표 */}
+                                          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform group-hover:translate-x-1">
+                                            <svg 
+                                              className="w-4 h-4 drop-shadow-md" 
+                                              fill="none" 
+                                              stroke="currentColor" 
+                                              viewBox="0 0 24 24"
+                                              style={{ color: '#13181B' }}
+                                            >
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                          </div>
+                                        </Link>
+                                      ))}
                                     </div>
-                                    
-                                    {/* 호버 시 우측 상단 화살표 */}
-                                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform group-hover:translate-x-1">
-                                      <svg 
-                                        className="w-4 h-4 drop-shadow-md" 
-                                        fill="none" 
-                                        stroke="currentColor" 
-                                        viewBox="0 0 24 24"
-                                        style={{ color: '#13181B' }}
+                                  </div>
+                                );
+                              })}
+                              {/* 월 정보가 없는 항목 표시 */}
+                              {hasNoMonth && (
+                                <div className="space-y-3">
+                                  <div className="text-sm font-semibold" style={{ color: '#13181B' }}>
+                                    기타 ({typeMonths[0].length}개)
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {typeMonths[0].map((p: any) => (
+                                      <Link
+                                        key={p.id}
+                                        href={`/admin/passages/${p.id}`}
+                                        className="group relative rounded-xl p-5 transition-all duration-300 transform hover:-translate-y-1 overflow-hidden shadow-sm"
+                                        style={{ backgroundColor: '#FFFFFF' }}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.15)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.boxShadow = '0 1px 3px rgba(19, 24, 27, 0.1)';
+                                        }}
                                       >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                                      </svg>
-                                    </div>
-                                  </Link>
-                                ))}
-                              </div>
+                                        <div className="relative z-10">
+                                          <h2 className="text-lg font-bold mb-3 transition-colors line-clamp-2" style={{ color: '#13181B' }}>
+                                            {p.title || "(제목 없음)"}
+                                          </h2>
+                                          
+                                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                                            {/* 교재 챕터 라벨 */}
+                                            {p.opening_chapter && (() => {
+                                              const { textbook, chapter } = getTextbookInfo(p.opening_chapter);
+                                              if (textbook !== "기타") {
+                                                return (
+                                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#13181B', color: '#F0EEEB' }}>
+                                                    {textbook} {chapter !== null ? chapter : ''}
+                                                  </span>
+                                                );
+                                              }
+                                              return null;
+                                            })()}
+                                            {p.literary_type && (
+                                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
+                                                {p.literary_type}
+                                              </span>
+                                            )}
+                                            {p.sub_category && (
+                                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#CCD5DA', color: '#13181B' }}>
+                                                {p.sub_category.split(",").join(", ")}
+                                              </span>
+                                            )}
+                                            {p.difficulty && (
+                                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFBF65', color: '#13181B' }}>
+                                                {p.difficulty}
+                                              </span>
+                                            )}
+                                          </div>
+                                          
+                                          <div className="space-y-1.5 text-xs">
+                                            {p.source && (
+                                              <div className="flex items-start gap-2">
+                                                <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#13181B', opacity: 0.8 }}>
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                <span className="line-clamp-1" style={{ color: '#13181B' }}>{p.source}</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                        
+                                        {/* 호버 시 우측 상단 화살표 */}
+                                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform group-hover:translate-x-1">
+                                          <svg 
+                                            className="w-4 h-4 drop-shadow-md" 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            viewBox="0 0 24 24"
+                                            style={{ color: '#13181B' }}
+                                          >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                          </svg>
+                                        </div>
+                                      </Link>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
