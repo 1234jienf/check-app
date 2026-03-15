@@ -57,10 +57,10 @@ export default function NewEBSPage() {
     }
   }, []);
 
-  // 비문학 세부 카테고리
-  const nonLiteraryCategories = ["인문", "예술", "법", "경제", "과학", "기술", "복합", "국어", "독서"];
+  // 비문학 세부 카테고리 (정정 페이지와 동일 목록)
+  const nonLiteraryCategories = ["인문", "예술", "법", "경제", "과학", "기술", "복합", "국어", "독서","사회"];
   // 문학 세부 카테고리
-  const literaryCategories = ["현대시", "고전시가", "현대소설", "고전소설", "고전수필", "수필", "희곡"];
+  const literaryCategories = ["현대시", "고전시가", "현대소설", "고전소설", "고전수필", "수필", "희곡","극"];
 
   // 텍스트에서 자동으로 제목, 출처 추출
   const parseText = (text: string) => {
