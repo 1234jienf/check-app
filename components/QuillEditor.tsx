@@ -16,6 +16,8 @@ interface QuillEditorProps {
 // 전역 변수로 Quill 인스턴스 추적
 const quillInstances = new WeakMap<HTMLDivElement, any>();
 const globalInitFlags = new WeakMap<HTMLDivElement, boolean>();
+/** Size / divider / audio 포맷은 전역 1회만 등록 (중복 시 "Overwriting formats/size" 경고 방지) */
+let quillGlobalFormatsRegistered = false;
 
 export default function QuillEditor({
   value,
@@ -123,72 +125,87 @@ export default function QuillEditor({
         }
 
         const Quill = (await import("quill")).default;
-        
-        // 커스텀 Size 블롯 등록 (숫자로 표시)
-        try {
-          // 기존 클래스 기반 Size 제거
+
+        if (!quillGlobalFormatsRegistered) {
+          quillGlobalFormatsRegistered = true;
+
+          // 커스텀 Size 블롯 등록 (숫자로 표시)
           try {
-            const OldSize = Quill.import('formats/size') as any;
-            Quill.register(OldSize, false);
+            try {
+              const OldSize = Quill.import("formats/size") as any;
+              Quill.register(OldSize, false);
+            } catch {
+              // 무시
+            }
+
+            const SizeStyle = Quill.import("attributors/style/size") as any;
+            const sizes = [
+              "10px",
+              "11px",
+              "12px",
+              "13px",
+              "14px",
+              "15px",
+              "16px",
+              "18px",
+              "20px",
+              "24px",
+              "28px",
+              "32px",
+              "36px",
+              "48px",
+            ];
+            SizeStyle.whitelist = sizes;
+            Quill.register("formats/size", SizeStyle, true);
           } catch (e) {
+            console.error("Size registration error:", e);
+          }
+
+          try {
+            const Block = Quill.import("blots/block") as any;
+            const DividerBlot: any = class extends Block {
+              static blotName = "divider";
+              static tagName = "hr";
+              static create() {
+                const node = super.create();
+                node.setAttribute(
+                  "style",
+                  "border-top: 2px solid #CCD5DA; margin: 20px 0; padding: 0; border-bottom: none; border-left: none; border-right: none;"
+                );
+                return node;
+              }
+            };
+            Quill.register(DividerBlot as any, true);
+          } catch {
             // 무시
           }
-          
-          // Style 기반 Size attributor 가져오기 및 설정
-          const SizeStyle = Quill.import('attributors/style/size') as any;
-          const sizes = ['10px', '11px', '12px', '13px', '14px', '15px', '16px', '18px', '20px', '24px', '28px', '32px', '36px', '48px'];
-          SizeStyle.whitelist = sizes;
-          
-          // SizeStyle을 formats/size로 등록
-          Quill.register('formats/size', SizeStyle, true);
-        } catch (e) {
-          console.error("Size registration error:", e);
-        }
-        
-        // 구분선 커스텀 블롯 등록
-        try {
-          const Block = Quill.import('blots/block') as any;
-          const DividerBlot: any = class extends Block {
-            static blotName = 'divider';
-            static tagName = 'hr';
-            static create() {
-              const node = super.create();
-              node.setAttribute('style', 'border-top: 2px solid #CCD5DA; margin: 20px 0; padding: 0; border-bottom: none; border-left: none; border-right: none;');
-              return node;
-            }
-          };
-          Quill.register(DividerBlot as any, true);
-        } catch (e) {
-          // 이미 등록된 경우 무시
-        }
 
-        // 음성 첨부용 <audio> 블록 임베드 (공지사항 등)
-        try {
-          const BlockEmbed = Quill.import("blots/block/embed") as any;
-          class AudioBlot extends BlockEmbed {
-            static blotName = "audio";
-            static tagName = "AUDIO";
-            static create(value: string) {
-              const node = super.create();
-              node.setAttribute("controls", "true");
-              node.setAttribute("preload", "metadata");
-              if (typeof value === "string" && value.trim()) {
-                // 공백/줄바꿈만 제거 (호스트·경로는 서버·클라이언트에서 검증)
-                node.setAttribute("src", value.trim().replace(/\s+/g, ""));
+          try {
+            const BlockEmbed = Quill.import("blots/block/embed") as any;
+            class AudioBlot extends BlockEmbed {
+              static blotName = "audio";
+              static tagName = "AUDIO";
+              static create(value: string) {
+                const node = super.create();
+                node.setAttribute("controls", "true");
+                node.setAttribute("preload", "metadata");
+                if (typeof value === "string" && value.trim()) {
+                  node.setAttribute("src", value.trim().replace(/\s+/g, ""));
+                }
+                node.setAttribute(
+                  "style",
+                  "width:100%;max-width:28rem;display:block;margin:0.75em 0"
+                );
+                return node;
               }
-              node.setAttribute(
-                "style",
-                "width:100%;max-width:28rem;display:block;margin:0.75em 0"
-              );
-              return node;
+              static value(node: HTMLElement) {
+                return node.getAttribute("src") || "";
+              }
             }
-            static value(node: HTMLElement) {
-              return node.getAttribute("src") || "";
-            }
+            Quill.register(AudioBlot as any, true);
+          } catch {
+            // 무시
           }
-          Quill.register(AudioBlot as any, true);
-        } catch (e) {
-          // 이미 등록된 경우 무시
         }
         
         // 마지막으로 한 번 더 확인

@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import QuillEditor from "@/components/QuillEditor";
+import { uploadAnnouncementAudio } from "@/lib/announcementAudioUpload";
 
 export default function NewAnnouncementPage() {
   const router = useRouter();
@@ -179,77 +180,15 @@ export default function NewAnnouncementPage() {
       const loadLen = loadingText.length + 1;
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session?.access_token) {
+        const result = await uploadAnnouncementAudio(file);
+        if (!result.ok) {
           quill.deleteText(start, loadLen);
-          alert("로그인이 필요합니다.");
-          return;
-        }
-
-        // 서버 경유 업로드는 Vercel 등에서 본문 4.5MB 제한에 걸릴 수 있어, 서명 URL로 브라우저→Supabase 직접 업로드
-        const presignRes = await fetch("/api/announcement-audio-presign", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ fileSize: file.size, extension: ext || "mp3" }),
-        });
-
-        const presignRaw = await presignRes.text();
-        let presign: { path?: string; token?: string; error?: string };
-        try {
-          presign = JSON.parse(presignRaw) as { path?: string; token?: string; error?: string };
-        } catch {
-          quill.deleteText(start, loadLen);
-          alert(
-            `서명 요청 응답을 읽을 수 없습니다. (${presignRes.status})`
-          );
-          return;
-        }
-
-        if (!presignRes.ok || presign.error || !presign.path || !presign.token) {
-          quill.deleteText(start, loadLen);
-          alert(presign.error || `업로드 준비에 실패했습니다. (${presignRes.status})`);
-          return;
-        }
-
-        const { error: upErr } = await supabase.storage
-          .from("files")
-          .uploadToSignedUrl(presign.path, presign.token, file, {
-            contentType: file.type || "audio/mpeg",
-            upsert: false,
-          });
-
-        if (upErr) {
-          quill.deleteText(start, loadLen);
-          alert("Storage 업로드 실패: " + upErr.message);
-          return;
-        }
-
-        const { data: urlData } = supabase.storage.from("files").getPublicUrl(presign.path);
-        const audioUrl = (urlData.publicUrl || "").trim().replace(/\s+/g, "");
-
-        if (!audioUrl) {
-          quill.deleteText(start, loadLen);
-          alert("파일 주소를 받지 못했습니다.");
-          return;
-        }
-        try {
-          const u = new URL(audioUrl);
-          if (u.protocol !== "http:" && u.protocol !== "https:") {
-            throw new Error("invalid protocol");
-          }
-        } catch {
-          quill.deleteText(start, loadLen);
-          alert("파일 주소 형식이 올바르지 않습니다. Supabase URL 환경 변수에 공백이 없는지 확인해 주세요.");
+          alert(result.error);
           return;
         }
 
         quill.deleteText(start, loadLen);
-        quill.insertEmbed(start, "audio", audioUrl, "user");
+        quill.insertEmbed(start, "audio", result.publicUrl, "user");
         quill.insertText(start + 1, "\n", "user");
         quill.setSelection(start + 2);
       } catch (error: unknown) {

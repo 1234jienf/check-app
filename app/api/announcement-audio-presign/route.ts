@@ -80,11 +80,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
-      path: signData.path,
-      token: signData.token,
-      signedUrl: signData.signedUrl,
-    });
+    return NextResponse.json(
+      {
+        path: signData.path,
+        token: signData.token,
+        signedUrl: signData.signedUrl,
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
     console.error("announcement-audio-presign:", e);
