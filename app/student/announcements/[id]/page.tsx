@@ -200,6 +200,13 @@ export default function StudentAnnouncementDetailPage() {
               max-width: 100%;
               height: auto;
             }
+            .ql-editor audio,
+            .quill-content audio {
+              width: 100%;
+              max-width: 28rem;
+              display: block;
+              margin: 1em 0;
+            }
             .ql-editor hr,
             .quill-content hr {
               border-top: 2px solid #CCD5DA;

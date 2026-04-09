@@ -166,6 +166,57 @@ export default function EditAnnouncementPage() {
     };
   };
 
+  const audioHandler = () => {
+    const input = document.createElement("input");
+    input.setAttribute("type", "file");
+    input.setAttribute("accept", "audio/*,.mp3,.m4a,.wav,.webm,.ogg,.aac");
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      const quill = quillRef.current;
+      if (!quill) return;
+
+      const range = quill.getSelection(true);
+      const index = range ? range.index : quill.getLength();
+      quill.insertText(index, "\n", "user");
+      const start = index + 1;
+      const loadingText = "음성 업로드 중...";
+      quill.insertText(start, loadingText + "\n", "user");
+      const loadLen = loadingText.length + 1;
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/upload-announcement-audio", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+          quill.deleteText(start, loadLen);
+          alert(data.error || `업로드에 실패했습니다. (${response.status})`);
+          return;
+        }
+
+        quill.deleteText(start, loadLen);
+        quill.insertEmbed(start, "audio", data.url, "user");
+        quill.insertText(start + 1, "\n", "user");
+        quill.setSelection(start + 2);
+      } catch (error: unknown) {
+        quill.deleteText(start, loadLen);
+        console.error("Audio upload error:", error);
+        const msg = error instanceof Error ? error.message : "알 수 없는 오류";
+        alert("음성 업로드 중 오류가 발생했습니다: " + msg);
+      }
+    };
+  };
+
   // 구분선 삽입 핸들러
   const dividerHandlerSimple = () => {
     const quill = quillRef.current;
@@ -193,11 +244,13 @@ export default function EditAnnouncementPage() {
         [{ 'indent': '-1'}, { 'indent': '+1' }],
         ['blockquote', 'code-block'],
         ['link', 'image'],
+        [{ 'custom-audio': true }],
         [{ 'custom-divider': true }],
         ['clean']
       ],
       handlers: {
         image: imageHandler,
+        'custom-audio': audioHandler,
         'custom-divider': dividerHandlerSimple,
       },
     },
@@ -210,7 +263,7 @@ export default function EditAnnouncementPage() {
     'align',
     'list', 'indent',
     'blockquote', 'code-block',
-    'link', 'image', 'divider'
+    'link', 'image', 'audio', 'divider'
   ];
 
 
@@ -514,9 +567,19 @@ export default function EditAnnouncementPage() {
               .ql-snow .ql-picker.ql-size .ql-picker-label span {
                 display: none;
               }
+              .ql-toolbar .ql-custom-audio::before {
+                content: '🎵';
+                font-size: 16px;
+              }
               .ql-toolbar .ql-divider::before {
                 content: '━';
                 font-size: 18px;
+              }
+              .ql-editor audio {
+                width: 100%;
+                max-width: 28rem;
+                display: block;
+                margin: 0.75em 0;
               }
               /* 들여쓰기 스타일 - Quill은 클래스 기반으로 작동 (ql-indent-1, ql-indent-2 등) */
               .ql-editor .ql-indent-1 {

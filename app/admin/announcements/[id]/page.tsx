@@ -179,6 +179,13 @@ export default function AnnouncementDetailPage() {
               margin: 1em auto;
               object-fit: contain;
             }
+            .ql-editor audio,
+            .quill-content audio {
+              width: 100%;
+              max-width: 28rem;
+              display: block;
+              margin: 1em 0;
+            }
             .ql-editor hr,
             .quill-content hr {
               border-top: 2px solid #CCD5DA;

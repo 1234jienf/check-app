@@ -122,6 +122,14 @@ def extract_text_with_formatting(pdf_path: Path) -> List[Dict]:
             
             formatted_text += text + " "
         
+        # 스캔본(이미지) PDF: 텍스트가 없으면 OCR 시도 (Tesseract 설치 필요)
+        if not formatted_text.strip():
+            try:
+                tp = page.get_textpage_ocr()
+                formatted_text = page.get_text(textpage=tp).strip()
+            except Exception:
+                pass  # Tesseract 미설치 등이면 그대로 빈 페이지로 둠
+        
         pages_data.append({
             "page_num": page_num + 1,
             "text": formatted_text.strip(),
@@ -574,6 +582,14 @@ def format_for_json(sections: List[Dict]) -> Dict:
         "total_passages": len(passages),
     }
 
+def format_raw_pages(pages_data: List[Dict]) -> str:
+    """수능 패턴이 없는 PDF(정관 등)용: 전체 페이지 텍스트를 그대로 합쳐서 반환"""
+    full_text = "\n".join([page["text"] for page in pages_data])
+    full_text = clean_formatting_tags(full_text)
+    full_text = re.sub(r'[ \t]+', ' ', full_text)
+    full_text = re.sub(r'\n{3,}', '\n\n', full_text)
+    return full_text.strip()
+
 def format_for_hwp(sections: List[Dict]) -> str:
     """한글 파일에 복사하기 위한 형식으로 포맷팅"""
     output_lines = []
@@ -854,8 +870,13 @@ def main():
         traceback.print_exc()
         sys.exit(1)
     
-    # 포맷팅
-    if args.html:
+    # 포맷팅 (본문/문제 구분이 없으면 전체 텍스트만 출력 - 정관 등 일반 PDF용)
+    if len(sections) == 0:
+        print("📄 수능 패턴 없음 → 전체 텍스트로 저장합니다.")
+        formatted_text = format_raw_pages(pages_data)
+        file_mode = 'w'
+        encoding = args.encoding
+    elif args.html:
         print("📄 HTML 형식으로 포맷팅 중... (밑줄 등 서식 유지)")
         formatted_text = format_for_html(sections)
         file_mode = 'w'

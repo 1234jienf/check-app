@@ -161,6 +161,34 @@ export default function QuillEditor({
         } catch (e) {
           // 이미 등록된 경우 무시
         }
+
+        // 음성 첨부용 <audio> 블록 임베드 (공지사항 등)
+        try {
+          const BlockEmbed = Quill.import("blots/block/embed") as any;
+          class AudioBlot extends BlockEmbed {
+            static blotName = "audio";
+            static tagName = "AUDIO";
+            static create(value: string) {
+              const node = super.create();
+              node.setAttribute("controls", "true");
+              node.setAttribute("preload", "metadata");
+              if (typeof value === "string") {
+                node.setAttribute("src", value);
+              }
+              node.setAttribute(
+                "style",
+                "width:100%;max-width:28rem;display:block;margin:0.75em 0"
+              );
+              return node;
+            }
+            static value(node: HTMLElement) {
+              return node.getAttribute("src") || "";
+            }
+          }
+          Quill.register(AudioBlot as any, true);
+        } catch (e) {
+          // 이미 등록된 경우 무시
+        }
         
         // 마지막으로 한 번 더 확인
         if (!mountedRef.current || !editorRef.current) {

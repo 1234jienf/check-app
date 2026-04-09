@@ -107,16 +107,28 @@ export default function AdminAnnouncementsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("이 공지사항을 삭제하시겠습니까?")) return;
 
-    const { error } = await supabase
-      .from("announcements")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      alert("삭제에 실패했습니다.");
-    } else {
-      setAnnouncements(announcements.filter(a => a.id !== id));
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      alert("로그인이 필요합니다.");
+      return;
     }
+
+    const res = await fetch(`/api/announcements/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(data.error || "삭제에 실패했습니다.");
+      return;
+    }
+
+    setAnnouncements(announcements.filter((a) => a.id !== id));
   };
 
   if (loading) {
