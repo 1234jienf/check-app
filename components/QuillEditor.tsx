@@ -172,8 +172,9 @@ export default function QuillEditor({
               const node = super.create();
               node.setAttribute("controls", "true");
               node.setAttribute("preload", "metadata");
-              if (typeof value === "string") {
-                node.setAttribute("src", value);
+              if (typeof value === "string" && value.trim()) {
+                // 공백/줄바꿈만 제거 (호스트·경로는 서버·클라이언트에서 검증)
+                node.setAttribute("src", value.trim().replace(/\s+/g, ""));
               }
               node.setAttribute(
                 "style",

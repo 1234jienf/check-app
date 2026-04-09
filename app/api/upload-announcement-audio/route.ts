@@ -93,11 +93,21 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: urlData } = supabase.storage.from("files").getPublicUrl(fileName);
-    const publicUrl = urlData.publicUrl;
+    // Vercel 등에서 env 값 끝에 공백·줄바꿈이 있으면 브라우저(Safari)가 src에 거부하는 경우가 있음
+    const publicUrl = (urlData.publicUrl || "").trim().replace(/\s+/g, "");
 
     if (!publicUrl || !publicUrl.includes("storage/v1/object/public")) {
-      console.error("Invalid public URL generated:", publicUrl);
+      console.error("Invalid public URL generated:", urlData.publicUrl);
       return NextResponse.json({ error: "파일 URL 생성에 실패했습니다." }, { status: 500 });
+    }
+
+    try {
+      const u = new URL(publicUrl);
+      if (u.protocol !== "http:" && u.protocol !== "https:") {
+        throw new Error("invalid protocol");
+      }
+    } catch {
+      return NextResponse.json({ error: "파일 URL이 올바르지 않습니다. Supabase URL 환경 변수를 확인하세요." }, { status: 500 });
     }
 
     return NextResponse.json({
