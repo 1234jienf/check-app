@@ -273,7 +273,36 @@ export default function AdminPassageList() {
           </div>
         </div>
 
-        <div className="rounded-xl p-8 shadow-sm" style={{ backgroundColor: '#FFFFFF' }}>
+        <div className="rounded-xl p-8 shadow-sm space-y-4" style={{ backgroundColor: '#FFFFFF' }}>
+          {selectedSubject === "korean" && (
+            <Link
+              href="/admin/passages/dasang-hwpx"
+              className="group flex items-center justify-between p-6 rounded-xl transition-all duration-200 shadow-sm"
+              style={{ backgroundColor: '#CCD5DA', color: '#13181B', boxShadow: '0 2px 6px rgba(19, 24, 27, 0.12)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(19, 24, 27, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 2px 6px rgba(19, 24, 27, 0.12)';
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#13181B' }}>
+                  <svg className="w-6 h-6" fill="none" stroke="#F0EEEB" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-1">PDF → 한글 변환</h3>
+                  <p className="text-sm" style={{ opacity: 0.85 }}>PDF를 한글 복습노트(.hwpx)로 변환</p>
+                </div>
+              </div>
+              <svg className="w-6 h-6 transform group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          )}
+
           <Link
             href="/admin/passages/all"
             className="group flex items-center justify-between p-6 rounded-xl transition-all duration-200 shadow-sm"
