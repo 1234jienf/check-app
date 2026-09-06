@@ -15,12 +15,48 @@ export type ClientOcrProgress = {
 };
 
 function looksUseful(text: string): boolean {
-  const chars = text.replace(/\s/g, "").length;
-  if (chars < 80) return false;
-  if (/\[\d+\s*[~～]\s*\d+\]/.test(text)) return true;
-  if (/\([가나다라마바사]\)/.test(text)) return true;
-  if (/[①②③④⑤]/.test(text) && /[가-힣]{30,}/.test(text)) return true;
-  return /[가-힣]{80,}/.test(text);
+  // 임베디드 글자가 조금이라도 있으면 OCR로 넘기지 않음
+  const compact = text.replace(/\s/g, "");
+  if (compact.length < 40) return false;
+  return /[가-힣A-Za-z0-9\[\]①-⑮]/.test(compact);
+}
+
+/** pdf.js TextItem → 줄바꿈 유지 텍스트 (2단은 y→x 정렬) */
+function textFromPdfItems(items: unknown[]): string {
+  type Row = { str: string; x: number; y: number };
+  const rows: Row[] = [];
+  for (const it of items) {
+    if (!it || typeof it !== "object" || !("str" in it)) continue;
+    const item = it as { str: string; transform?: number[] };
+    const str = String(item.str || "");
+    if (!str) continue;
+    const tr = item.transform || [1, 0, 0, 1, 0, 0];
+    rows.push({ str, x: tr[4] || 0, y: tr[5] || 0 });
+  }
+  if (!rows.length) return "";
+
+  // 위→아래, 같으면 왼→오
+  rows.sort((a, b) => {
+    const dy = b.y - a.y;
+    if (Math.abs(dy) > 3) return dy;
+    return a.x - b.x;
+  });
+
+  let out = "";
+  let lastY: number | null = null;
+  let lastX: number | null = null;
+  for (const r of rows) {
+    if (lastY != null && Math.abs(lastY - r.y) > 4) {
+      out += "\n";
+    } else if (lastX != null && r.x - lastX > 2) {
+      // 단어 간격
+      if (!/\s$/.test(out) && !/^\s/.test(r.str)) out += " ";
+    }
+    out += r.str;
+    lastY = r.y;
+    lastX = r.x + r.str.length * 2;
+  }
+  return out.trim();
 }
 
 async function loadPdfJs() {
@@ -49,13 +85,10 @@ async function extractEmbeddedText(
     });
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    const line = content.items
-      .map((it) => ("str" in it ? String(it.str) : ""))
-      .join(" ");
-    parts.push(line);
+    parts.push(textFromPdfItems(content.items as unknown[]));
   }
 
-  return { text: parts.join("\n").trim(), pages: total };
+  return { text: parts.join("\n\n").trim(), pages: total };
 }
 
 /** 페이지 캔버스 → OCR (2단이면 왼/오 반씩) */
@@ -179,11 +212,17 @@ export async function extractPdfTextInBrowser(
       phase: "done",
       page: embedded.pages,
       total: embedded.pages,
-      message: "글자 추출 완료",
+      message: `텍스트 PDF로 인식됨 (${embedded.pages}p) → 한글 변환`,
     });
     return { text: embedded.text, pages: embedded.pages, via: "text" };
   }
 
+  onProgress?.({
+    phase: "ocr",
+    page: 0,
+    total: embedded.pages || 0,
+    message: "임베디드 글자 없음 → 이미지 OCR 시작…",
+  });
   const ocr = await ocrPdfPages(data, onProgress);
   if (!ocr.text.trim()) {
     throw new Error("브라우저 OCR 결과가 비어 있습니다. 복붙용 .txt를 올려 주세요.");
