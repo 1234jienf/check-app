@@ -65,6 +65,10 @@ async function openPdf(file: File): Promise<PDFDocumentProxy> {
     data,
     useSystemFonts: true,
     disableFontFace: false,
+    // 한글 CID 폰트: CMap 없으면 글자 레이어가 비어 `-- N of M --`만 나오는 것처럼 보일 수 있음
+    cMapUrl: "https://unpkg.com/pdfjs-dist@6.3.289/cmaps/",
+    cMapPacked: true,
+    standardFontDataUrl: "https://unpkg.com/pdfjs-dist@6.3.289/standard_fonts/",
   }).promise;
 }
 

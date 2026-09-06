@@ -4,6 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { extractPdfTextInBrowser } from "@/lib/clientPdfOcr";
 import { uploadDasangPdf } from "@/lib/dasangPdfUpload";
+import {
+  hangulCount,
+  isUsefulExamExtract,
+  stripPdfPageJoiners,
+} from "@/lib/pdfTextQuality";
 
 /** "5,6회" / "3~4회" / "5회" → [5,6] */
 function detectHoes(filename: string): number[] {
@@ -67,12 +72,13 @@ export default function DasangHwpxPage() {
         const extracted = await extractPdfTextInBrowser(file, (p) => {
           setStatus(p.message);
         });
-        const hangul = (extracted.text.match(/[가-힣]/g) || []).length;
+        const cleaned = stripPdfPageJoiners(extracted.text);
+        const hangul = hangulCount(cleaned);
 
-        if (extracted.charCount >= 40 || hangul >= 20) {
-          formData.append("text", extracted.text);
+        if (isUsefulExamExtract(cleaned)) {
+          formData.append("text", cleaned);
           setStatus(
-            `텍스트 ${extracted.charCount}자(한글 ${hangul}) → 한글 변환 중…`
+            `텍스트 ${cleaned.replace(/\s/g, "").length}자(한글 ${hangul}) → 한글 변환 중…`
           );
         } else {
           // 2) 브라우저가 못 읽으면 서버 pdf-parse만 (OCR 없음)
@@ -193,11 +199,11 @@ export default function DasangHwpxPage() {
                   PDF 또는 복붙용 txt 선택
                 </span>
                 <span className="text-xs mt-2 text-center px-4" style={{ color: "#13181B", opacity: 0.6 }}>
-                  글자 선택되는 PDF → 텍스트만 추출해서 변환 (서버 OCR 없음)
+                  본문 글자 레이어가 있는 PDF만 자동 변환 (페이지 번호만 나오면 실패)
                   <br />
                   안 되면 Edge에서 Ctrl+A 복사 → 메모장 .txt로 올려 주세요
                   <br />
-                  [1~…]이 다시 시작되면 회차 분리 · 배포 v2026-09-07b
+                  [1~…]이 다시 시작되면 회차 분리 · 배포 v2026-09-07c
                 </span>
               </>
             )}

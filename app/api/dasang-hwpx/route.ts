@@ -11,6 +11,12 @@ import {
 } from "@/lib/parseExamGroups";
 import { buildHwpxBuffer, zipBuffers } from "@/lib/buildHwpx";
 import { extractPdfText } from "@/lib/extractPdfText";
+import {
+  compactLen,
+  hangulCount,
+  isUsefulExamExtract,
+  stripPdfPageJoiners,
+} from "@/lib/pdfTextQuality";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -48,20 +54,6 @@ function outputBaseName(fileName: string): string {
   return cleaned || "변환결과";
 }
 
-/** 공백이 섞여도 한글/본문이 있으면 텍스트 PDF로 인정 (OCR로 넘기지 않음) */
-function looksLikeExamText(text: string): boolean {
-  const compact = text.replace(/\s/g, "");
-  if (compact.length < 20) return false;
-  const hangul = (text.match(/[가-힣]/g) || []).length;
-  if (hangul >= 15) return true;
-  if (/\[\d+\s*[~～]\s*\d+\]/.test(text)) return true;
-  if (/\([가나다라마바사]\)|（[가나다라마바사]）/.test(text)) return true;
-  if (/[①②③④⑤]/.test(text) && hangul >= 5) return true;
-  // 영문 수능 등
-  if (/[A-Za-z]{40,}/.test(compact)) return true;
-  return compact.length >= 60;
-}
-
 /** 수능 등 [1~3] 없는 본문도 HWPX 파이프라인이 받도록 최소 구간 표기 부여 */
 function ensureGroupMarker(text: string): string {
   if (/\[\d+\s*[~～]\s*\d+\]/.test(text)) return text;
@@ -82,22 +74,25 @@ async function textFromPdfBuf(
     };
   }
 
-  const hangul = (extracted.text.match(/[가-힣]/g) || []).length;
-  const compact = extracted.text.replace(/\s/g, "").length;
+  const cleaned = stripPdfPageJoiners(extracted.text);
+  const hangul = hangulCount(cleaned);
+  const compact = compactLen(cleaned);
 
-  if (looksLikeExamText(extracted.text)) {
+  if (isUsefulExamExtract(cleaned)) {
     return {
-      fullText: ensureGroupMarker(extracted.text),
+      fullText: ensureGroupMarker(cleaned),
       sourceNote: `PDF 텍스트 추출 (${extracted.pages || "?"}p, 한글 ${hangul}자)`,
     };
   }
 
-  // OCR 안 함 — 시간초과/오판 원인. 텍스트가 거의 없으면 복붙 안내.
+  // 페이지 번호만 있거나 본문 레이어가 비어 있는 경우 (가짜 성공 방지)
   return {
     error:
-      compact > 0
-        ? `PDF에서 글자는 ${compact}자만 읽혔습니다(한글 ${hangul}자). 변환에 부족합니다. Edge에서 Ctrl+A로 전체 복사 → 메모장에 붙여 .txt로 저장해 올려 주세요.`
-        : `PDF에서 글자를 읽지 못했습니다. (선택·복사가 되는 파일이면 Edge에서 Ctrl+A → 복사 후 .txt로 저장해 올려 주세요.)`,
+      hangul < 20 && /--\s*\d+\s+of\s+\d+\s*--/i.test(extracted.text)
+        ? `PDF에서 본문이 아니라 페이지 번호(-- 1 of 24 --)만 읽혔습니다. 이 파일은 자동 추출이 안 됩니다. Edge에서 Ctrl+A → 메모장 .txt로 저장해 올려 주세요.`
+        : compact > 0
+          ? `PDF에서 쓸 만한 본문이 없습니다(한글 ${hangul}자). Edge에서 Ctrl+A로 전체 복사 → 메모장 .txt로 저장해 올려 주세요.`
+          : `PDF에서 글자 레이어를 읽지 못했습니다. (화면에 글자가 보여도 복사 레이어가 없을 수 있습니다.) Edge에서 Ctrl+A → .txt로 올려 주세요.`,
     status: 400,
   };
 }
@@ -147,12 +142,26 @@ export async function POST(request: NextRequest) {
     let fullText = pasted;
     let sourceNote = pasted
       ? originalName.toLowerCase().endsWith(".pdf")
-        ? "브라우저 PDF 추출/OCR"
+        ? "브라우저 PDF 추출"
         : "붙여넣기 텍스트"
       : "";
 
     if (pasted) {
-      fullText = ensureGroupMarker(pasted);
+      const cleaned = stripPdfPageJoiners(pasted);
+      // 브라우저가 페이지 마커만 보낸 경우 가짜 변환 방지
+      if (
+        originalName.toLowerCase().endsWith(".pdf") &&
+        !isUsefulExamExtract(cleaned)
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "추출된 내용에 본문이 거의 없습니다(페이지 번호만 등). Edge에서 Ctrl+A → 메모장 .txt로 저장해 올려 주세요.",
+          },
+          { status: 400 }
+        );
+      }
+      fullText = ensureGroupMarker(cleaned);
     } else if (storagePath) {
       const loaded = await loadPdfFromStorage(storagePath);
       cleanupStorage = loaded.cleanupStorage;
