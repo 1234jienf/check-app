@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { uploadDasangPdf } from "@/lib/dasangPdfUpload";
 
 /** "5,6회" / "3~4회" / "5회" → [5,6] */
 function detectHoes(filename: string): number[] {
@@ -36,6 +37,7 @@ export default function DasangHwpxPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [doneMsg, setDoneMsg] = useState("");
+  const [status, setStatus] = useState("");
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -45,6 +47,7 @@ export default function DasangHwpxPage() {
     setError("");
     setDoneMsg("");
     setLoading(true);
+    setStatus("");
 
     const hoes = detectHoes(file.name);
 
@@ -52,13 +55,19 @@ export default function DasangHwpxPage() {
       const formData = new FormData();
       formData.append("hoe", hoes.join(","));
 
-      // Vercel 요청 한도(~4.5MB) — 큰 스캔 PDF는 본문 대신 파일명만 전송
       const isPdf = file.name.toLowerCase().endsWith(".pdf");
       const tooLarge = file.size > 3.5 * 1024 * 1024;
+
       if (isPdf && tooLarge) {
-        formData.append("fileName", file.name);
+        setStatus("큰 PDF 업로드 중…");
+        const uploaded = await uploadDasangPdf(file);
+        if (!uploaded.ok) throw new Error(uploaded.error);
+        formData.append("storagePath", uploaded.storagePath);
+        formData.append("originalName", file.name);
+        setStatus("변환 중…");
       } else {
         formData.append("file", file);
+        setStatus("변환 중…");
       }
 
       const res = await fetch("/api/dasang-hwpx", {
@@ -103,6 +112,7 @@ export default function DasangHwpxPage() {
       setError(err.message || "변환 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
+      setStatus("");
     }
   };
 
@@ -137,8 +147,8 @@ export default function DasangHwpxPage() {
               className="hidden"
             />
             {loading ? (
-              <span className="text-sm" style={{ color: "#13181B" }}>
-                변환 중...
+              <span className="text-sm text-center px-4" style={{ color: "#13181B" }}>
+                {status || "변환 중..."}
               </span>
             ) : (
               <>
@@ -159,8 +169,10 @@ export default function DasangHwpxPage() {
                 <span className="text-sm font-semibold" style={{ color: "#13181B" }}>
                   PDF 또는 복붙용 txt 선택
                 </span>
-                <span className="text-xs mt-2" style={{ color: "#13181B", opacity: 0.6 }}>
-                  문항이 다시 [1~…]으로 시작되면 회차를 나눠 변환합니다
+                <span className="text-xs mt-2 text-center px-4" style={{ color: "#13181B", opacity: 0.6 }}>
+                  큰 PDF(최대 200MB)도 가능 · 글자가 선택되는 PDF만 자동 변환
+                  <br />
+                  스캔본은 복붙용 txt · [1~…]이 다시 나오면 회차 분리
                 </span>
               </>
             )}

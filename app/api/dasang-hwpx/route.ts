@@ -1,12 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { writeFile, unlink, readFile, mkdir } from "fs/promises";
-import { existsSync, readdirSync } from "fs";
+import { existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
 const execAsync = promisify(exec);
+const STORAGE_PREFIX = "dasang-hwpx/";
+
+function getServiceClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Supabase 환경 변수가 설정되지 않았습니다.");
+  }
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 function pythonCmd() {
   return process.platform === "win32" ? "python" : "python3";
@@ -60,6 +74,16 @@ function detectHoes(...sources: string[]): number[] {
   return list.length > 0 ? list : [3];
 }
 
+function isSafeStoragePath(path: string): boolean {
+  return (
+    !!path &&
+    path.startsWith(STORAGE_PREFIX) &&
+    !path.includes("..") &&
+    !path.includes("\\") &&
+    path.toLowerCase().endsWith(".pdf")
+  );
+}
+
 async function extractPdfText(pdfPath: string): Promise<{ text: string; pages: number }> {
   const script = `
 import sys, json, warnings
@@ -99,33 +123,6 @@ print(json.dumps({"text": text, "pages": len(doc)}, ensure_ascii=False))
   }
 }
 
-function bundledPastePath(hoe: number): string | null {
-  const local = join(process.cwd(), "scripts", "dasang_paste", `${hoe}.txt`);
-  if (existsSync(local)) return local;
-
-  const blogMacro = join(
-    process.env.USERPROFILE || process.env.HOME || "",
-    "OneDrive",
-    "Desktop",
-    "blog-macro"
-  );
-  if (!existsSync(blogMacro)) return null;
-
-  try {
-    const files = readdirSync(blogMacro) as string[];
-    const hit = files.find(
-      (n) =>
-        n.endsWith(".txt") &&
-        n.includes(`${hoe}회`) &&
-        n.includes("전체") &&
-        n.includes("복붙")
-    );
-    return hit ? join(blogMacro, hit) : null;
-  } catch {
-    return null;
-  }
-}
-
 /** 문항 구간이 다시 [1~…]으로 시작하면 회차 분리 */
 function splitRoundsByRestart(text: string): string[] {
   const re = /\[1\s*[~～]\s*\d+\]/g;
@@ -162,16 +159,6 @@ function assignHoeNumbers(chunkCount: number, hints: number[]): number[] {
     return out;
   }
   return Array.from({ length: chunkCount }, (_, i) => i + 1);
-}
-
-async function loadBundledTexts(hoes: number[]): Promise<string> {
-  const parts: string[] = [];
-  for (const hoe of hoes) {
-    const p = bundledPastePath(hoe);
-    if (!p) throw new Error(`${hoe}회 복붙용.txt를 찾지 못했습니다.`);
-    parts.push(await readFile(p, "utf-8"));
-  }
-  return parts.join("\n\n");
 }
 
 async function buildHwpx(
@@ -271,9 +258,59 @@ print(json.dumps({"ok": True, "count": len(files)}))
   }
 }
 
+const SCAN_PDF_ERROR =
+  "이 PDF에서 글자를 읽지 못했습니다. 스캔본이면 복붙용 .txt를 올려 주세요. 글자가 선택되는 PDF만 자동 변환됩니다.";
+
+async function loadPdfFromStorage(
+  storagePath: string,
+  workDir: string,
+  stamp: string
+): Promise<{ pdfPath: string; cleanupStorage: () => Promise<void> }> {
+  if (!isSafeStoragePath(storagePath)) {
+    throw new Error("잘못된 저장 경로입니다.");
+  }
+
+  const service = getServiceClient();
+  const { data, error } = await service.storage.from("files").download(storagePath);
+  if (error || !data) {
+    throw new Error(error?.message || "Storage에서 PDF를 받지 못했습니다.");
+  }
+
+  const pdfPath = join(workDir, `input_${stamp}.pdf`);
+  const buf = Buffer.from(await data.arrayBuffer());
+  await writeFile(pdfPath, buf);
+
+  const cleanupStorage = async () => {
+    try {
+      await service.storage.from("files").remove([storagePath]);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  return { pdfPath, cleanupStorage };
+}
+
+async function textFromPdfFile(
+  pdfPath: string
+): Promise<{ fullText: string; sourceNote: string } | { error: string; status: number }> {
+  const extracted = await extractPdfText(pdfPath);
+  const chars = extracted.text.replace(/\s/g, "").length;
+
+  if (chars >= 80 && /\[\d+~\d+\]/.test(extracted.text)) {
+    return {
+      fullText: extracted.text,
+      sourceNote: `PDF 텍스트 추출 (${extracted.pages}p)`,
+    };
+  }
+
+  return { error: SCAN_PDF_ERROR, status: 400 };
+}
+
 export async function POST(request: NextRequest) {
   const stamp = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const workDir = join(tmpdir(), `dasang_hwpx_${stamp}`);
+  let cleanupStorage: (() => Promise<void>) | null = null;
 
   try {
     await mkdir(workDir, { recursive: true });
@@ -281,15 +318,25 @@ export async function POST(request: NextRequest) {
     const hoeRaw = String(formData.get("hoe") || "");
     const pasted = String(formData.get("text") || "").trim();
     const file = formData.get("file") as File | null;
-    const fileNameOnly = String(formData.get("fileName") || "").trim();
-    const fileName = file?.name || fileNameOnly || "";
+    const storagePath = String(formData.get("storagePath") || "").trim();
+    const originalName = String(formData.get("originalName") || "").trim();
+    const fileName = file?.name || originalName || "";
 
     const hoeHints = detectHoes(hoeRaw, fileName);
 
     let fullText = pasted;
     let sourceNote = pasted ? "붙여넣기 텍스트" : "";
 
-    if (file && file.size > 0) {
+    if (storagePath) {
+      const loaded = await loadPdfFromStorage(storagePath, workDir, stamp);
+      cleanupStorage = loaded.cleanupStorage;
+      const fromPdf = await textFromPdfFile(loaded.pdfPath);
+      if ("error" in fromPdf) {
+        return NextResponse.json({ error: fromPdf.error }, { status: fromPdf.status });
+      }
+      fullText = fromPdf.fullText;
+      sourceNote = `Storage PDF → ${fromPdf.sourceNote}`;
+    } else if (file && file.size > 0) {
       const name = file.name.toLowerCase();
       const buf = Buffer.from(await file.arrayBuffer());
 
@@ -299,59 +346,25 @@ export async function POST(request: NextRequest) {
       } else if (name.endsWith(".pdf")) {
         const pdfPath = join(workDir, `input_${stamp}.pdf`);
         await writeFile(pdfPath, buf);
-        const extracted = await extractPdfText(pdfPath);
-        const chars = extracted.text.replace(/\s/g, "").length;
-
-        if (chars >= 80 && /\[\d+~\d+\]/.test(extracted.text)) {
-          fullText = extracted.text;
-          sourceNote = `PDF 텍스트 추출 (${extracted.pages}p)`;
-        } else {
-          try {
-            // 이미지 PDF: 복붙용을 이어 붙인 뒤, 본문에서 [1~ 재시작으로 회차 분리
-            fullText = await loadBundledTexts(hoeHints);
-            sourceNote = `이미지 PDF → 복붙용 합친 뒤 [1~ 재시작으로 분리`;
-          } catch {
-            return NextResponse.json(
-              {
-                error:
-                  "이 PDF에서 글자를 읽지 못했습니다. 텍스트가 있는 PDF이거나 복붙용 .txt를 올려 주세요.",
-              },
-              { status: 400 }
-            );
-          }
+        const fromPdf = await textFromPdfFile(pdfPath);
+        if ("error" in fromPdf) {
+          return NextResponse.json({ error: fromPdf.error }, { status: fromPdf.status });
         }
+        fullText = fromPdf.fullText;
+        sourceNote = fromPdf.sourceNote;
       } else {
         return NextResponse.json(
           { error: ".txt(복붙용) 또는 .pdf 파일만 지원합니다." },
           { status: 400 }
         );
       }
-    } else if (fileNameOnly) {
-      // 대용량 스캔 PDF: 본문 없이 파일명만 온 경우 → 복붙용으로 변환
-      try {
-        fullText = await loadBundledTexts(hoeHints);
-        sourceNote = `대용량 PDF(파일명만) → ${hoeHints.join(",")}회 복붙용`;
-      } catch {
-        return NextResponse.json(
-          {
-            error: `${hoeHints.join(",")}회 복붙용.txt를 서버에서 찾지 못했습니다. 복붙용 .txt를 직접 올려 주세요.`,
-          },
-          { status: 400 }
-        );
-      }
     }
 
     if (!fullText || fullText.replace(/\s/g, "").length < 40) {
-      // 최후: 힌트 회차 복붙용
-      try {
-        fullText = await loadBundledTexts(hoeHints);
-        sourceNote = sourceNote || "내장 복붙용";
-      } catch {
-        return NextResponse.json(
-          { error: "변환할 텍스트가 없습니다. PDF/복붙용 txt를 올려 주세요." },
-          { status: 400 }
-        );
-      }
+      return NextResponse.json(
+        { error: "변환할 텍스트가 없습니다. PDF/복붙용 txt를 올려 주세요." },
+        { status: 400 }
+      );
     }
 
     if (!/\[\d+\s*[~～]\s*\d+\]/.test(fullText)) {
@@ -361,7 +374,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 핵심: 번호가 다시 [1~…]으로 시작하는 지점마다 회차 분리
     const chunks = splitRoundsByRestart(fullText);
     if (chunks.length === 0) {
       return NextResponse.json({ error: "회차로 나눌 본문을 찾지 못했습니다." }, { status: 400 });
@@ -400,7 +412,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 여러 회차 → zip
     const zipPath = join(workDir, `다상다독_${built.map((b) => b.hoe).join("-")}회_클린최종.zip`);
     await zipFiles(
       built.map((b) => ({
@@ -434,6 +445,9 @@ export async function POST(request: NextRequest) {
         : msg;
     return NextResponse.json({ error: clean }, { status: 500 });
   } finally {
+    if (cleanupStorage) {
+      await cleanupStorage();
+    }
     try {
       const { rm } = await import("fs/promises");
       await rm(workDir, { recursive: true, force: true });
