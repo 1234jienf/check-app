@@ -1,40 +1,44 @@
 /**
- * 이미지(스캔) PDF → OpenAI Vision OCR → 복붙용에 가까운 텍스트
- * 페이지를 PNG로 렌더한 뒤 배치로 보냅니다.
+ * 이미지(스캔) PDF → OpenAI Vision OCR
+ * 수능/문제지 2단 레이아웃: 페이지를 왼/오른 반으로 잘라 순서대로 읽힌다.
  */
 
+import { createCanvas, loadImage } from "@napi-rs/canvas";
+
 const MAX_OCR_PAGES = Number(process.env.DASANG_OCR_MAX_PAGES || 80);
-const BATCH_SIZE = 2;
-const TARGET_WIDTH = 1100;
+const TARGET_WIDTH = Number(process.env.DASANG_OCR_WIDTH || 1800);
 
 function openaiApiKey(): string {
   const raw = String(process.env.OPENAI_API_KEY || "").trim();
   if (!raw) throw new Error("OPENAI_API_KEY가 없습니다.");
-  // 따옴표 / Bearer 접두 / 실수로 키가 두 번 들어간 경우 정리
   let v = raw.replace(/^["']|["']$/g, "").trim();
   v = v.replace(/^Bearer\s+/i, "").trim();
   if (/\s/.test(v)) {
     const parts = v.split(/\s+/).filter(Boolean);
-    const sk = parts.find((p) => p.startsWith("sk-")) || parts[0];
-    v = sk;
+    v = parts.find((p) => p.startsWith("sk-")) || parts[0];
   }
   if (!v) throw new Error("OPENAI_API_KEY가 올바르지 않습니다.");
   return v;
 }
 
 function ocrModel() {
-  return process.env.OPENAI_OCR_MODEL || "gpt-4o-mini";
+  // 정확도 우선: OCR은 gpt-4o 기본 (비용↑). 싸게 쓰려면 OPENAI_OCR_MODEL=gpt-4o-mini
+  return process.env.OPENAI_OCR_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
 }
 
-const SYSTEM = `당신은 국어/입시 문제지 OCR 엔진입니다.
-이미지에서 보이는 글자를 최대한 빠짐없이 그대로 옮기세요.
+const SYSTEM = `당신은 한국어 시험지 OCR 전용 엔진입니다.
+이미지에 보이는 글자만 있는 그대로 옮기세요.
+
+절대 금지:
+- 요약, 의역, 문장 재작성, 내용 추측/보완
+- 안 보이는 글자 만들어내기
+- 다른 단/페이지 내용 섞기
 
 규칙:
-- 지문 구간은 [1~3] 형식을 유지하세요. ([1～3]도 [1~3]으로)
-- 문항은 "1. "처럼 번호로 시작하게 하세요.
-- 선지는 ①②③④⑤ 기호를 유지하세요.
-- 페이지 머리글/바닥글/워터마크/장식은 빼세요.
-- 설명이나 요약 없이, 추출한 본문만 출력하세요.`;
+- 읽기 순서: 위에서 아래. (이 이미지는 이미 한 단만 잘린 조각입니다)
+- (가)(나), [1~3], ①②③④⑤, 문항 번호는 원문 기호 그대로
+- 머리글/바닥글/페이지 번호/워터마크는 생략 가능
+- 출력은 추출 본문만. 설명 문장 금지.`;
 
 type ShotPage = {
   pageNumber: number;
@@ -42,37 +46,57 @@ type ShotPage = {
   data?: Uint8Array | Buffer;
 };
 
-function toDataUrl(page: ShotPage): string | null {
-  if (page.dataUrl && page.dataUrl.startsWith("data:")) return page.dataUrl;
-  if (page.data) {
-    const b64 = Buffer.from(page.data).toString("base64");
-    return `data:image/png;base64,${b64}`;
+function toPngBuffer(page: ShotPage): Buffer | null {
+  if (page.data) return Buffer.from(page.data);
+  if (page.dataUrl?.startsWith("data:")) {
+    const b64 = page.dataUrl.split(",")[1] || "";
+    if (!b64) return null;
+    return Buffer.from(b64, "base64");
   }
   return null;
 }
 
-async function ocrBatch(
-  images: { pageNumber: number; dataUrl: string }[]
+/** 페이지 PNG → 왼단/오른단 (가운데 약간 겹침) */
+async function splitColumns(png: Buffer): Promise<{ left: string; right: string }> {
+  const img = await loadImage(png);
+  const w = img.width;
+  const h = img.height;
+  const mid = Math.floor(w / 2);
+  const overlap = Math.max(8, Math.floor(w * 0.02));
+
+  const leftW = mid + overlap;
+  const rightX = Math.max(0, mid - overlap);
+  const rightW = w - rightX;
+
+  const leftCanvas = createCanvas(leftW, h);
+  const rightCanvas = createCanvas(rightW, h);
+  leftCanvas.getContext("2d").drawImage(img, 0, 0, leftW, h, 0, 0, leftW, h);
+  rightCanvas.getContext("2d").drawImage(img, rightX, 0, rightW, h, 0, 0, rightW, h);
+
+  return {
+    left: leftCanvas.toDataURL("image/png"),
+    right: rightCanvas.toDataURL("image/png"),
+  };
+}
+
+async function ocrOneImage(
+  dataUrl: string,
+  label: string
 ): Promise<string> {
   const key = openaiApiKey();
-
   const content: Array<
     | { type: "text"; text: string }
-    | { type: "image_url"; image_url: { url: string; detail: "high" | "low" } }
+    | { type: "image_url"; image_url: { url: string; detail: "high" } }
   > = [
     {
       type: "text",
-      text: `다음 ${images.length}개 페이지(페이지 ${images
-        .map((i) => i.pageNumber)
-        .join(", ")})에서 문제지 본문을 추출하세요.`,
+      text: `${label}\n이 이미지 조각에 보이는 본문만 있는 그대로 옮기세요. 추측하지 마세요.`,
+    },
+    {
+      type: "image_url",
+      image_url: { url: dataUrl, detail: "high" },
     },
   ];
-  for (const img of images) {
-    content.push({
-      type: "image_url",
-      image_url: { url: img.dataUrl, detail: "high" },
-    });
-  }
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -102,7 +126,6 @@ async function ocrBatch(
   }
   if (!res.ok) {
     const msg = data.error?.message || `OCR API 실패 (${res.status})`;
-    // 키/헤더 값이 에러에 섞여 나오지 않게
     throw new Error(msg.replace(/sk-[A-Za-z0-9_-]+/g, "sk-***").slice(0, 200));
   }
   return String(data.choices?.[0]?.message?.content || "").trim();
@@ -125,25 +148,25 @@ export async function ocrPdfToExamText(
     const limit = Math.min(total, MAX_OCR_PAGES);
     const parts: string[] = [];
 
-    for (let start = 1; start <= limit; start += BATCH_SIZE) {
-      const nums: number[] = [];
-      for (let p = start; p < start + BATCH_SIZE && p <= limit; p++) nums.push(p);
-
+    // 페이지당 1장 렌더 → 왼단 OCR → 오른단 OCR (2단 섞임 방지)
+    for (let page = 1; page <= limit; page++) {
       const result = await parser.getScreenshot({
-        partial: nums,
+        partial: [page],
         desiredWidth: TARGET_WIDTH,
-        imageDataUrl: true,
+        imageBuffer: true,
+        imageDataUrl: false,
       });
       const shots = ((result as { pages?: ShotPage[] })?.pages || []) as ShotPage[];
-      const images: { pageNumber: number; dataUrl: string }[] = [];
-      for (const shot of shots) {
-        const dataUrl = toDataUrl(shot);
-        if (dataUrl) images.push({ pageNumber: shot.pageNumber, dataUrl });
-      }
-      if (!images.length) continue;
+      const shot = shots[0];
+      const png = shot ? toPngBuffer(shot) : null;
+      if (!png) continue;
 
-      const chunk = await ocrBatch(images);
-      if (chunk) parts.push(chunk);
+      const { left, right } = await splitColumns(png);
+      const leftText = await ocrOneImage(left, `페이지 ${page} · 왼쪽 단`);
+      const rightText = await ocrOneImage(right, `페이지 ${page} · 오른쪽 단`);
+
+      const pageText = [leftText, rightText].filter(Boolean).join("\n\n");
+      if (pageText) parts.push(pageText);
     }
 
     const text = parts.join("\n\n").trim();

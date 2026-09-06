@@ -172,7 +172,7 @@ export default function DasangHwpxPage() {
                 <span className="text-xs mt-2 text-center px-4" style={{ color: "#13181B", opacity: 0.6 }}>
                   큰 PDF(최대 200MB)도 가능 · 글자 복사되는 PDF는 바로 변환
                   <br />
-                  이미지 PDF는 AI OCR로 읽음(시간·비용 들 수 있음) · [1~…] 재시작 시 회차 분리
+                  이미지 PDF는 AI OCR(2단 분리 인식, 시간·비용↑) · [1~…] 재시작 시 회차 분리
                 </span>
               </>
             )}
