@@ -75,7 +75,8 @@ async function textFromPdfBuf(
         : `이미지 PDF OCR (${ocr.pages}p)`;
     return { fullText: ocr.text, sourceNote: note };
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const raw = e instanceof Error ? e.message : String(e);
+    const msg = raw.replace(/sk-[A-Za-z0-9_-]+/g, "sk-***").replace(/Bearer\s+/gi, "").slice(0, 180);
     return {
       error: `이미지 PDF OCR 실패: ${msg}. 복붙용 .txt를 올려 주세요.`,
       status: 400,

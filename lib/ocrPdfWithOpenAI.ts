@@ -7,6 +7,21 @@ const MAX_OCR_PAGES = Number(process.env.DASANG_OCR_MAX_PAGES || 80);
 const BATCH_SIZE = 2;
 const TARGET_WIDTH = 1100;
 
+function openaiApiKey(): string {
+  const raw = String(process.env.OPENAI_API_KEY || "").trim();
+  if (!raw) throw new Error("OPENAI_API_KEY가 없습니다.");
+  // 따옴표 / Bearer 접두 / 실수로 키가 두 번 들어간 경우 정리
+  let v = raw.replace(/^["']|["']$/g, "").trim();
+  v = v.replace(/^Bearer\s+/i, "").trim();
+  if (/\s/.test(v)) {
+    const parts = v.split(/\s+/).filter(Boolean);
+    const sk = parts.find((p) => p.startsWith("sk-")) || parts[0];
+    v = sk;
+  }
+  if (!v) throw new Error("OPENAI_API_KEY가 올바르지 않습니다.");
+  return v;
+}
+
 function ocrModel() {
   return process.env.OPENAI_OCR_MODEL || "gpt-4o-mini";
 }
@@ -39,8 +54,7 @@ function toDataUrl(page: ShotPage): string | null {
 async function ocrBatch(
   images: { pageNumber: number; dataUrl: string }[]
 ): Promise<string> {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) throw new Error("OPENAI_API_KEY가 없습니다.");
+  const key = openaiApiKey();
 
   const content: Array<
     | { type: "text"; text: string }
@@ -87,7 +101,9 @@ async function ocrBatch(
     throw new Error(`OCR 응답 파싱 실패 (${res.status})`);
   }
   if (!res.ok) {
-    throw new Error(data.error?.message || `OCR API 실패 (${res.status})`);
+    const msg = data.error?.message || `OCR API 실패 (${res.status})`;
+    // 키/헤더 값이 에러에 섞여 나오지 않게
+    throw new Error(msg.replace(/sk-[A-Za-z0-9_-]+/g, "sk-***").slice(0, 200));
   }
   return String(data.choices?.[0]?.message?.content || "").trim();
 }
