@@ -37,6 +37,18 @@ function isSafeStoragePath(path: string): boolean {
   );
 }
 
+/** 업로드 파일명 → 확장자 없는 안전한 출력 베이스명 */
+function outputBaseName(fileName: string): string {
+  const raw = (fileName || "").trim().replace(/^.*[\\/]/, "");
+  const noExt = raw.replace(/\.(pdf|txt|md)$/i, "").trim();
+  const cleaned = noExt
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_")
+    .replace(/\s+/g, " ")
+    .replace(/[. ]+$/g, "")
+    .slice(0, 120);
+  return cleaned || "변환결과";
+}
+
 const SCAN_PDF_ERROR =
   "이미지 PDF에서 글자를 읽지 못했습니다. 복붙용 .txt를 올려 주세요. (OCR도 실패했거나 OpenAI 키가 없습니다)";
 
@@ -187,6 +199,7 @@ export async function POST(request: NextRequest) {
 
     const files: { name: string; buffer: Buffer }[] = [];
     const metaJobs: { hoe: number; groups: number; questions: number; labels: string[] }[] = [];
+    const base = outputBaseName(fileName);
 
     for (const job of jobs) {
       const groups = parseExamGroups(job.text);
@@ -197,8 +210,10 @@ export async function POST(request: NextRequest) {
         groups,
         hoe: job.hoe,
       });
+      const outName =
+        jobs.length === 1 ? `${base}.hwpx` : `${base}_${job.hoe}회.hwpx`;
       files.push({
-        name: `다상다독_${job.hoe}회_클린최종.hwpx`,
+        name: outName,
         buffer: built.buffer,
       });
       metaJobs.push({
@@ -232,7 +247,7 @@ export async function POST(request: NextRequest) {
     }
 
     const zipBuf = await zipBuffers(files);
-    const zipName = `다상다독_${metaJobs.map((b) => b.hoe).join("-")}회_클린최종.zip`;
+    const zipName = `${base}.zip`;
     return new NextResponse(new Uint8Array(zipBuf), {
       status: 200,
       headers: {

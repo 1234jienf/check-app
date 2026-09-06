@@ -87,10 +87,8 @@ export default function DasangHwpxPage() {
       }
 
       const blob = await res.blob();
-      const fallback =
-        hoes.length > 1
-          ? `다상다독_${hoes.join("-")}회_클린최종.zip`
-          : `다상다독_${hoes[0]}회_클린최종.hwpx`;
+      const stem = file.name.replace(/\.(pdf|txt|md)$/i, "") || "변환결과";
+      const fallback = hoes.length > 1 ? `${stem}.zip` : `${stem}.hwpx`;
       const downloadName = filenameFromDisposition(
         res.headers.get("Content-Disposition"),
         fallback
