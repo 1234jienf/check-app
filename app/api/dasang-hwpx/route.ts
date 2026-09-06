@@ -11,6 +11,7 @@ import {
 } from "@/lib/parseExamGroups";
 import { buildHwpxBuffer, zipBuffers } from "@/lib/buildHwpx";
 import { extractPdfText } from "@/lib/extractPdfText";
+import { ocrPdfToExamText } from "@/lib/ocrPdfWithOpenAI";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -37,20 +38,49 @@ function isSafeStoragePath(path: string): boolean {
 }
 
 const SCAN_PDF_ERROR =
-  "이 PDF에서 글자를 읽지 못했습니다. 이미지로만 된 PDF면 복붙용 .txt를 올려 주세요. 글자를 드래그해서 복사할 수 있는 PDF만 자동 변환됩니다.";
+  "이미지 PDF에서 글자를 읽지 못했습니다. 복붙용 .txt를 올려 주세요. (OCR도 실패했거나 OpenAI 키가 없습니다)";
+
+function looksLikeExamText(text: string): boolean {
+  const chars = text.replace(/\s/g, "").length;
+  return chars >= 80 && /\[\d+\s*[~～]\s*\d+\]/.test(text);
+}
 
 async function textFromPdfBuf(
   buf: Buffer
 ): Promise<{ fullText: string; sourceNote: string } | { error: string; status: number }> {
   const extracted = await extractPdfText(buf);
-  const chars = extracted.text.replace(/\s/g, "").length;
-  if (chars >= 80 && /\[\d+~\d+\]/.test(extracted.text)) {
+  if (looksLikeExamText(extracted.text)) {
     return {
       fullText: extracted.text,
       sourceNote: `PDF 텍스트 추출 (${extracted.pages || "?"}p)`,
     };
   }
-  return { error: SCAN_PDF_ERROR, status: 400 };
+
+  if (!process.env.OPENAI_API_KEY) {
+    return { error: SCAN_PDF_ERROR, status: 400 };
+  }
+
+  try {
+    const ocr = await ocrPdfToExamText(buf);
+    if (!looksLikeExamText(ocr.text)) {
+      return {
+        error:
+          "OCR은 됐지만 [1~3] 같은 지문 표기를 찾지 못했습니다. 복붙용 .txt를 올려 주세요.",
+        status: 400,
+      };
+    }
+    const note =
+      ocr.ocrPages < ocr.pages
+        ? `이미지 PDF OCR (${ocr.ocrPages}/${ocr.pages}p, 상한 ${ocr.ocrPages}p)`
+        : `이미지 PDF OCR (${ocr.pages}p)`;
+    return { fullText: ocr.text, sourceNote: note };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return {
+      error: `이미지 PDF OCR 실패: ${msg}. 복붙용 .txt를 올려 주세요.`,
+      status: 400,
+    };
+  }
 }
 
 async function loadPdfFromStorage(

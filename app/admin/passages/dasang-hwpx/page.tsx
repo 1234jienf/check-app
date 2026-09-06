@@ -64,10 +64,12 @@ export default function DasangHwpxPage() {
         if (!uploaded.ok) throw new Error(uploaded.error);
         formData.append("storagePath", uploaded.storagePath);
         formData.append("originalName", file.name);
-        setStatus("변환 중…");
+        setStatus("변환 중… (이미지면 OCR라 몇 분 걸릴 수 있어요)");
       } else {
         formData.append("file", file);
-        setStatus("변환 중…");
+        setStatus(
+          isPdf ? "변환 중… (이미지면 OCR라 몇 분 걸릴 수 있어요)" : "변환 중…"
+        );
       }
 
       const res = await fetch("/api/dasang-hwpx", {
@@ -170,9 +172,9 @@ export default function DasangHwpxPage() {
                   PDF 또는 복붙용 txt 선택
                 </span>
                 <span className="text-xs mt-2 text-center px-4" style={{ color: "#13181B", opacity: 0.6 }}>
-                  큰 PDF(최대 200MB)도 가능 · 글자 드래그/복사가 되는 PDF만 자동 변환
+                  큰 PDF(최대 200MB)도 가능 · 글자 복사되는 PDF는 바로 변환
                   <br />
-                  이미지 PDF는 복붙용 txt · [1~…]이 다시 나오면 회차 분리
+                  이미지 PDF는 AI OCR로 읽음(시간·비용 들 수 있음) · [1~…] 재시작 시 회차 분리
                 </span>
               </>
             )}
