@@ -245,7 +245,7 @@ export async function extractPdfTextInBrowser(
     return { text: ocrText, pages, via: "ocr" };
   } finally {
     try {
-      await doc.destroy();
+      await (doc as { cleanup?: () => Promise<void> | void }).cleanup?.();
     } catch {
       /* ignore */
     }
