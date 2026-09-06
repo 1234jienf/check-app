@@ -36,7 +36,6 @@ export default function DasangHwpxPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [doneMsg, setDoneMsg] = useState("");
-  const [useGpt, setUseGpt] = useState(false);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -52,9 +51,8 @@ export default function DasangHwpxPage() {
     try {
       const formData = new FormData();
       formData.append("hoe", hoes.join(","));
-      formData.append("explain", useGpt ? "1" : "0");
 
-      // Vercel 요청 한도(~4.5MB) — 스캔 PDF는 보통 수십~수백MB라 본문 대신 파일명만 전송
+      // Vercel 요청 한도(~4.5MB) — 큰 스캔 PDF는 본문 대신 파일명만 전송
       const isPdf = file.name.toLowerCase().endsWith(".pdf");
       const tooLarge = file.size > 3.5 * 1024 * 1024;
       if (isPdf && tooLarge) {
@@ -78,7 +76,10 @@ export default function DasangHwpxPage() {
       }
 
       const blob = await res.blob();
-      const fallback = `다상다독_${hoes.join("-")}회_클린최종.hwpx`;
+      const fallback =
+        hoes.length > 1
+          ? `다상다독_${hoes.join("-")}회_클린최종.zip`
+          : `다상다독_${hoes[0]}회_클린최종.hwpx`;
       const downloadName = filenameFromDisposition(
         res.headers.get("Content-Disposition"),
         fallback
@@ -120,28 +121,9 @@ export default function DasangHwpxPage() {
         </Link>
 
         <div className="rounded-xl p-8 shadow-sm" style={{ backgroundColor: "#FFFFFF" }}>
-          <h1 className="text-xl font-bold mb-2" style={{ color: "#13181B" }}>
+          <h1 className="text-xl font-bold mb-6" style={{ color: "#13181B" }}>
             PDF → 한글 변환
           </h1>
-          <p className="text-sm mb-4" style={{ color: "#13181B", opacity: 0.75 }}>
-            한글 변환은 API 없이 됩니다. AI 해설만 OpenAI 비용이 나갑니다.
-          </p>
-
-          <label className="flex items-start gap-2 mb-6 text-sm cursor-pointer" style={{ color: "#13181B" }}>
-            <input
-              type="checkbox"
-              checked={useGpt}
-              onChange={(e) => setUseGpt(e.target.checked)}
-              disabled={loading}
-              className="mt-0.5"
-            />
-            <span>
-              AI 해설 넣기
-              <span className="block text-xs mt-0.5" style={{ opacity: 0.6 }}>
-                켜면 복습표에 정답·이유가 채워지고, OpenAI 키가 필요합니다.
-              </span>
-            </span>
-          </label>
 
           <label
             className="flex flex-col items-center justify-center w-full min-h-[180px] rounded-xl border-2 border-dashed cursor-pointer transition-colors"
@@ -155,12 +137,8 @@ export default function DasangHwpxPage() {
               className="hidden"
             />
             {loading ? (
-              <span className="text-sm text-center px-6" style={{ color: "#13181B" }}>
-                한글 변환{useGpt ? " + 선지 판단 해설 작성" : ""} 중…
-                <br />
-                <span className="text-xs" style={{ opacity: 0.65 }}>
-                  {useGpt ? "문항 수에 따라 1~3분 걸릴 수 있습니다" : "보통 몇 초면 끝납니다"}
-                </span>
+              <span className="text-sm" style={{ color: "#13181B" }}>
+                변환 중...
               </span>
             ) : (
               <>
@@ -181,8 +159,8 @@ export default function DasangHwpxPage() {
                 <span className="text-sm font-semibold" style={{ color: "#13181B" }}>
                   PDF 또는 복붙용 txt 선택
                 </span>
-                <span className="text-xs mt-2 text-center px-4" style={{ color: "#13181B", opacity: 0.6 }}>
-                  큰 스캔 PDF는 서버에 올리지 않고 파일명으로 회차를 찾아 변환합니다.
+                <span className="text-xs mt-2" style={{ color: "#13181B", opacity: 0.6 }}>
+                  문항이 다시 [1~…]으로 시작되면 회차를 나눠 변환합니다
                 </span>
               </>
             )}
