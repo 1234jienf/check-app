@@ -140,9 +140,15 @@ export async function POST(request: NextRequest) {
     const hoeHints = detectHoes(hoeRaw, fileName);
 
     let fullText = pasted;
-    let sourceNote = pasted ? "붙여넣기 텍스트" : "";
+    let sourceNote = pasted
+      ? originalName.toLowerCase().endsWith(".pdf")
+        ? "브라우저 PDF 추출/OCR"
+        : "붙여넣기 텍스트"
+      : "";
 
-    if (storagePath) {
+    if (pasted) {
+      fullText = ensureGroupMarker(pasted);
+    } else if (storagePath) {
       const loaded = await loadPdfFromStorage(storagePath);
       cleanupStorage = loaded.cleanupStorage;
       // keep a local copy for debugging if needed

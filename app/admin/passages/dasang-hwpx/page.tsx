@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { uploadDasangPdf } from "@/lib/dasangPdfUpload";
+import { extractPdfTextInBrowser } from "@/lib/clientPdfOcr";
 
 /** "5,6회" / "3~4회" / "5회" → [5,6] */
 function detectHoes(filename: string): number[] {
@@ -54,20 +54,29 @@ export default function DasangHwpxPage() {
     try {
       const formData = new FormData();
       formData.append("hoe", hoes.join(","));
+      formData.append("originalName", file.name);
 
       const isPdf = file.name.toLowerCase().endsWith(".pdf");
-      const tooLarge = file.size > 3.5 * 1024 * 1024;
+      const isTxt =
+        file.name.toLowerCase().endsWith(".txt") ||
+        file.name.toLowerCase().endsWith(".md");
 
-      if (isPdf && tooLarge) {
-        setStatus("큰 PDF 업로드 중…");
-        const uploaded = await uploadDasangPdf(file);
-        if (!uploaded.ok) throw new Error(uploaded.error);
-        formData.append("storagePath", uploaded.storagePath);
-        formData.append("originalName", file.name);
-        setStatus("변환 중…");
-      } else {
+      if (isPdf) {
+        // PDF는 PC(브라우저)에서 글자 추출/OCR → 서버는 한글 파일만 생성 (시간초과 방지)
+        const extracted = await extractPdfTextInBrowser(file, (p) => {
+          setStatus(p.message);
+        });
+        formData.append("text", extracted.text);
+        setStatus(
+          extracted.via === "ocr"
+            ? "한글 파일 만드는 중…"
+            : "글자 추출 완료 → 한글 파일 만드는 중…"
+        );
+      } else if (isTxt) {
         formData.append("file", file);
         setStatus("변환 중…");
+      } else {
+        throw new Error(".pdf 또는 복붙용 .txt만 지원합니다.");
       }
 
       const res = await fetch("/api/dasang-hwpx", {
@@ -84,7 +93,7 @@ export default function DasangHwpxPage() {
         const raw = (await res.text()).slice(0, 300);
         if (/FUNCTION_INVOCATION_TIMEOUT|TIMEOUT/i.test(raw)) {
           throw new Error(
-            "서버 처리 시간이 초과됐습니다. 이미지(스캔) PDF는 복붙용 .txt를 올려 주세요. 글자가 복사되는 PDF만 자동 변환됩니다."
+            "서버 처리 시간이 초과됐습니다. 복붙용 .txt로 다시 시도해 주세요."
           );
         }
         throw new Error(raw || "변환 실패");
@@ -107,11 +116,7 @@ export default function DasangHwpxPage() {
       a.remove();
       URL.revokeObjectURL(url);
 
-      setDoneMsg(
-        hoes.length > 1
-          ? `완료: ${hoes.join("·")}회 → ${downloadName}`
-          : `완료: ${file.name} → ${downloadName}`
-      );
+      setDoneMsg(`완료: ${file.name} → ${downloadName}`);
     } catch (err: any) {
       setError(err.message || "변환 중 오류가 발생했습니다.");
     } finally {
@@ -174,9 +179,9 @@ export default function DasangHwpxPage() {
                   PDF 또는 복붙용 txt 선택
                 </span>
                 <span className="text-xs mt-2 text-center px-4" style={{ color: "#13181B", opacity: 0.6 }}>
-                  글자가 드래그/복사되는 PDF · 복붙용 txt → 자동 변환
+                  글자 PDF·복붙용 txt → 바로 변환
                   <br />
-                  이미지(스캔) PDF는 페이지 많으면 서버 시간 초과 → 복붙용 txt 사용
+                  이미지(스캔) PDF → PC에서 OCR 후 변환 (서버 시간초과 없음, 페이지 많으면 오래 걸림)
                   <br />
                   [1~…]이 다시 시작되면 회차 분리
                 </span>
