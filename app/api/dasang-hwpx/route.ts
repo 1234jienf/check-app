@@ -10,6 +10,7 @@ import {
   splitRoundsByRestart,
 } from "@/lib/parseExamGroups";
 import { buildHwpxBuffer, zipBuffers } from "@/lib/buildHwpx";
+import { extractPdfText } from "@/lib/extractPdfText";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -35,17 +36,8 @@ function isSafeStoragePath(path: string): boolean {
   );
 }
 
-async function extractPdfText(buf: Buffer): Promise<{ text: string; pages: number }> {
-  const { PDFParse } = require("pdf-parse");
-  const parser = new PDFParse({ data: buf });
-  const result = await parser.getText();
-  const text = String(result?.text || "").trim();
-  const pages = Number(result?.total || result?.pages || 0);
-  return { text, pages };
-}
-
 const SCAN_PDF_ERROR =
-  "이 PDF에서 글자를 읽지 못했습니다. 스캔본이면 복붙용 .txt를 올려 주세요. 글자가 선택되는 PDF만 자동 변환됩니다.";
+  "이 PDF에서 글자를 읽지 못했습니다. 이미지로만 된 PDF면 복붙용 .txt를 올려 주세요. 글자를 드래그해서 복사할 수 있는 PDF만 자동 변환됩니다.";
 
 async function textFromPdfBuf(
   buf: Buffer

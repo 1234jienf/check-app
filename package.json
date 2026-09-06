@@ -10,6 +10,7 @@
     "install-python-deps": "python3 -m pip install PyMuPDF || python -m pip install PyMuPDF || echo 'Python이 설치되어 있지 않거나 pip를 찾을 수 없습니다. 수동으로 설치해주세요: pip install PyMuPDF'"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.8",
     "@supabase/supabase-js": "^2.87.0",
     "@xmldom/xmldom": "^0.9.12",
     "jszip": "^3.10.1",

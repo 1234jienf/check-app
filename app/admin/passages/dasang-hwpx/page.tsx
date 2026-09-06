@@ -170,9 +170,9 @@ export default function DasangHwpxPage() {
                   PDF 또는 복붙용 txt 선택
                 </span>
                 <span className="text-xs mt-2 text-center px-4" style={{ color: "#13181B", opacity: 0.6 }}>
-                  큰 PDF(최대 200MB)도 가능 · 글자가 선택되는 PDF만 자동 변환
+                  큰 PDF(최대 200MB)도 가능 · 글자 드래그/복사가 되는 PDF만 자동 변환
                   <br />
-                  스캔본은 복붙용 txt · [1~…]이 다시 나오면 회차 분리
+                  이미지 PDF는 복붙용 txt · [1~…]이 다시 나오면 회차 분리
                 </span>
               </>
             )}
