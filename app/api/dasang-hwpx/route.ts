@@ -11,7 +11,7 @@ import {
 } from "@/lib/parseExamGroups";
 import { buildHwpxBuffer, zipBuffers } from "@/lib/buildHwpx";
 import { extractPdfText } from "@/lib/extractPdfText";
-import { ocrPdfToExamText } from "@/lib/ocrPdfWithOpenAI";
+import { ocrPdfToExamText } from "@/lib/ocrPdfWithTesseract";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -49,12 +49,19 @@ function outputBaseName(fileName: string): string {
   return cleaned || "변환결과";
 }
 
-const SCAN_PDF_ERROR =
-  "이미지 PDF에서 글자를 읽지 못했습니다. 복붙용 .txt를 올려 주세요. (OCR도 실패했거나 OpenAI 키가 없습니다)";
-
 function looksLikeExamText(text: string): boolean {
   const chars = text.replace(/\s/g, "").length;
-  return chars >= 80 && /\[\d+\s*[~～]\s*\d+\]/.test(text);
+  if (chars < 80) return false;
+  if (/\[\d+\s*[~～]\s*\d+\]/.test(text)) return true;
+  if (/\([가나다라마바사]\)/.test(text)) return true;
+  if (/[①②③④⑤]/.test(text) && /[가-힣]{30,}/.test(text)) return true;
+  return /[가-힣]{80,}/.test(text);
+}
+
+/** 수능 등 [1~3] 없는 본문도 HWPX 파이프라인이 받도록 최소 구간 표기 부여 */
+function ensureGroupMarker(text: string): string {
+  if (/\[\d+\s*[~～]\s*\d+\]/.test(text)) return text;
+  return `[1~50]\n${text.trim()}`;
 }
 
 async function textFromPdfBuf(
@@ -63,32 +70,26 @@ async function textFromPdfBuf(
   const extracted = await extractPdfText(buf);
   if (looksLikeExamText(extracted.text)) {
     return {
-      fullText: extracted.text,
+      fullText: ensureGroupMarker(extracted.text),
       sourceNote: `PDF 텍스트 추출 (${extracted.pages || "?"}p)`,
     };
-  }
-
-  if (!process.env.OPENAI_API_KEY) {
-    return { error: SCAN_PDF_ERROR, status: 400 };
   }
 
   try {
     const ocr = await ocrPdfToExamText(buf);
     if (!looksLikeExamText(ocr.text)) {
       return {
-        error:
-          "OCR은 됐지만 [1~3] 같은 지문 표기를 찾지 못했습니다. 복붙용 .txt를 올려 주세요.",
+        error: "OCR은 됐지만 본문을 충분히 읽지 못했습니다. 복붙용 .txt를 올려 주세요.",
         status: 400,
       };
     }
     const note =
       ocr.ocrPages < ocr.pages
-        ? `이미지 PDF OCR (${ocr.ocrPages}/${ocr.pages}p, 상한 ${ocr.ocrPages}p)`
-        : `이미지 PDF OCR (${ocr.pages}p)`;
-    return { fullText: ocr.text, sourceNote: note };
+        ? `이미지 PDF Tesseract OCR (${ocr.ocrPages}/${ocr.pages}p)`
+        : `이미지 PDF Tesseract OCR (${ocr.pages}p)`;
+    return { fullText: ensureGroupMarker(ocr.text), sourceNote: note };
   } catch (e: unknown) {
-    const raw = e instanceof Error ? e.message : String(e);
-    const msg = raw.replace(/sk-[A-Za-z0-9_-]+/g, "sk-***").replace(/Bearer\s+/gi, "").slice(0, 180);
+    const msg = (e instanceof Error ? e.message : String(e)).slice(0, 180);
     return {
       error: `이미지 PDF OCR 실패: ${msg}. 복붙용 .txt를 올려 주세요.`,
       status: 400,
