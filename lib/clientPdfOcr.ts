@@ -1,11 +1,10 @@
 "use client";
 
 /**
- * 브라우저에서 PDF 글자 추출 → 없으면 Tesseract OCR.
- * pdf.js가 ArrayBuffer를 detach 하므로, 복사본으로 한 번만 연다.
+ * 브라우저에서 PDF 임베디드 텍스트만 추출.
+ * (이미지 OCR은 텍스트 PDF를 오판할 때 방해되므로 여기서 하지 않음)
  */
 
-import { createWorker, PSM } from "tesseract.js";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 
 export type ClientOcrProgress = {
@@ -15,18 +14,12 @@ export type ClientOcrProgress = {
   message: string;
 };
 
-function looksUseful(text: string): boolean {
-  const compact = text.replace(/\s/g, "");
-  if (compact.length < 40) return false;
-  return /[가-힣A-Za-z0-9\[\]①-⑮]/.test(compact);
-}
-
 function textFromPdfItems(items: unknown[]): string {
   type Row = { str: string; x: number; y: number };
   const rows: Row[] = [];
   for (const it of items) {
     if (!it || typeof it !== "object" || !("str" in it)) continue;
-    const item = it as { str: string; transform?: number[] };
+    const item = it as { str: string; transform?: number[]; hasEOL?: boolean };
     const str = String(item.str || "");
     if (!str) continue;
     const tr = item.transform || [1, 0, 0, 1, 0, 0];
@@ -46,162 +39,43 @@ function textFromPdfItems(items: unknown[]): string {
   for (const r of rows) {
     if (lastY != null && Math.abs(lastY - r.y) > 4) {
       out += "\n";
-    } else if (lastX != null && r.x - lastX > 2) {
+    } else if (lastX != null && r.x - lastX > 1.5) {
       if (!/\s$/.test(out) && !/^\s/.test(r.str)) out += " ";
     }
     out += r.str;
     lastY = r.y;
-    lastX = r.x + r.str.length * 2;
+    lastX = r.x + Math.max(r.str.length, 1) * 1.5;
   }
   return out.trim();
 }
 
 async function loadPdfJs() {
   const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+  const ver = pdfjs.version;
+  // unpkg가 pdfjs-dist 버전과 정확히 맞음
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${ver}/build/pdf.worker.min.mjs`;
   return pdfjs;
 }
 
-/** 파일 → 독립 복사본 (pdf.js transfer/detach 대비) */
-async function fileToOwnedBytes(file: File): Promise<Uint8Array> {
-  const ab = await file.arrayBuffer();
-  // slice로 새 ArrayBuffer를 만들고, 그걸 감싼 Uint8Array를 넘긴다
-  return new Uint8Array(ab.slice(0));
-}
-
-async function openPdf(bytes: Uint8Array): Promise<PDFDocumentProxy> {
+async function openPdf(file: File): Promise<PDFDocumentProxy> {
   const pdfjs = await loadPdfJs();
-  // 매 호출마다 복사본을 넘겨 pdf.js가 원본을 잡아도 안전
-  return pdfjs.getDocument({ data: bytes.slice() }).promise;
-}
-
-async function extractEmbeddedText(
-  doc: PDFDocumentProxy,
-  onProgress?: (p: ClientOcrProgress) => void
-): Promise<string> {
-  const total = doc.numPages;
-  const parts: string[] = [];
-
-  for (let i = 1; i <= total; i++) {
-    onProgress?.({
-      phase: "text",
-      page: i,
-      total,
-      message: `글자 추출 중… ${i}/${total}`,
-    });
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    parts.push(textFromPdfItems(content.items as unknown[]));
-  }
-
-  return parts.join("\n\n").trim();
-}
-
-async function ocrPdfPages(
-  doc: PDFDocumentProxy,
-  onProgress?: (p: ClientOcrProgress) => void
-): Promise<string> {
-  const total = doc.numPages;
-  const worker = await createWorker(["kor", "eng"], 1, {
-    logger: () => undefined,
-  });
-
-  try {
-    await worker.setParameters({
-      tessedit_pageseg_mode: PSM.AUTO,
-      preserve_interword_spaces: "1",
-    });
-
-    const parts: string[] = [];
-    const scale = 1.6;
-
-    for (let i = 1; i <= total; i++) {
-      onProgress?.({
-        phase: "ocr",
-        page: i,
-        total,
-        message: `이미지 OCR 중… ${i}/${total} (브라우저에서 처리)`,
-      });
-
-      const page = await doc.getPage(i);
-      const viewport = page.getViewport({ scale });
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) continue;
-
-      const task = page.render({
-        canvasContext: ctx,
-        viewport,
-        canvas,
-      } as never);
-      await task.promise;
-
-      const isTwoCol = canvas.width > canvas.height * 0.85;
-      if (isTwoCol) {
-        const mid = Math.floor(canvas.width / 2);
-        const overlap = Math.max(10, Math.floor(canvas.width * 0.02));
-
-        const left = document.createElement("canvas");
-        left.width = mid + overlap;
-        left.height = canvas.height;
-        left.getContext("2d")!.drawImage(
-          canvas,
-          0,
-          0,
-          left.width,
-          canvas.height,
-          0,
-          0,
-          left.width,
-          canvas.height
-        );
-
-        const right = document.createElement("canvas");
-        right.width = canvas.width - mid + overlap;
-        right.height = canvas.height;
-        right.getContext("2d")!.drawImage(
-          canvas,
-          mid - overlap,
-          0,
-          right.width,
-          canvas.height,
-          0,
-          0,
-          right.width,
-          canvas.height
-        );
-
-        const leftRes = await worker.recognize(left);
-        const rightRes = await worker.recognize(right);
-        const pageText = [leftRes.data.text, rightRes.data.text]
-          .map((t) => t.replace(/\r/g, "").trim())
-          .filter(Boolean)
-          .join("\n\n");
-        if (pageText) parts.push(pageText);
-      } else {
-        const rec = await worker.recognize(canvas);
-        const pageText = String(rec.data.text || "")
-          .replace(/\r/g, "")
-          .trim();
-        if (pageText) parts.push(pageText);
-      }
-    }
-
-    return parts.join("\n\n").trim();
-  } finally {
-    await worker.terminate();
-  }
+  const ab = await file.arrayBuffer();
+  // pdf.js가 buffer를 transfer해도 원본 File은 남음
+  const data = new Uint8Array(ab.slice(0));
+  return pdfjs.getDocument({
+    data,
+    useSystemFonts: true,
+    disableFontFace: false,
+  }).promise;
 }
 
 /**
- * PDF File → 본문 텍스트 (임베디드 글자 우선, 없으면 브라우저 OCR)
+ * PDF → 임베디드 텍스트. 글자 레이어가 있으면 그대로 반환 (짧아도 OCR로 안 넘김).
  */
 export async function extractPdfTextInBrowser(
   file: File,
   onProgress?: (p: ClientOcrProgress) => void
-): Promise<{ text: string; pages: number; via: "text" | "ocr" }> {
+): Promise<{ text: string; pages: number; charCount: number; via: "text" | "empty" }> {
   onProgress?.({
     phase: "load",
     page: 0,
@@ -209,40 +83,48 @@ export async function extractPdfTextInBrowser(
     message: "PDF 읽는 중…",
   });
 
-  const bytes = await fileToOwnedBytes(file);
-  const doc = await openPdf(bytes);
+  const doc = await openPdf(file);
   const pages = doc.numPages;
 
   try {
-    const embedded = await extractEmbeddedText(doc, onProgress);
-    if (looksUseful(embedded)) {
+    const parts: string[] = [];
+    let itemCount = 0;
+
+    for (let i = 1; i <= pages; i++) {
       onProgress?.({
-        phase: "done",
-        page: pages,
+        phase: "text",
+        page: i,
         total: pages,
-        message: `텍스트 PDF로 인식됨 (${pages}p) → 한글 변환`,
+        message: `글자 추출 중… ${i}/${pages}`,
       });
-      return { text: embedded, pages, via: "text" };
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent({
+        includeMarkedContent: true,
+      } as never);
+      const items = (content.items || []) as unknown[];
+      itemCount += items.length;
+      parts.push(textFromPdfItems(items));
     }
 
-    onProgress?.({
-      phase: "ocr",
-      page: 0,
-      total: pages,
-      message: "임베디드 글자 없음 → 이미지 OCR 시작…",
-    });
+    const text = parts.join("\n\n").trim();
+    const charCount = text.replace(/\s/g, "").length;
 
-    const ocrText = await ocrPdfPages(doc, onProgress);
-    if (!ocrText.trim()) {
-      throw new Error("브라우저 OCR 결과가 비어 있습니다. 복붙용 .txt를 올려 주세요.");
-    }
     onProgress?.({
       phase: "done",
       page: pages,
       total: pages,
-      message: "OCR 완료",
+      message:
+        charCount > 0
+          ? `텍스트 PDF 인식 (${pages}p, 글자 ${charCount}자)`
+          : `글자 레이어 없음 (${pages}p, items ${itemCount})`,
     });
-    return { text: ocrText, pages, via: "ocr" };
+
+    return {
+      text,
+      pages,
+      charCount,
+      via: charCount > 0 ? "text" : "empty",
+    };
   } finally {
     try {
       await (doc as { cleanup?: () => Promise<void> | void }).cleanup?.();

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { extractPdfTextInBrowser } from "@/lib/clientPdfOcr";
+import { uploadDasangPdf } from "@/lib/dasangPdfUpload";
 
 /** "5,6회" / "3~4회" / "5회" → [5,6] */
 function detectHoes(filename: string): number[] {
@@ -62,16 +63,26 @@ export default function DasangHwpxPage() {
         file.name.toLowerCase().endsWith(".md");
 
       if (isPdf) {
-        // PDF는 PC(브라우저)에서 글자 추출/OCR → 서버는 한글 파일만 생성 (시간초과 방지)
+        // 1) 브라우저에서 텍스트 레이어 추출
         const extracted = await extractPdfTextInBrowser(file, (p) => {
           setStatus(p.message);
         });
-        formData.append("text", extracted.text);
-        setStatus(
-          extracted.via === "ocr"
-            ? "한글 파일 만드는 중…"
-            : "글자 추출 완료 → 한글 파일 만드는 중…"
-        );
+
+        if (extracted.via === "text" && extracted.charCount > 0) {
+          formData.append("text", extracted.text);
+          setStatus(`텍스트 ${extracted.charCount}자 추출 → 한글 변환 중…`);
+        } else {
+          // 2) 브라우저가 못 읽으면 서버 pdf-parse에 맡김 (텍스트 PDF일 가능성)
+          setStatus("서버에서 글자 추출 중…");
+          const tooLarge = file.size > 3.5 * 1024 * 1024;
+          if (tooLarge) {
+            const uploaded = await uploadDasangPdf(file);
+            if (!uploaded.ok) throw new Error(uploaded.error);
+            formData.append("storagePath", uploaded.storagePath);
+          } else {
+            formData.append("file", file);
+          }
+        }
       } else if (isTxt) {
         formData.append("file", file);
         setStatus("변환 중…");
@@ -179,9 +190,9 @@ export default function DasangHwpxPage() {
                   PDF 또는 복붙용 txt 선택
                 </span>
                 <span className="text-xs mt-2 text-center px-4" style={{ color: "#13181B", opacity: 0.6 }}>
-                  글자 PDF·복붙용 txt → 바로 변환
+                  글자 선택되는 PDF → 텍스트로 바로 변환
                   <br />
-                  이미지(스캔) PDF → PC에서 OCR 후 변환 (서버 시간초과 없음, 페이지 많으면 오래 걸림)
+                  안 되면 서버 추출 시도 · 그래도 안 되면 복붙용 txt
                   <br />
                   [1~…]이 다시 시작되면 회차 분리
                 </span>
