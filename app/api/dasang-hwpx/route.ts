@@ -48,16 +48,18 @@ function outputBaseName(fileName: string): string {
   return cleaned || "변환결과";
 }
 
-/** 공백이 섞여도 한글/본문이 있으면 텍스트 PDF로 인정 */
+/** 공백이 섞여도 한글/본문이 있으면 텍스트 PDF로 인정 (OCR로 넘기지 않음) */
 function looksLikeExamText(text: string): boolean {
   const compact = text.replace(/\s/g, "");
-  if (compact.length < 40) return false;
+  if (compact.length < 20) return false;
   const hangul = (text.match(/[가-힣]/g) || []).length;
-  if (hangul >= 30) return true;
+  if (hangul >= 15) return true;
   if (/\[\d+\s*[~～]\s*\d+\]/.test(text)) return true;
   if (/\([가나다라마바사]\)|（[가나다라마바사]）/.test(text)) return true;
-  if (/[①②③④⑤]/.test(text) && hangul >= 10) return true;
-  return compact.length >= 80;
+  if (/[①②③④⑤]/.test(text) && hangul >= 5) return true;
+  // 영문 수능 등
+  if (/[A-Za-z]{40,}/.test(compact)) return true;
+  return compact.length >= 60;
 }
 
 /** 수능 등 [1~3] 없는 본문도 HWPX 파이프라인이 받도록 최소 구간 표기 부여 */

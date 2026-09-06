@@ -63,17 +63,20 @@ export default function DasangHwpxPage() {
         file.name.toLowerCase().endsWith(".md");
 
       if (isPdf) {
-        // 1) 브라우저에서 텍스트 레이어 추출
+        // 1) 브라우저에서 텍스트 레이어 추출 (OCR 절대 안 함)
         const extracted = await extractPdfTextInBrowser(file, (p) => {
           setStatus(p.message);
         });
+        const hangul = (extracted.text.match(/[가-힣]/g) || []).length;
 
-        if (extracted.via === "text" && extracted.charCount > 0) {
+        if (extracted.charCount >= 40 || hangul >= 20) {
           formData.append("text", extracted.text);
-          setStatus(`텍스트 ${extracted.charCount}자 추출 → 한글 변환 중…`);
+          setStatus(
+            `텍스트 ${extracted.charCount}자(한글 ${hangul}) → 한글 변환 중…`
+          );
         } else {
-          // 2) 브라우저가 못 읽으면 서버 pdf-parse에 맡김 (텍스트 PDF일 가능성)
-          setStatus("서버에서 글자 추출 중…");
+          // 2) 브라우저가 못 읽으면 서버 pdf-parse만 (OCR 없음)
+          setStatus("서버에서 글자 추출 중… (OCR 없음)");
           const tooLarge = file.size > 3.5 * 1024 * 1024;
           if (tooLarge) {
             const uploaded = await uploadDasangPdf(file);
@@ -190,11 +193,11 @@ export default function DasangHwpxPage() {
                   PDF 또는 복붙용 txt 선택
                 </span>
                 <span className="text-xs mt-2 text-center px-4" style={{ color: "#13181B", opacity: 0.6 }}>
-                  글자 선택되는 PDF → 텍스트 추출 후 변환 (OCR 안 함)
+                  글자 선택되는 PDF → 텍스트만 추출해서 변환 (서버 OCR 없음)
                   <br />
-                  안 되면 Edge에서 Ctrl+A 복사 → 메모장 .txt로 저장해서 업로드
+                  안 되면 Edge에서 Ctrl+A 복사 → 메모장 .txt로 올려 주세요
                   <br />
-                  [1~…]이 다시 시작되면 회차 분리
+                  [1~…]이 다시 시작되면 회차 분리 · 배포 v2026-09-07b
                 </span>
               </>
             )}
