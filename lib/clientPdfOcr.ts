@@ -2,10 +2,11 @@
 
 /**
  * 브라우저에서 PDF 글자 추출 → 없으면 Tesseract OCR.
- * 서버(Vercel) 시간 제한을 피하기 위해 PC에서 돌립니다. API 비용 없음.
+ * pdf.js가 ArrayBuffer를 detach 하므로, 복사본으로 한 번만 연다.
  */
 
 import { createWorker, PSM } from "tesseract.js";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 
 export type ClientOcrProgress = {
   phase: "load" | "text" | "ocr" | "done";
@@ -15,13 +16,11 @@ export type ClientOcrProgress = {
 };
 
 function looksUseful(text: string): boolean {
-  // 임베디드 글자가 조금이라도 있으면 OCR로 넘기지 않음
   const compact = text.replace(/\s/g, "");
   if (compact.length < 40) return false;
   return /[가-힣A-Za-z0-9\[\]①-⑮]/.test(compact);
 }
 
-/** pdf.js TextItem → 줄바꿈 유지 텍스트 (2단은 y→x 정렬) */
 function textFromPdfItems(items: unknown[]): string {
   type Row = { str: string; x: number; y: number };
   const rows: Row[] = [];
@@ -35,7 +34,6 @@ function textFromPdfItems(items: unknown[]): string {
   }
   if (!rows.length) return "";
 
-  // 위→아래, 같으면 왼→오
   rows.sort((a, b) => {
     const dy = b.y - a.y;
     if (Math.abs(dy) > 3) return dy;
@@ -49,7 +47,6 @@ function textFromPdfItems(items: unknown[]): string {
     if (lastY != null && Math.abs(lastY - r.y) > 4) {
       out += "\n";
     } else if (lastX != null && r.x - lastX > 2) {
-      // 단어 간격
       if (!/\s$/.test(out) && !/^\s/.test(r.str)) out += " ";
     }
     out += r.str;
@@ -61,18 +58,27 @@ function textFromPdfItems(items: unknown[]): string {
 
 async function loadPdfJs() {
   const pdfjs = await import("pdfjs-dist");
-  // CDN worker — Next 번들 worker 경로 이슈 회피
   pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
   return pdfjs;
 }
 
-/** 임베디드 텍스트 먼저 시도 */
-async function extractEmbeddedText(
-  data: ArrayBuffer,
-  onProgress?: (p: ClientOcrProgress) => void
-): Promise<{ text: string; pages: number }> {
+/** 파일 → 독립 복사본 (pdf.js transfer/detach 대비) */
+async function fileToOwnedBytes(file: File): Promise<Uint8Array> {
+  const ab = await file.arrayBuffer();
+  // slice로 새 ArrayBuffer를 만들고, 그걸 감싼 Uint8Array를 넘긴다
+  return new Uint8Array(ab.slice(0));
+}
+
+async function openPdf(bytes: Uint8Array): Promise<PDFDocumentProxy> {
   const pdfjs = await loadPdfJs();
-  const doc = await pdfjs.getDocument({ data: new Uint8Array(data) }).promise;
+  // 매 호출마다 복사본을 넘겨 pdf.js가 원본을 잡아도 안전
+  return pdfjs.getDocument({ data: bytes.slice() }).promise;
+}
+
+async function extractEmbeddedText(
+  doc: PDFDocumentProxy,
+  onProgress?: (p: ClientOcrProgress) => void
+): Promise<string> {
   const total = doc.numPages;
   const parts: string[] = [];
 
@@ -88,18 +94,14 @@ async function extractEmbeddedText(
     parts.push(textFromPdfItems(content.items as unknown[]));
   }
 
-  return { text: parts.join("\n\n").trim(), pages: total };
+  return parts.join("\n\n").trim();
 }
 
-/** 페이지 캔버스 → OCR (2단이면 왼/오 반씩) */
 async function ocrPdfPages(
-  data: ArrayBuffer,
+  doc: PDFDocumentProxy,
   onProgress?: (p: ClientOcrProgress) => void
-): Promise<{ text: string; pages: number }> {
-  const pdfjs = await loadPdfJs();
-  const doc = await pdfjs.getDocument({ data: new Uint8Array(data) }).promise;
+): Promise<string> {
   const total = doc.numPages;
-
   const worker = await createWorker(["kor", "eng"], 1, {
     logger: () => undefined,
   });
@@ -118,7 +120,7 @@ async function ocrPdfPages(
         phase: "ocr",
         page: i,
         total,
-        message: `이미지 OCR 중… ${i}/${total} (브라우저에서 처리, 기다려 주세요)`,
+        message: `이미지 OCR 중… ${i}/${total} (브라우저에서 처리)`,
       });
 
       const page = await doc.getPage(i);
@@ -129,11 +131,13 @@ async function ocrPdfPages(
       const ctx = canvas.getContext("2d");
       if (!ctx) continue;
 
-      await page.render({ canvasContext: ctx, viewport, canvas } as Parameters<
-        typeof page.render
-      >[0]).promise;
+      const task = page.render({
+        canvasContext: ctx,
+        viewport,
+        canvas,
+      } as never);
+      await task.promise;
 
-      // 넓은 페이지(2단)면 왼→오 분리
       const isTwoCol = canvas.width > canvas.height * 0.85;
       if (isTwoCol) {
         const mid = Math.floor(canvas.width / 2);
@@ -185,7 +189,7 @@ async function ocrPdfPages(
       }
     }
 
-    return { text: parts.join("\n\n").trim(), pages: total };
+    return parts.join("\n\n").trim();
   } finally {
     await worker.terminate();
   }
@@ -204,34 +208,46 @@ export async function extractPdfTextInBrowser(
     total: 0,
     message: "PDF 읽는 중…",
   });
-  const data = await file.arrayBuffer();
 
-  const embedded = await extractEmbeddedText(data, onProgress);
-  if (looksUseful(embedded.text)) {
+  const bytes = await fileToOwnedBytes(file);
+  const doc = await openPdf(bytes);
+  const pages = doc.numPages;
+
+  try {
+    const embedded = await extractEmbeddedText(doc, onProgress);
+    if (looksUseful(embedded)) {
+      onProgress?.({
+        phase: "done",
+        page: pages,
+        total: pages,
+        message: `텍스트 PDF로 인식됨 (${pages}p) → 한글 변환`,
+      });
+      return { text: embedded, pages, via: "text" };
+    }
+
+    onProgress?.({
+      phase: "ocr",
+      page: 0,
+      total: pages,
+      message: "임베디드 글자 없음 → 이미지 OCR 시작…",
+    });
+
+    const ocrText = await ocrPdfPages(doc, onProgress);
+    if (!ocrText.trim()) {
+      throw new Error("브라우저 OCR 결과가 비어 있습니다. 복붙용 .txt를 올려 주세요.");
+    }
     onProgress?.({
       phase: "done",
-      page: embedded.pages,
-      total: embedded.pages,
-      message: `텍스트 PDF로 인식됨 (${embedded.pages}p) → 한글 변환`,
+      page: pages,
+      total: pages,
+      message: "OCR 완료",
     });
-    return { text: embedded.text, pages: embedded.pages, via: "text" };
+    return { text: ocrText, pages, via: "ocr" };
+  } finally {
+    try {
+      await doc.destroy();
+    } catch {
+      /* ignore */
+    }
   }
-
-  onProgress?.({
-    phase: "ocr",
-    page: 0,
-    total: embedded.pages || 0,
-    message: "임베디드 글자 없음 → 이미지 OCR 시작…",
-  });
-  const ocr = await ocrPdfPages(data, onProgress);
-  if (!ocr.text.trim()) {
-    throw new Error("브라우저 OCR 결과가 비어 있습니다. 복붙용 .txt를 올려 주세요.");
-  }
-  onProgress?.({
-    phase: "done",
-    page: ocr.pages,
-    total: ocr.pages,
-    message: "OCR 완료",
-  });
-  return { text: ocr.text, pages: ocr.pages, via: "ocr" };
 }
