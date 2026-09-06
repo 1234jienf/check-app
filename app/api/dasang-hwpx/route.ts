@@ -11,7 +11,6 @@ import {
 } from "@/lib/parseExamGroups";
 import { buildHwpxBuffer, zipBuffers } from "@/lib/buildHwpx";
 import { extractPdfText } from "@/lib/extractPdfText";
-import { ocrPdfToExamText } from "@/lib/ocrPdfWithTesseract";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -49,13 +48,16 @@ function outputBaseName(fileName: string): string {
   return cleaned || "변환결과";
 }
 
+/** 공백이 섞여도 한글/본문이 있으면 텍스트 PDF로 인정 */
 function looksLikeExamText(text: string): boolean {
-  const chars = text.replace(/\s/g, "").length;
-  if (chars < 80) return false;
+  const compact = text.replace(/\s/g, "");
+  if (compact.length < 40) return false;
+  const hangul = (text.match(/[가-힣]/g) || []).length;
+  if (hangul >= 30) return true;
   if (/\[\d+\s*[~～]\s*\d+\]/.test(text)) return true;
-  if (/\([가나다라마바사]\)/.test(text)) return true;
-  if (/[①②③④⑤]/.test(text) && /[가-힣]{30,}/.test(text)) return true;
-  return /[가-힣]{80,}/.test(text);
+  if (/\([가나다라마바사]\)|（[가나다라마바사]）/.test(text)) return true;
+  if (/[①②③④⑤]/.test(text) && hangul >= 10) return true;
+  return compact.length >= 80;
 }
 
 /** 수능 등 [1~3] 없는 본문도 HWPX 파이프라인이 받도록 최소 구간 표기 부여 */
@@ -67,34 +69,35 @@ function ensureGroupMarker(text: string): string {
 async function textFromPdfBuf(
   buf: Buffer
 ): Promise<{ fullText: string; sourceNote: string } | { error: string; status: number }> {
-  const extracted = await extractPdfText(buf);
-  if (looksLikeExamText(extracted.text)) {
-    return {
-      fullText: ensureGroupMarker(extracted.text),
-      sourceNote: `PDF 텍스트 추출 (${extracted.pages || "?"}p)`,
-    };
-  }
-
+  let extracted: { text: string; pages: number };
   try {
-    const ocr = await ocrPdfToExamText(buf);
-    if (!looksLikeExamText(ocr.text)) {
-      return {
-        error: "OCR은 됐지만 본문을 충분히 읽지 못했습니다. 복붙용 .txt를 올려 주세요.",
-        status: 400,
-      };
-    }
-    const note =
-      ocr.ocrPages < ocr.pages
-        ? `이미지 PDF Tesseract OCR (${ocr.ocrPages}/${ocr.pages}p)`
-        : `이미지 PDF Tesseract OCR (${ocr.pages}p)`;
-    return { fullText: ensureGroupMarker(ocr.text), sourceNote: note };
+    extracted = await extractPdfText(buf);
   } catch (e: unknown) {
-    const msg = (e instanceof Error ? e.message : String(e)).slice(0, 180);
+    const msg = e instanceof Error ? e.message : String(e);
     return {
-      error: `이미지 PDF OCR 실패: ${msg}. 복붙용 .txt를 올려 주세요.`,
+      error: `PDF 글자 추출 실패: ${msg.slice(0, 120)}. Edge에서 Ctrl+A → 복사 후 .txt로 저장해 올려 주세요.`,
       status: 400,
     };
   }
+
+  const hangul = (extracted.text.match(/[가-힣]/g) || []).length;
+  const compact = extracted.text.replace(/\s/g, "").length;
+
+  if (looksLikeExamText(extracted.text)) {
+    return {
+      fullText: ensureGroupMarker(extracted.text),
+      sourceNote: `PDF 텍스트 추출 (${extracted.pages || "?"}p, 한글 ${hangul}자)`,
+    };
+  }
+
+  // OCR 안 함 — 시간초과/오판 원인. 텍스트가 거의 없으면 복붙 안내.
+  return {
+    error:
+      compact > 0
+        ? `PDF에서 글자는 ${compact}자만 읽혔습니다(한글 ${hangul}자). 변환에 부족합니다. Edge에서 Ctrl+A로 전체 복사 → 메모장에 붙여 .txt로 저장해 올려 주세요.`
+        : `PDF에서 글자를 읽지 못했습니다. (선택·복사가 되는 파일이면 Edge에서 Ctrl+A → 복사 후 .txt로 저장해 올려 주세요.)`,
+    status: 400,
+  };
 }
 
 async function loadPdfFromStorage(

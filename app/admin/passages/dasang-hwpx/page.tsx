@@ -190,9 +190,9 @@ export default function DasangHwpxPage() {
                   PDF 또는 복붙용 txt 선택
                 </span>
                 <span className="text-xs mt-2 text-center px-4" style={{ color: "#13181B", opacity: 0.6 }}>
-                  글자 선택되는 PDF → 텍스트로 바로 변환
+                  글자 선택되는 PDF → 텍스트 추출 후 변환 (OCR 안 함)
                   <br />
-                  안 되면 서버 추출 시도 · 그래도 안 되면 복붙용 txt
+                  안 되면 Edge에서 Ctrl+A 복사 → 메모장 .txt로 저장해서 업로드
                   <br />
                   [1~…]이 다시 시작되면 회차 분리
                 </span>

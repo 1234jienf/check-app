@@ -51,9 +51,8 @@ function textFromPdfItems(items: unknown[]): string {
 
 async function loadPdfJs() {
   const pdfjs = await import("pdfjs-dist");
-  const ver = pdfjs.version;
-  // unpkg가 pdfjs-dist 버전과 정확히 맞음
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${ver}/build/pdf.worker.min.mjs`;
+  // public/ 에 복사한 worker 사용 (CDN 실패/버전 불일치 방지)
+  pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
   return pdfjs;
 }
 
@@ -98,12 +97,17 @@ export async function extractPdfTextInBrowser(
         message: `글자 추출 중… ${i}/${pages}`,
       });
       const page = await doc.getPage(i);
-      const content = await page.getTextContent({
-        includeMarkedContent: true,
-      } as never);
+      const content = await page.getTextContent();
       const items = (content.items || []) as unknown[];
-      itemCount += items.length;
-      parts.push(textFromPdfItems(items));
+      itemCount += items.filter((it) => it && typeof it === "object" && "str" in it).length;
+      const structured = textFromPdfItems(items);
+      // 정렬이 망가져도 원문 글자는 살리기
+      const flat = items
+        .map((it) =>
+          it && typeof it === "object" && "str" in it ? String((it as { str: string }).str) : ""
+        )
+        .join("");
+      parts.push(structured.length >= flat.replace(/\s/g, "").length ? structured : flat);
     }
 
     const text = parts.join("\n\n").trim();
