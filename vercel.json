@@ -1,0 +1,11 @@
+{
+  "functions": {
+    "app/api/dasang-hwpx/route.ts": {
+      "maxDuration": 300,
+      "memory": 1024
+    },
+    "app/api/dasang-pdf-presign/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}

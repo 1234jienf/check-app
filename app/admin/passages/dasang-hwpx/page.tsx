@@ -64,12 +64,10 @@ export default function DasangHwpxPage() {
         if (!uploaded.ok) throw new Error(uploaded.error);
         formData.append("storagePath", uploaded.storagePath);
         formData.append("originalName", file.name);
-        setStatus("변환 중… (이미지면 OCR라 몇 분 걸릴 수 있어요)");
+        setStatus("변환 중…");
       } else {
         formData.append("file", file);
-        setStatus(
-          isPdf ? "변환 중… (이미지면 OCR라 몇 분 걸릴 수 있어요)" : "변환 중…"
-        );
+        setStatus("변환 중…");
       }
 
       const res = await fetch("/api/dasang-hwpx", {
@@ -83,7 +81,13 @@ export default function DasangHwpxPage() {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "변환 실패");
         }
-        throw new Error((await res.text()).slice(0, 200) || "변환 실패");
+        const raw = (await res.text()).slice(0, 300);
+        if (/FUNCTION_INVOCATION_TIMEOUT|TIMEOUT/i.test(raw)) {
+          throw new Error(
+            "서버 처리 시간이 초과됐습니다. 이미지(스캔) PDF는 복붙용 .txt를 올려 주세요. 글자가 복사되는 PDF만 자동 변환됩니다."
+          );
+        }
+        throw new Error(raw || "변환 실패");
       }
 
       const blob = await res.blob();
@@ -170,9 +174,11 @@ export default function DasangHwpxPage() {
                   PDF 또는 복붙용 txt 선택
                 </span>
                 <span className="text-xs mt-2 text-center px-4" style={{ color: "#13181B", opacity: 0.6 }}>
-                  큰 PDF(최대 200MB)도 가능 · 글자 있는 PDF는 바로 변환
+                  글자가 드래그/복사되는 PDF · 복붙용 txt → 자동 변환
                   <br />
-                  이미지 PDF는 Tesseract OCR(API 비용 없음, 느릴 수 있음) · [1~…] 재시작 시 회차 분리
+                  이미지(스캔) PDF는 페이지 많으면 서버 시간 초과 → 복붙용 txt 사용
+                  <br />
+                  [1~…]이 다시 시작되면 회차 분리
                 </span>
               </>
             )}
